@@ -1,0 +1,163 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { PLANS } from "@/config/constants";
+
+export default function SettingsPage() {
+  const [plan, setPlan] = useState("free");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function loadProfile() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      setEmail(user.email || "");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) setPlan(profile.plan || "free");
+    }
+
+    loadProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleManageBilling() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        toast.error("Could not open billing portal");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    }
+    setLoading(false);
+  }
+
+  async function handleDeleteAccount() {
+    if (
+      !confirm(
+        "Are you sure you want to delete your account? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    toast.info(
+      "Account deletion requested. Contact support@repostai.com to complete."
+    );
+  }
+
+  const currentPlan =
+    Object.values(PLANS).find(
+      (p) => p.name.toLowerCase() === plan
+    ) || PLANS.FREE;
+
+  return (
+    <div className="space-y-6 max-w-2xl">
+      <div>
+        <h1 className="text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground mt-1">
+          Manage your account and subscription.
+        </p>
+      </div>
+
+      {/* Account */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Account</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Email</p>
+            <p className="font-medium">{email}</p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Subscription */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Subscription</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">
+                Current Plan:{" "}
+                <Badge variant={plan === "free" ? "secondary" : "default"}>
+                  {currentPlan.name}
+                </Badge>
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                ${currentPlan.monthlyPrice}/month
+              </p>
+            </div>
+            {plan !== "free" && (
+              <Button
+                variant="outline"
+                onClick={handleManageBilling}
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Manage Billing"}
+              </Button>
+            )}
+          </div>
+
+          {plan === "free" && (
+            <div className="bg-primary/5 rounded-lg p-4">
+              <p className="font-medium mb-1">Upgrade to Pro</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Get unlimited repurposes, all platforms, and brand voice
+                training.
+              </p>
+              <Button>Upgrade to Pro — $19/month</Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone */}
+      <Card className="border-destructive/50">
+        <CardHeader>
+          <CardTitle className="text-lg text-destructive">
+            Danger Zone
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Separator className="mb-4" />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Delete Account</p>
+              <p className="text-sm text-muted-foreground">
+                Permanently delete your account and all data.
+              </p>
+            </div>
+            <Button variant="destructive" onClick={handleDeleteAccount}>
+              Delete Account
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

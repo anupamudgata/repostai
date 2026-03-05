@@ -1,0 +1,50 @@
+import OpenAI from "openai";
+import type { Platform } from "@/types";
+import { buildRepurposePrompt } from "./prompts";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function repurposeContent(
+  content: string,
+  platforms: Platform[],
+  brandVoiceSample?: string
+): Promise<Record<Platform, string>> {
+  const prompt = buildRepurposePrompt(content, platforms, brandVoiceSample);
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are a content repurposing expert. Always return valid JSON only, with no markdown formatting or extra text.",
+      },
+      { role: "user", content: prompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 4000,
+    response_format: { type: "json_object" },
+  });
+
+  const text = response.choices[0]?.message?.content;
+  if (!text) {
+    throw new Error("No response from AI model");
+  }
+
+  return JSON.parse(text) as Record<Platform, string>;
+}
+
+export async function regenerateSingle(
+  originalContent: string,
+  platform: Platform,
+  brandVoiceSample?: string
+): Promise<string> {
+  const results = await repurposeContent(
+    originalContent,
+    [platform],
+    brandVoiceSample
+  );
+  return results[platform] || "";
+}

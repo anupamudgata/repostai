@@ -1,0 +1,147 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { repurposeContent } from "@/lib/ai/openai";
+import { scrapeUrl } from "@/lib/scrapers/url-scraper";
+import { getYouTubeTranscript } from "@/lib/scrapers/youtube-scraper";
+import { repurposeSchema } from "@/lib/validators/repurpose";
+import { FREE_TIER_MONTHLY_LIMIT } from "@/config/constants";
+
+export async function POST(request: NextRequest) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const parsed = repurposeSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+
+    const { inputType, content, url, platforms, brandVoiceId } = parsed.data;
+
+    // Check usage limits for free users
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.plan === "free" || !profile?.plan) {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const { data: usage } = await supabase
+        .from("usage")
+        .select("repurpose_count")
+        .eq("user_id", user.id)
+        .eq("month", currentMonth)
+        .single();
+
+      if (usage && usage.repurpose_count >= FREE_TIER_MONTHLY_LIMIT) {
+        return NextResponse.json(
+          {
+            error: `Free plan limit reached (${FREE_TIER_MONTHLY_LIMIT}/month). Upgrade to Pro for unlimited repurposes.`,
+            code: "LIMIT_REACHED",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Resolve content from different input types
+    let resolvedContent = content;
+
+    if (inputType === "url" && url) {
+      resolvedContent = await scrapeUrl(url);
+    } else if (inputType === "youtube" && url) {
+      resolvedContent = await getYouTubeTranscript(url);
+    }
+
+    // Get brand voice sample if provided
+    let brandVoiceSample: string | undefined;
+    if (brandVoiceId) {
+      const { data: voice } = await supabase
+        .from("brand_voices")
+        .select("sample_text")
+        .eq("id", brandVoiceId)
+        .eq("user_id", user.id)
+        .single();
+      brandVoiceSample = voice?.sample_text;
+    }
+
+    // Generate repurposed content
+    const outputs = await repurposeContent(
+      resolvedContent,
+      platforms,
+      brandVoiceSample
+    );
+
+    // Save to database
+    const { data: job } = await supabase
+      .from("repurpose_jobs")
+      .insert({
+        user_id: user.id,
+        input_type: inputType,
+        input_content: resolvedContent.slice(0, 10000),
+        input_url: url || null,
+        brand_voice_id: brandVoiceId || null,
+      })
+      .select("id")
+      .single();
+
+    if (job) {
+      const outputRows = Object.entries(outputs).map(
+        ([platform, generatedContent]) => ({
+          job_id: job.id,
+          platform,
+          generated_content: generatedContent,
+        })
+      );
+
+      await supabase.from("repurpose_outputs").insert(outputRows);
+
+      // Update usage count
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      const { data: existingUsage } = await supabase
+        .from("usage")
+        .select("id, repurpose_count")
+        .eq("user_id", user.id)
+        .eq("month", currentMonth)
+        .single();
+
+      if (existingUsage) {
+        await supabase
+          .from("usage")
+          .update({ repurpose_count: existingUsage.repurpose_count + 1 })
+          .eq("id", existingUsage.id);
+      } else {
+        await supabase.from("usage").insert({
+          user_id: user.id,
+          month: currentMonth,
+          repurpose_count: 1,
+        });
+      }
+    }
+
+    return NextResponse.json({
+      jobId: job?.id,
+      outputs: Object.entries(outputs).map(([platform, generatedContent]) => ({
+        platform,
+        content: generatedContent,
+      })),
+    });
+  } catch (error) {
+    console.error("Repurpose error:", error);
+    const message =
+      error instanceof Error ? error.message : "Something went wrong";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
