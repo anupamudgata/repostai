@@ -97,7 +97,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Do you support multiple languages?",
-    a: "Coming soon! Multi-language output (Spanish, Hindi, French, Portuguese, German, Arabic) is on our Q2 roadmap. The AI can already handle non-English input content.",
+    a: "Yes! RepostAI supports 3 languages at launch: English, Hindi (हिन्दी), and Spanish (Español). Select your output language before generating — the AI writes naturally in each language, not just translates. More languages coming soon.",
   },
 ];
 
@@ -191,7 +191,7 @@ export default function LandingPage() {
                   <Check className="h-4 w-4 text-primary" /> No credit card
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-primary" /> 7+ platforms
+                  <Check className="h-4 w-4 text-primary" /> 3 languages
                 </span>
               </div>
             </div>
@@ -467,6 +467,7 @@ export default function LandingPage() {
                   { feature: "URL Auto-Scraping", us: true, rep: false, lately: false, postiv: true },
                   { feature: "YouTube Transcription", us: true, rep: false, lately: false, postiv: false },
                   { feature: "One-Click All Platforms", us: true, rep: false, lately: false, postiv: false },
+                  { feature: "Multi-Language (EN/HI/ES)", us: true, rep: false, lately: false, postiv: false },
                   { feature: "Free Plan Available", us: true, rep: false, lately: false, postiv: false },
                   { feature: "Starting Price", us: "$19/mo", rep: "$35/mo", lately: "$49/mo", postiv: "$99/mo" },
                 ].map((row) => (
@@ -631,6 +632,12 @@ export default function LandingPage() {
                 title: "One-Click Copy",
                 description:
                   "Copy any output instantly. Edit inline if needed. Regenerate per platform.",
+              },
+              {
+                icon: Globe,
+                title: "Multi-Language Output",
+                description:
+                  "Generate content in English, Hindi, or Spanish. Reach global audiences competitors can't.",
               },
             ].map((feature) => (
               <Card

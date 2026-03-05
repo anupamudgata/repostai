@@ -1,4 +1,4 @@
-import type { Platform } from "@/types";
+import type { Platform, OutputLanguage } from "@/types";
 
 const PLATFORM_INSTRUCTIONS: Record<Platform, string> = {
   linkedin: `Write a LinkedIn post. Use a strong hook in the first line. 
@@ -34,10 +34,30 @@ Provide real value and insights. Structure with short paragraphs.
 End with a question to encourage discussion. No hashtags, no emojis.`,
 };
 
+const LANGUAGE_INSTRUCTIONS: Record<OutputLanguage, string> = {
+  en: "",
+  hi: `
+CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in Hindi (हिन्दी) using Devanagari script.
+- Use natural, conversational Hindi — not overly formal or Sanskritized
+- Mix in commonly used English words where natural (e.g., "content", "post", "share") — this is how real Hindi speakers write on social media
+- Hashtags can be in English or Hindi, whichever is more discoverable
+- Maintain the same platform-specific formatting rules (hooks, CTAs, threads, etc.)
+- The JSON keys must remain in English, only the content values should be in Hindi`,
+
+  es: `
+CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in Spanish (Español).
+- Use natural, conversational Latin American Spanish (not overly formal Castilian)
+- Use "tú" form for informal platforms (Twitter, Instagram, Reddit) and "usted" for professional ones (LinkedIn, Email)
+- Hashtags can be in Spanish or English, whichever is more discoverable for the topic
+- Maintain the same platform-specific formatting rules (hooks, CTAs, threads, etc.)
+- The JSON keys must remain in English, only the content values should be in Spanish`,
+};
+
 export function buildRepurposePrompt(
   content: string,
   platforms: Platform[],
-  brandVoice?: string
+  brandVoice?: string,
+  outputLanguage: OutputLanguage = "en"
 ): string {
   const platformSections = platforms
     .map(
@@ -50,6 +70,8 @@ export function buildRepurposePrompt(
     ? `\n\nIMPORTANT - BRAND VOICE: Match this writing style closely. Here are examples of the user's writing:\n---\n${brandVoice}\n---\nMimic their tone, vocabulary, sentence structure, and personality. The output should sound like THEM, not like AI.`
     : "";
 
+  const languageInstruction = LANGUAGE_INSTRUCTIONS[outputLanguage];
+
   return `You are a world-class content strategist. Your job is to repurpose the following content into platform-specific posts that feel native to each platform.
 
 RULES:
@@ -57,7 +79,7 @@ RULES:
 - Preserve the core message and key insights from the original content
 - Do NOT just copy-paste — adapt tone, format, and structure for each platform
 - Make every post engaging and actionable
-- Never use generic filler phrases like "In today's fast-paced world"${voiceInstruction}
+- Never use generic filler phrases like "In today's fast-paced world"${languageInstruction}${voiceInstruction}
 
 ORIGINAL CONTENT:
 ---

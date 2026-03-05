@@ -18,9 +18,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import type { InputType, Platform } from "@/types";
-import { SUPPORTED_PLATFORMS } from "@/config/constants";
+import type { InputType, Platform, OutputLanguage } from "@/types";
+import { SUPPORTED_PLATFORMS, SUPPORTED_LANGUAGES } from "@/config/constants";
 
 const INPUT_TABS = [
   { id: "text" as InputType, label: "Paste Text", icon: Type },
@@ -40,6 +47,7 @@ export default function DashboardPage() {
     "instagram",
     "email",
   ]);
+  const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("en");
   const [outputs, setOutputs] = useState<
     { platform: Platform; content: string }[]
   >([]);
@@ -80,6 +88,7 @@ export default function DashboardPage() {
           content: inputType === "text" ? content : "Fetching from URL...",
           url: inputType !== "text" ? url : undefined,
           platforms: selectedPlatforms,
+          outputLanguage,
         }),
       });
 
@@ -217,6 +226,45 @@ export default function DashboardPage() {
                 {platform.name}
               </Badge>
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Language Selection */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Output Language</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <Select
+              value={outputLanguage}
+              onValueChange={(v) => setOutputLanguage(v as OutputLanguage)}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                {SUPPORTED_LANGUAGES.map((lang) => (
+                  <SelectItem key={lang.id} value={lang.id}>
+                    <span className="flex items-center gap-2">
+                      <span>{lang.flag}</span>
+                      <span>{lang.name}</span>
+                      <span className="text-muted-foreground text-xs">
+                        ({lang.nativeName})
+                      </span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-sm text-muted-foreground">
+              {outputLanguage === "en"
+                ? "Content will be generated in English"
+                : outputLanguage === "hi"
+                  ? "कंटेंट हिन्दी में जनरेट होगा"
+                  : "El contenido se generará en español"}
+            </p>
           </div>
         </CardContent>
       </Card>

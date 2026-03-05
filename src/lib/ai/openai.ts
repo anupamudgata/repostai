@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import type { Platform } from "@/types";
+import type { Platform, OutputLanguage } from "@/types";
 import { buildRepurposePrompt } from "./prompts";
 
 const openai = new OpenAI({
@@ -9,9 +9,10 @@ const openai = new OpenAI({
 export async function repurposeContent(
   content: string,
   platforms: Platform[],
-  brandVoiceSample?: string
+  brandVoiceSample?: string,
+  outputLanguage: OutputLanguage = "en"
 ): Promise<Record<Platform, string>> {
-  const prompt = buildRepurposePrompt(content, platforms, brandVoiceSample);
+  const prompt = buildRepurposePrompt(content, platforms, brandVoiceSample, outputLanguage);
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
@@ -39,12 +40,14 @@ export async function repurposeContent(
 export async function regenerateSingle(
   originalContent: string,
   platform: Platform,
-  brandVoiceSample?: string
+  brandVoiceSample?: string,
+  outputLanguage: OutputLanguage = "en"
 ): Promise<string> {
   const results = await repurposeContent(
     originalContent,
     [platform],
-    brandVoiceSample
+    brandVoiceSample,
+    outputLanguage
   );
   return results[platform] || "";
 }

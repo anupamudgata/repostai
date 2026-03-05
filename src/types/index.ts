@@ -2,6 +2,8 @@ export type Plan = "free" | "pro" | "agency";
 
 export type InputType = "text" | "url" | "youtube" | "pdf";
 
+export type OutputLanguage = "en" | "hi" | "es";
+
 export type Platform =
   | "linkedin"
   | "twitter_thread"
@@ -47,6 +49,7 @@ export interface RepurposeJob {
   input_content: string;
   input_url: string | null;
   brand_voice_id: string | null;
+  output_language: OutputLanguage;
   created_at: string;
 }
 
@@ -72,6 +75,7 @@ export interface RepurposeRequest {
   url?: string;
   platforms: Platform[];
   brandVoiceId?: string;
+  outputLanguage?: OutputLanguage;
 }
 
 export interface RepurposeResponse {

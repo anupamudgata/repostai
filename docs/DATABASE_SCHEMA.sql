@@ -107,6 +107,7 @@ create table public.repurpose_jobs (
   input_content text not null,
   input_url text,
   brand_voice_id uuid references public.brand_voices(id) on delete set null,
+  output_language text not null default 'en' check (output_language in ('en', 'hi', 'es')),
   created_at timestamptz not null default now()
 );
 

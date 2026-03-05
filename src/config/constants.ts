@@ -33,6 +33,7 @@ export const PLANS = {
     features: [
       "Unlimited repurposes",
       "All 7+ platforms",
+      "3 languages (EN, HI, ES)",
       "Brand voice training (3 voices)",
       "Full history",
       "Priority speed",
@@ -55,6 +56,7 @@ export const PLANS = {
     features: [
       "Everything in Pro",
       "10 brand voices",
+      "3 languages (EN, HI, ES)",
       "CSV export",
       "API access",
       "Priority support",
@@ -77,6 +79,12 @@ export const INPUT_TYPES = [
   { id: "url", name: "Blog URL", icon: "link", description: "Auto-scrape blog content" },
   { id: "youtube", name: "YouTube URL", icon: "youtube", description: "Auto-transcribe video" },
   { id: "pdf", name: "Upload PDF", icon: "file-text", description: "Extract text from PDF" },
+] as const;
+
+export const SUPPORTED_LANGUAGES = [
+  { id: "en", name: "English", nativeName: "English", flag: "🇺🇸" },
+  { id: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳" },
+  { id: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
 ] as const;
 
 export const FREE_TIER_MONTHLY_LIMIT = 5;

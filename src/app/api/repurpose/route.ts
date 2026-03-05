@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { inputType, content, url, platforms, brandVoiceId } = parsed.data;
+    const { inputType, content, url, platforms, brandVoiceId, outputLanguage } = parsed.data;
 
     // Check usage limits for free users
     const { data: profile } = await supabase
@@ -81,7 +81,8 @@ export async function POST(request: NextRequest) {
     const outputs = await repurposeContent(
       resolvedContent,
       platforms,
-      brandVoiceSample
+      brandVoiceSample,
+      outputLanguage
     );
 
     // Save to database
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
         input_content: resolvedContent.slice(0, 10000),
         input_url: url || null,
         brand_voice_id: brandVoiceId || null,
+        output_language: outputLanguage,
       })
       .select("id")
       .single();
