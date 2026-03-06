@@ -92,17 +92,45 @@
 
 ## Day 2 - March 6, 2026 (Thursday)
 
-### Planned Tasks
+### What Was Completed Today
+
+**Code Tasks**
+- [x] Committed Day 1 uncommitted work (AI Content Starter feature: create page, API route, schema updates)
+- [x] Added POST /api/billing/checkout — accepts plan name, resolves Stripe price ID server-side, creates checkout session
+- [x] Added POST /api/billing/portal — looks up stripe_customer_id, creates billing portal session
+- [x] Wired "Upgrade to Pro" button in Settings page to call checkout API
+- [x] Fixed 2 lint warnings (unused state variables in create page)
+- [x] Build passes cleanly (0 errors, 0 warnings)
+- [x] Get OpenAI API key and set billing limit
+
+**External Setup (In Progress)**
 - [ ] Create Supabase project and run schema SQL
-- [ ] Get OpenAI API key and set billing limit
 - [ ] Create Stripe products/prices (Free, Pro $19/mo, Agency $49/mo)
 - [ ] Fill .env.local with all real keys
-- [ ] Add /api/billing/checkout and /api/billing/portal routes
+
+**Testing & Deploy (Pending)**
 - [ ] Test full auth flow (signup → login → dashboard)
 - [ ] Test repurposing flow (paste text → generate → copy)
-- [ ] Fix all build/lint errors
 - [ ] Deploy first version to Vercel
 - [ ] Register domain name
+
+### Files Created Today: 2
+- `src/app/api/billing/checkout/route.ts`
+- `src/app/api/billing/portal/route.ts`
+
+### Files Modified Today: 2
+- `src/app/dashboard/settings/page.tsx` (wired upgrade button)
+- `src/app/dashboard/create/page.tsx` (fixed lint warnings)
+
+### Current Route Map (6 API routes)
+| Route | Method | Status |
+|-------|--------|--------|
+| /api/auth/callback | GET | Ready |
+| /api/repurpose | POST | Ready |
+| /api/create | POST | Ready |
+| /api/webhooks/stripe | POST | Ready |
+| /api/billing/checkout | POST | NEW |
+| /api/billing/portal | POST | NEW |
 
 ---
 
