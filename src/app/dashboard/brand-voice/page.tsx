@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Mic } from "lucide-react";
+import Link from "next/link";
+import { Plus, Trash2, Mic, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { PLANS } from "@/config/constants";
 import type { BrandVoice } from "@/types";
 
 export default function BrandVoicePage() {
@@ -17,10 +19,23 @@ export default function BrandVoicePage() {
   const [name, setName] = useState("");
   const [sampleText, setSampleText] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userPlan, setUserPlan] = useState("free");
   const supabase = createClient();
+
+  const planConfig = userPlan === "agency"
+    ? PLANS.AGENCY
+    : userPlan === "pro"
+      ? PLANS.PRO
+      : PLANS.FREE;
+  const maxVoices = planConfig.brandVoices;
+  const canCreateVoice = maxVoices === 0 ? false : voices.length < maxVoices;
 
   useEffect(() => {
     loadVoices();
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((d) => { if (d.plan) setUserPlan(d.plan); })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -41,12 +56,25 @@ export default function BrandVoicePage() {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!canCreateVoice) {
+      if (maxVoices === 0) {
+        toast.error("Brand voices are available on Pro and Agency plans.");
+      } else {
+        toast.error(`You've reached the limit of ${maxVoices} brand voices for your plan.`);
+      }
+      return;
+    }
+
     setLoading(true);
 
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     const { error } = await supabase.from("brand_voices").insert({
       user_id: user.id,
@@ -90,10 +118,28 @@ export default function BrandVoicePage() {
             Train the AI to write in your unique style.
           </p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Voice
-        </Button>
+        {maxVoices === 0 ? (
+          <Button asChild variant="outline" className="gap-2">
+            <Link href="/dashboard/settings">
+              <Lock className="h-4 w-4" />
+              Upgrade to Add Voices
+            </Link>
+          </Button>
+        ) : (
+          <Button
+            onClick={() => {
+              if (!canCreateVoice) {
+                toast.error(`Limit reached (${maxVoices} voices for your plan).`);
+                return;
+              }
+              setShowForm(!showForm);
+            }}
+            className="gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Voice ({voices.length}/{maxVoices})
+          </Button>
+        )}
       </div>
 
       {showForm && (

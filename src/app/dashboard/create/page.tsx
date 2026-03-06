@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Sparkles,
   Loader2,
@@ -37,7 +37,11 @@ import {
   LENGTH_OPTIONS,
   SUPPORTED_LANGUAGES,
   SUPPORTED_PLATFORMS,
+  FREE_PLATFORM_IDS,
+  PLANS,
 } from "@/config/constants";
+
+const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
 
 type Step = "form" | "preview" | "repurpose";
 
@@ -62,7 +66,6 @@ export default function CreatePage() {
     "linkedin",
     "twitter_thread",
     "twitter_single",
-    "instagram",
     "email",
   ]);
   const [repurposeOutputs, setRepurposeOutputs] = useState<
@@ -72,6 +75,24 @@ export default function CreatePage() {
   const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
 
   const [planError, setPlanError] = useState(false);
+  const [userPlan, setUserPlan] = useState("free");
+
+  const isFreePlan = userPlan === "free";
+
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((d) => { if (d.plan) setUserPlan(d.plan); })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (isFreePlan) {
+      setSelectedPlatforms((prev) =>
+        prev.filter((p) => FREE_PLATFORMS_SET.has(p))
+      );
+    }
+  }, [isFreePlan]);
 
   async function handleGenerate() {
     if (!topic.trim()) {
@@ -153,6 +174,7 @@ export default function CreatePage() {
   }
 
   function togglePlatform(platform: Platform) {
+    if (isFreePlan && !FREE_PLATFORMS_SET.has(platform)) return;
     setSelectedPlatforms((prev) =>
       prev.includes(platform)
         ? prev.filter((p) => p !== platform)
@@ -234,7 +256,7 @@ export default function CreatePage() {
           </Button>
           <Button asChild>
             <a href="/dashboard/settings">
-              Upgrade to Pro — $19/mo
+              Upgrade to Pro — ${PLANS.PRO.monthlyPrice}/mo
               <ArrowRight className="h-4 w-4 ml-2" />
             </a>
           </Button>
@@ -478,23 +500,36 @@ export default function CreatePage() {
             </CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-2">
-                {SUPPORTED_PLATFORMS.map((platform) => (
-                  <Badge
-                    key={platform.id}
-                    variant={
-                      selectedPlatforms.includes(platform.id as Platform)
-                        ? "default"
-                        : "outline"
-                    }
-                    className="cursor-pointer text-sm py-1.5 px-3 transition-colors"
-                    onClick={() => togglePlatform(platform.id as Platform)}
-                  >
-                    {selectedPlatforms.includes(platform.id as Platform) && (
-                      <Check className="h-3 w-3 mr-1" />
-                    )}
-                    {platform.name}
-                  </Badge>
-                ))}
+                {SUPPORTED_PLATFORMS.map((platform) => {
+                  const isLocked = isFreePlan && !FREE_PLATFORMS_SET.has(platform.id);
+                  return (
+                    <Badge
+                      key={platform.id}
+                      variant={
+                        selectedPlatforms.includes(platform.id as Platform)
+                          ? "default"
+                          : "outline"
+                      }
+                      className={`text-sm py-1.5 px-3 transition-colors ${
+                        isLocked
+                          ? "opacity-60 cursor-not-allowed"
+                          : "cursor-pointer"
+                      }`}
+                      onClick={() => !isLocked && togglePlatform(platform.id as Platform)}
+                      title={
+                        isLocked
+                          ? "Upgrade to Pro for Instagram, Facebook, Reddit"
+                          : undefined
+                      }
+                    >
+                      {isLocked && <Lock className="h-3 w-3 mr-1" />}
+                      {selectedPlatforms.includes(platform.id as Platform) && !isLocked && (
+                        <Check className="h-3 w-3 mr-1" />
+                      )}
+                      {platform.name}
+                    </Badge>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

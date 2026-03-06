@@ -154,27 +154,11 @@ export async function POST(request: NextRequest) {
 
       await supabase.from("repurpose_outputs").insert(outputRows);
 
-      // Update usage count
       const currentMonth = new Date().toISOString().slice(0, 7);
-      const { data: existingUsage } = await supabase
-        .from("usage")
-        .select("id, repurpose_count")
-        .eq("user_id", user.id)
-        .eq("month", currentMonth)
-        .single();
-
-      if (existingUsage) {
-        await supabase
-          .from("usage")
-          .update({ repurpose_count: existingUsage.repurpose_count + 1 })
-          .eq("id", existingUsage.id);
-      } else {
-        await supabase.from("usage").insert({
-          user_id: user.id,
-          month: currentMonth,
-          repurpose_count: 1,
-        });
-      }
+      await supabase.rpc("increment_usage", {
+        p_user_id: user.id,
+        p_month: currentMonth,
+      });
     }
 
     return NextResponse.json({

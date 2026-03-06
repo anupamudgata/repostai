@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
           plan,
           status: subscription.status,
           current_period_end: new Date(periodEnd * 1000).toISOString(),
-        });
+        }, { onConflict: "user_id" });
 
         break;
       }

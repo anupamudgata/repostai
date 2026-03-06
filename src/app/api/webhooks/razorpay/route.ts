@@ -13,7 +13,14 @@ function verifyWebhookSignature(body: string, signature: string): boolean {
     .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET!)
     .update(body)
     .digest("hex");
-  return expected === signature;
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(expected, "hex"),
+      Buffer.from(signature, "hex")
+    );
+  } catch {
+    return false;
+  }
 }
 
 export async function POST(request: NextRequest) {

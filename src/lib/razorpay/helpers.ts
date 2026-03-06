@@ -45,7 +45,7 @@ export async function createSubscription(
   return { subscriptionId: (sub as { id: string }).id };
 }
 
-/** Verify payment signature (callback). */
+/** Verify payment signature (callback) using timing-safe comparison. */
 export function verifyPaymentSignature(
   paymentId: string,
   subscriptionId: string,
@@ -55,5 +55,12 @@ export function verifyPaymentSignature(
     .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
     .update(`${paymentId}|${subscriptionId}`)
     .digest("hex");
-  return expected === signature;
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(expected, "hex"),
+      Buffer.from(signature, "hex")
+    );
+  } catch {
+    return false;
+  }
 }

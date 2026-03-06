@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,6 +11,8 @@ import {
   Settings,
   LogOut,
   Sparkles,
+  Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -32,9 +35,17 @@ interface NavProps {
   };
 }
 
+const NAV_LINKS = [
+  { href: "/dashboard", label: "Repurpose", icon: LayoutDashboard },
+  { href: "/dashboard/create", label: "Create", icon: Sparkles, badge: "PRO" },
+  { href: "/dashboard/history", label: "History", icon: History },
+  { href: "/dashboard/brand-voice", label: "Brand Voice", icon: Mic },
+];
+
 export function DashboardNav({ user }: NavProps) {
   const router = useRouter();
   const supabase = createClient();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -47,7 +58,7 @@ export function DashboardNav({ user }: NavProps) {
         .map((n) => n[0])
         .join("")
         .toUpperCase()
-    : user.email[0].toUpperCase();
+    : (user.email?.[0] || "U").toUpperCase();
 
   return (
     <nav className="border-b bg-background/95 backdrop-blur sticky top-0 z-50">
@@ -58,33 +69,19 @@ export function DashboardNav({ user }: NavProps) {
             <span className="font-bold">RepostAI</span>
           </Link>
           <div className="hidden md:flex items-center gap-1">
-            <Link href="/dashboard">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <LayoutDashboard className="h-4 w-4" />
-                Repurpose
-              </Button>
-            </Link>
-            <Link href="/dashboard/create">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                Create
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  PRO
-                </Badge>
-              </Button>
-            </Link>
-            <Link href="/dashboard/history">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <History className="h-4 w-4" />
-                History
-              </Button>
-            </Link>
-            <Link href="/dashboard/brand-voice">
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Mic className="h-4 w-4" />
-                Brand Voice
-              </Button>
-            </Link>
+            {NAV_LINKS.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <link.icon className="h-4 w-4" />
+                  {link.label}
+                  {link.badge && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      {link.badge}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+            ))}
           </div>
         </div>
 
@@ -92,6 +89,16 @@ export function DashboardNav({ user }: NavProps) {
           <Badge variant={user.plan === "free" ? "secondary" : "default"}>
             {user.plan === "free" ? "Free" : user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
           </Badge>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen(!mobileOpen)}
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
@@ -124,6 +131,34 @@ export function DashboardNav({ user }: NavProps) {
           </DropdownMenu>
         </div>
       </div>
+
+      {mobileOpen && (
+        <div className="md:hidden border-t bg-background px-4 py-3 space-y-1">
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileOpen(false)}
+            >
+              <Button variant="ghost" className="w-full justify-start gap-2">
+                <link.icon className="h-4 w-4" />
+                {link.label}
+                {link.badge && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                    {link.badge}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+          ))}
+          <Link href="/dashboard/settings" onClick={() => setMobileOpen(false)}>
+            <Button variant="ghost" className="w-full justify-start gap-2">
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </Link>
+        </div>
+      )}
     </nav>
   );
 }

@@ -14,14 +14,23 @@ export function extractYouTubeVideoId(url: string): string | null {
   return null;
 }
 
+const FETCH_TIMEOUT_MS = 15_000;
+
+function fetchWithTimeout(input: string | URL, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  return fetch(input, { ...init, signal: controller.signal }).finally(() =>
+    clearTimeout(timer)
+  );
+}
+
 export async function getYouTubeTranscript(url: string): Promise<string> {
   const videoId = extractYouTubeVideoId(url);
   if (!videoId) {
     throw new Error("Invalid YouTube URL. Please provide a valid YouTube video link.");
   }
 
-  // Fetch transcript using YouTube's internal API (no API key needed)
-  const watchPageResponse = await fetch(
+  const watchPageResponse = await fetchWithTimeout(
     `https://www.youtube.com/watch?v=${videoId}`,
     {
       headers: {
@@ -55,7 +64,7 @@ export async function getYouTubeTranscript(url: string): Promise<string> {
     );
     const track = englishTrack || tracks[0];
 
-    const transcriptResponse = await fetch(track.baseUrl);
+    const transcriptResponse = await fetchWithTimeout(track.baseUrl);
     const transcriptXml = await transcriptResponse.text();
 
     // Parse XML transcript

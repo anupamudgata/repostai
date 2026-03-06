@@ -197,6 +197,19 @@ create policy "Users can create their own posts"
   with check (auth.uid() = user_id);
 
 -- ============================================
+-- ATOMIC USAGE INCREMENT (prevents race conditions)
+-- ============================================
+create or replace function public.increment_usage(p_user_id uuid, p_month text)
+returns void as $$
+begin
+  insert into public.usage (user_id, month, repurpose_count)
+  values (p_user_id, p_month, 1)
+  on conflict (user_id, month)
+  do update set repurpose_count = usage.repurpose_count + 1;
+end;
+$$ language plpgsql security definer;
+
+-- ============================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================
 create index idx_repurpose_jobs_user_id on public.repurpose_jobs(user_id);

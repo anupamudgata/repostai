@@ -5,7 +5,6 @@ import {
   Globe,
   Sparkles,
   Check,
-  Star,
   Clock,
   MousePointerClick,
   Linkedin,
@@ -43,27 +42,21 @@ const PLATFORMS = [
   { name: "Reddit", icon: MessageCircle, color: "bg-orange-500" },
 ];
 
-const TESTIMONIALS = [
+const USE_CASES = [
   {
-    name: "Sarah Chen",
-    role: "Content Creator, 120K followers",
-    quote:
-      "I used to spend 4 hours reformatting one blog post for social media. Now it takes 60 seconds. This is insane.",
-    rating: 5,
+    title: "Content Creators",
+    description:
+      "Write one blog post and get LinkedIn, Twitter, Instagram, and email versions instantly. Save hours every week.",
   },
   {
-    name: "Marcus Rodriguez",
-    role: "Marketing Lead at SaaSly",
-    quote:
-      "The brand voice feature is what sold me. It actually sounds like our team wrote it, not some AI bot.",
-    rating: 5,
+    title: "Marketing Teams",
+    description:
+      "Keep brand voice consistent across every channel with AI that learns your style. No more copy-paste formatting.",
   },
   {
-    name: "Priya Sharma",
-    role: "Freelance Social Media Manager",
-    quote:
-      "Managing 8 clients used to be a nightmare. RepostAI pays for itself 100x over with the Agency plan.",
-    rating: 5,
+    title: "Freelancers & Agencies",
+    description:
+      "Manage multiple clients with separate brand voices. Repurpose each piece of content to all platforms in seconds.",
   },
 ];
 
@@ -181,10 +174,10 @@ export default function LandingPage() {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <a href="#demo">
+                <a href="#how-it-works">
                   <Button size="lg" variant="outline" className="text-base px-8 gap-2">
                     <Play className="h-4 w-4" />
-                    See it in action
+                    See how it works
                   </Button>
                 </a>
               </div>
@@ -698,33 +691,22 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Use Cases */}
       <section className="py-20">
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Loved by creators worldwide
+              Built for people who create content
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map((t) => (
-              <Card key={t.name} className="hover:shadow-md transition-shadow">
+            {USE_CASES.map((uc) => (
+              <Card key={uc.title} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
-                  <div className="flex gap-0.5 mb-3">
-                    {[...Array(t.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-4 w-4 fill-yellow-400 text-yellow-400"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-sm mb-4 leading-relaxed">
-                    &quot;{t.quote}&quot;
+                  <h3 className="text-base font-semibold mb-2">{uc.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {uc.description}
                   </p>
-                  <div>
-                    <p className="text-sm font-medium">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.role}</p>
-                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -833,9 +815,9 @@ export default function LandingPage() {
                 <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-sm">1,400+ Active Users</p>
+                <p className="font-semibold text-sm">Free Forever Plan</p>
                 <p className="text-xs text-muted-foreground">
-                  Creators & marketers in 40+ countries.
+                  No credit card required to start.
                 </p>
               </div>
             </div>
@@ -845,9 +827,9 @@ export default function LandingPage() {
                 <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-sm">95% Satisfaction Rate</p>
+                <p className="font-semibold text-sm">3 Languages</p>
                 <p className="text-xs text-muted-foreground">
-                  Based on post-trial surveys.
+                  English, Hindi, and Spanish.
                 </p>
               </div>
             </div>

@@ -4,6 +4,7 @@ import { buildRepurposePrompt } from "./prompts";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
+  timeout: 30_000,
 });
 
 export async function repurposeContent(
@@ -34,7 +35,13 @@ export async function repurposeContent(
     throw new Error("No response from AI model");
   }
 
-  return JSON.parse(text) as Record<Platform, string>;
+  try {
+    return JSON.parse(text) as Record<Platform, string>;
+  } catch {
+    throw new Error(
+      "AI returned an unexpected format. Please try again."
+    );
+  }
 }
 
 export async function regenerateSingle(

@@ -191,7 +191,7 @@ export default function SettingsPage() {
                         key: data.keyId,
                         subscription_id: data.subscriptionId,
                         name: "RepostAI",
-                        description: "Pro — $19/month",
+                        description: `Pro — $${PLANS.PRO.monthlyPrice}/month`,
                         callback_url: callbackUrl,
                         prefill: { email, name: userName },
                       });
@@ -215,7 +215,7 @@ export default function SettingsPage() {
                   setLoading(false);
                 }}
               >
-                {loading ? "Loading..." : "Upgrade to Pro — $19/month"}
+                {loading ? "Loading..." : `Upgrade to Pro — $${PLANS.PRO.monthlyPrice}/month`}
               </Button>
             </div>
           )}

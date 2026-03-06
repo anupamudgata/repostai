@@ -127,6 +127,10 @@ export default function DashboardPage() {
   }
 
   async function handleRepurpose() {
+    if (inputType === "pdf") {
+      toast.error("PDF upload is coming soon. Please use the Text tab to paste your content.");
+      return;
+    }
     if (inputType === "text" && !content.trim()) {
       toast.error("Please paste some content first");
       return;
