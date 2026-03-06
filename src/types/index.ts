@@ -4,6 +4,37 @@ export type InputType = "text" | "url" | "youtube" | "pdf";
 
 export type OutputLanguage = "en" | "hi" | "es";
 
+export type ContentTone =
+  | "professional"
+  | "casual"
+  | "humorous"
+  | "inspirational"
+  | "educational";
+
+export type ContentLength = "short" | "medium" | "long";
+
+export interface CreateContentRequest {
+  topic: string;
+  tone: ContentTone;
+  length: ContentLength;
+  audience: string;
+  outputLanguage: OutputLanguage;
+  brandVoiceId?: string;
+}
+
+export interface CreatedPost {
+  id: string;
+  user_id: string;
+  topic: string;
+  tone: ContentTone;
+  length: ContentLength;
+  audience: string;
+  output_language: OutputLanguage;
+  generated_content: string;
+  brand_voice_id: string | null;
+  created_at: string;
+}
+
 export type Platform =
   | "linkedin"
   | "twitter_thread"

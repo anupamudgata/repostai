@@ -171,6 +171,32 @@ create policy "Users can update their own usage"
   using (auth.uid() = user_id);
 
 -- ============================================
+-- CREATED POSTS TABLE (AI Content Starter)
+-- ============================================
+create table public.created_posts (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  topic text not null,
+  tone text not null check (tone in ('professional', 'casual', 'humorous', 'inspirational', 'educational')),
+  length text not null check (length in ('short', 'medium', 'long')),
+  audience text not null,
+  output_language text not null default 'en' check (output_language in ('en', 'hi', 'es')),
+  generated_content text not null,
+  brand_voice_id uuid references public.brand_voices(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.created_posts enable row level security;
+
+create policy "Users can view their own created posts"
+  on public.created_posts for select
+  using (auth.uid() = user_id);
+
+create policy "Users can create their own posts"
+  on public.created_posts for insert
+  with check (auth.uid() = user_id);
+
+-- ============================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================
 create index idx_repurpose_jobs_user_id on public.repurpose_jobs(user_id);
@@ -179,3 +205,5 @@ create index idx_repurpose_outputs_job_id on public.repurpose_outputs(job_id);
 create index idx_brand_voices_user_id on public.brand_voices(user_id);
 create index idx_usage_user_month on public.usage(user_id, month);
 create index idx_subscriptions_user_id on public.subscriptions(user_id);
+create index idx_created_posts_user_id on public.created_posts(user_id);
+create index idx_created_posts_created_at on public.created_posts(created_at desc);

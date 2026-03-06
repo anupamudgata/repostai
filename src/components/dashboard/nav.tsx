@@ -9,6 +9,7 @@ import {
   Mic,
   Settings,
   LogOut,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +62,15 @@ export function DashboardNav({ user }: NavProps) {
               <Button variant="ghost" size="sm" className="gap-2">
                 <LayoutDashboard className="h-4 w-4" />
                 Repurpose
+              </Button>
+            </Link>
+            <Link href="/dashboard/create">
+              <Button variant="ghost" size="sm" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                Create
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  PRO
+                </Badge>
               </Button>
             </Link>
             <Link href="/dashboard/history">

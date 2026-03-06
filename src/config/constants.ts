@@ -32,6 +32,7 @@ export const PLANS = {
     brandVoices: 3,
     features: [
       "Unlimited repurposes",
+      "AI Content Starter (topic to post)",
       "All 7+ platforms",
       "3 languages (EN, HI, ES)",
       "Brand voice training (3 voices)",
@@ -55,6 +56,7 @@ export const PLANS = {
     brandVoices: 10,
     features: [
       "Everything in Pro",
+      "AI Content Starter (unlimited)",
       "10 brand voices",
       "3 languages (EN, HI, ES)",
       "CSV export",
@@ -85,6 +87,20 @@ export const SUPPORTED_LANGUAGES = [
   { id: "en", name: "English", nativeName: "English", flag: "🇺🇸" },
   { id: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳" },
   { id: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
+] as const;
+
+export const TONE_OPTIONS = [
+  { id: "professional", name: "Professional", description: "Clean, authoritative, business-appropriate" },
+  { id: "casual", name: "Casual", description: "Friendly, relatable, conversational" },
+  { id: "humorous", name: "Humorous", description: "Witty, fun, entertaining" },
+  { id: "inspirational", name: "Inspirational", description: "Motivating, uplifting, empowering" },
+  { id: "educational", name: "Educational", description: "Informative, clear, structured" },
+] as const;
+
+export const LENGTH_OPTIONS = [
+  { id: "short", name: "Short", words: 300, description: "~300 words, quick read" },
+  { id: "medium", name: "Medium", words: 600, description: "~600 words, standard blog post" },
+  { id: "long", name: "Long", words: 1000, description: "~1000+ words, in-depth article" },
 ] as const;
 
 export const FREE_TIER_MONTHLY_LIMIT = 5;

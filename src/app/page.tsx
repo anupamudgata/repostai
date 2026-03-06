@@ -25,6 +25,7 @@ import {
   Users,
   TrendingUp,
   Heart,
+  Wand2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -94,6 +95,10 @@ const FAQ_ITEMS = [
   {
     q: "What if it's not for me?",
     a: "We offer a 14-day money-back guarantee on all paid plans. If you're not saving time, email us and we'll refund you — no questions asked.",
+  },
+  {
+    q: "What is AI Content Starter?",
+    a: "AI Content Starter lets you generate a full blog-quality draft from just a topic, tone, audience, and length — no writing required. Once the AI writes your post, you can review, edit, and then auto-repurpose it to every platform in one click. It's the complete content flywheel: idea to everywhere. Available on Pro and Agency plans.",
   },
   {
     q: "Do you support multiple languages?",
@@ -462,6 +467,7 @@ export default function LandingPage() {
               <tbody>
                 {[
                   { feature: "AI Content Generation", us: true, rep: false, lately: true, postiv: true },
+                  { feature: "Topic-to-Everywhere Flywheel", us: true, rep: false, lately: false, postiv: false },
                   { feature: "Brand Voice Training", us: true, rep: false, lately: true, postiv: false },
                   { feature: "7+ Text Platforms", us: true, rep: false, lately: true, postiv: false },
                   { feature: "URL Auto-Scraping", us: true, rep: false, lately: false, postiv: true },
@@ -632,6 +638,12 @@ export default function LandingPage() {
                 title: "One-Click Copy",
                 description:
                   "Copy any output instantly. Edit inline if needed. Regenerate per platform.",
+              },
+              {
+                icon: Wand2,
+                title: "AI Content Starter",
+                description:
+                  "Don't have a blog post? Tell us your topic, tone, and audience — AI writes a full draft, then auto-repurposes it everywhere.",
               },
               {
                 icon: Globe,
