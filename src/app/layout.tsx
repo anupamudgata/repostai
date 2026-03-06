@@ -23,6 +23,14 @@ export const metadata: Metadata = {
     description:
       "Paste one piece of content. Get 10+ ready-to-post versions for every platform. Under 60 seconds.",
     type: "website",
+    images: [
+      {
+        url: `${process.env.NEXT_PUBLIC_APP_URL || "https://repostai.com"}/og.png`,
+        width: 1200,
+        height: 630,
+        alt: "RepostAI - One post. Every platform. Under 60 seconds.",
+      },
+    ],
   },
 };
 

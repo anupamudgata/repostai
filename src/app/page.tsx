@@ -294,13 +294,15 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 text-center">
             <div>
-              <p className="text-2xl font-bold">5,200+</p>
-              <p className="text-xs text-muted-foreground">Content Repurposed</p>
+              <Badge variant="secondary" className="mb-1">
+                New
+              </Badge>
+              <p className="text-sm font-medium">Be one of the first</p>
             </div>
             <Separator orientation="vertical" className="h-8 hidden sm:block" />
             <div>
-              <p className="text-2xl font-bold">1,400+</p>
-              <p className="text-xs text-muted-foreground">Happy Creators</p>
+              <p className="text-2xl font-bold">5+</p>
+              <p className="text-xs text-muted-foreground">Hours saved per week</p>
             </div>
             <Separator orientation="vertical" className="h-8 hidden sm:block" />
             <div>
@@ -308,13 +310,8 @@ export default function LandingPage() {
               <p className="text-xs text-muted-foreground">Platforms Supported</p>
             </div>
             <Separator orientation="vertical" className="h-8 hidden sm:block" />
-            <div className="flex items-center gap-1.5">
-              <div className="flex">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-sm font-medium">4.9/5</p>
+            <div>
+              <p className="text-sm font-medium">Join creators saving time</p>
             </div>
           </div>
         </div>
@@ -460,7 +457,7 @@ export default function LandingPage() {
                     Lately AI
                   </th>
                   <th className="p-3 border-b font-medium text-muted-foreground hidden sm:table-cell">
-                    Postiv
+                    Positiv
                   </th>
                 </tr>
               </thead>
@@ -947,7 +944,7 @@ export default function LandingPage() {
             Ready to repurpose smarter?
           </h2>
           <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">
-            Join 1,400+ creators who save 5+ hours every week. Start with 5 free
+            Join creators who save 5+ hours every week. Start with 5 free
             repurposes today.
           </p>
           <Link href="/signup">

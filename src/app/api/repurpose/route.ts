@@ -4,7 +4,7 @@ import { repurposeContent } from "@/lib/ai/openai";
 import { scrapeUrl } from "@/lib/scrapers/url-scraper";
 import { getYouTubeTranscript } from "@/lib/scrapers/youtube-scraper";
 import { repurposeSchema } from "@/lib/validators/repurpose";
-import { FREE_TIER_MONTHLY_LIMIT } from "@/config/constants";
+import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS } from "@/config/constants";
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,7 +36,9 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (profile?.plan === "free" || !profile?.plan) {
+    const isFreePlan = profile?.plan === "free" || !profile?.plan;
+
+    if (isFreePlan) {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const { data: usage } = await supabase
         .from("usage")
@@ -56,13 +58,55 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Enforce platform limits for free users
+    let allowedPlatforms = platforms;
+    if (isFreePlan) {
+      allowedPlatforms = platforms.filter((p) =>
+        (FREE_PLATFORM_IDS as readonly string[]).includes(p)
+      );
+      if (allowedPlatforms.length === 0) {
+        return NextResponse.json(
+          {
+            error:
+              "Free plan includes LinkedIn, Twitter/X, and Email only. Upgrade to Pro for Instagram, Facebook, and Reddit.",
+            code: "PLAN_LIMIT",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // Resolve content from different input types
     let resolvedContent = content;
 
-    if (inputType === "url" && url) {
-      resolvedContent = await scrapeUrl(url);
-    } else if (inputType === "youtube" && url) {
-      resolvedContent = await getYouTubeTranscript(url);
+    try {
+      if (inputType === "url" && url) {
+        resolvedContent = await scrapeUrl(url);
+      } else if (inputType === "youtube" && url) {
+        resolvedContent = await getYouTubeTranscript(url);
+      }
+    } catch (scrapeError) {
+      const msg =
+        scrapeError instanceof Error ? scrapeError.message : "";
+      if (msg.includes("Could not extract") || msg.includes("URL")) {
+        return NextResponse.json(
+          { error: "Could not extract content from this URL. Try pasting the text directly." },
+          { status: 400 }
+        );
+      }
+      if (msg.includes("transcript") || msg.includes("captions")) {
+        return NextResponse.json(
+          {
+            error:
+              "Could not get transcript. The video may have no captions. Enable captions or paste a transcript.",
+          },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { error: msg || "Failed to fetch content. Try pasting the text directly." },
+        { status: 400 }
+      );
     }
 
     // Get brand voice sample if provided
@@ -80,7 +124,7 @@ export async function POST(request: NextRequest) {
     // Generate repurposed content
     const outputs = await repurposeContent(
       resolvedContent,
-      platforms,
+      allowedPlatforms,
       brandVoiceSample,
       outputLanguage
     );

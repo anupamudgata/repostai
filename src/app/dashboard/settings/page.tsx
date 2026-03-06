@@ -9,10 +9,25 @@ import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { PLANS } from "@/config/constants";
 
+declare global {
+  interface Window {
+    Razorpay?: new (options: {
+      key: string;
+      subscription_id: string;
+      name: string;
+      description: string;
+      callback_url: string;
+      prefill?: { email?: string; name?: string };
+    }) => { open: () => void };
+  }
+}
+
 export default function SettingsPage() {
   const [plan, setPlan] = useState("free");
   const [email, setEmail] = useState("");
+  const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [paymentProvider, setPaymentProvider] = useState<"razorpay" | "stripe">("stripe");
   const supabase = createClient();
 
   useEffect(() => {
@@ -23,6 +38,7 @@ export default function SettingsPage() {
       if (!user) return;
 
       setEmail(user.email || "");
+      setUserName(user.user_metadata?.full_name || user.user_metadata?.name || "");
 
       const { data: profile } = await supabase
         .from("profiles")
@@ -35,6 +51,13 @@ export default function SettingsPage() {
 
     loadProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/billing/provider")
+      .then((r) => r.json())
+      .then((d) => d.provider && setPaymentProvider(d.provider))
+      .catch(() => {});
   }, []);
 
   async function handleManageBilling() {
@@ -113,13 +136,19 @@ export default function SettingsPage() {
               </p>
             </div>
             {plan !== "free" && (
-              <Button
-                variant="outline"
-                onClick={handleManageBilling}
-                disabled={loading}
-              >
-                {loading ? "Loading..." : "Manage Billing"}
-              </Button>
+              paymentProvider === "stripe" ? (
+                <Button
+                  variant="outline"
+                  onClick={handleManageBilling}
+                  disabled={loading}
+                >
+                  {loading ? "Loading..." : "Manage Billing"}
+                </Button>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  To cancel or change plan, email support@repostai.com
+                </p>
+              )
             )}
           </div>
 
@@ -135,16 +164,50 @@ export default function SettingsPage() {
                 onClick={async () => {
                   setLoading(true);
                   try {
-                    const res = await fetch("/api/billing/checkout", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ plan: "pro" }),
-                    });
-                    const data = await res.json();
-                    if (data.url) {
-                      window.location.href = data.url;
+                    if (paymentProvider === "razorpay") {
+                      const res = await fetch("/api/billing/razorpay/create-subscription", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ plan: "pro", billing: "monthly" }),
+                      });
+                      const data = await res.json();
+                      if (res.status === 503 || !data.subscriptionId || !data.keyId) {
+                        toast.error(data.error || "Payments not configured");
+                        setLoading(false);
+                        return;
+                      }
+                      const baseUrl = window.location.origin;
+                      const callbackUrl = `${baseUrl}/api/billing/razorpay/callback`;
+                      if (!window.Razorpay) {
+                        const script = document.createElement("script");
+                        script.src = "https://checkout.razorpay.com/v1/checkout.js";
+                        script.async = true;
+                        document.body.appendChild(script);
+                        await new Promise((resolve) => {
+                          script.onload = resolve;
+                        });
+                      }
+                      const rzp = new window.Razorpay!({
+                        key: data.keyId,
+                        subscription_id: data.subscriptionId,
+                        name: "RepostAI",
+                        description: "Pro — $19/month",
+                        callback_url: callbackUrl,
+                        prefill: { email, name: userName },
+                      });
+                      rzp.open();
                     } else {
-                      toast.error(data.error || "Could not start checkout");
+                      const res = await fetch("/api/billing/checkout", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ plan: "pro" }),
+                      });
+                      const data = await res.json();
+                      if (data.url) {
+                        window.location.href = data.url;
+                      } else {
+                        toast.error(data.error || "Could not start checkout");
+                      }
                     }
                   } catch {
                     toast.error("Something went wrong");

@@ -8,7 +8,7 @@ export const PLANS = {
     name: "Free",
     monthlyPrice: 0,
     repurposesPerMonth: 5,
-    platforms: ["linkedin", "twitter", "email"],
+    platforms: ["linkedin", "twitter_thread", "twitter_single", "email"],
     brandVoices: 0,
     features: [
       "5 repurposes/month",
@@ -23,7 +23,8 @@ export const PLANS = {
     repurposesPerMonth: -1, // unlimited
     platforms: [
       "linkedin",
-      "twitter",
+      "twitter_thread",
+      "twitter_single",
       "instagram",
       "facebook",
       "email",
@@ -47,7 +48,8 @@ export const PLANS = {
     repurposesPerMonth: -1,
     platforms: [
       "linkedin",
-      "twitter",
+      "twitter_thread",
+      "twitter_single",
       "instagram",
       "facebook",
       "email",
@@ -104,3 +106,11 @@ export const LENGTH_OPTIONS = [
 ] as const;
 
 export const FREE_TIER_MONTHLY_LIMIT = 5;
+
+/** Platform IDs allowed on Free plan. Pro/Agency get all platforms. */
+export const FREE_PLATFORM_IDS = [
+  "linkedin",
+  "twitter_thread",
+  "twitter_single",
+  "email",
+] as const;

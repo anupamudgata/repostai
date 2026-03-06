@@ -1,7 +1,8 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Clock } from "lucide-react";
+import { HistoryCard } from "@/components/dashboard/history-card";
 
 export default async function HistoryPage() {
   const supabase = await createClient();
@@ -9,10 +10,12 @@ export default async function HistoryPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   const { data: jobs } = await supabase
     .from("repurpose_jobs")
     .select("*, repurpose_outputs(*)")
-    .eq("user_id", user!.id)
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(20);
 
@@ -38,32 +41,7 @@ export default async function HistoryPage() {
       ) : (
         <div className="space-y-4">
           {jobs.map((job) => (
-            <Card key={job.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-medium">
-                    {job.input_content?.slice(0, 100)}...
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{job.input_type}</Badge>
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(job.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-1.5">
-                  {job.repurpose_outputs?.map(
-                    (output: { id: string; platform: string }) => (
-                      <Badge key={output.id} variant="secondary" className="text-xs">
-                        {output.platform}
-                      </Badge>
-                    )
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <HistoryCard key={job.id} job={job} />
           ))}
         </div>
       )}
