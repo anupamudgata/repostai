@@ -50,8 +50,10 @@ export default function CreatePage() {
   const [audience, setAudience] = useState("");
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("en");
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [generatedContent, setGeneratedContent] = useState("");
   const [editedContent, setEditedContent] = useState("");
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [postId, setPostId] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [copied, setCopied] = useState(false);

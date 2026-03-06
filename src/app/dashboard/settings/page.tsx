@@ -130,7 +130,30 @@ export default function SettingsPage() {
                 Get unlimited repurposes, all platforms, and brand voice
                 training.
               </p>
-              <Button>Upgrade to Pro — $19/month</Button>
+              <Button
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  try {
+                    const res = await fetch("/api/billing/checkout", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ plan: "pro" }),
+                    });
+                    const data = await res.json();
+                    if (data.url) {
+                      window.location.href = data.url;
+                    } else {
+                      toast.error(data.error || "Could not start checkout");
+                    }
+                  } catch {
+                    toast.error("Something went wrong");
+                  }
+                  setLoading(false);
+                }}
+              >
+                {loading ? "Loading..." : "Upgrade to Pro — $19/month"}
+              </Button>
             </div>
           )}
         </CardContent>
