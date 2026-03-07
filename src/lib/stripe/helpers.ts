@@ -1,4 +1,4 @@
-import { stripe } from "./client";
+import { getStripe } from "./client";
 import type { Plan } from "@/types";
 
 export async function createCheckoutSession(
@@ -6,7 +6,7 @@ export async function createCheckoutSession(
   priceId: string,
   userId: string
 ) {
-  return stripe.checkout.sessions.create({
+  return getStripe().checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     payment_method_types: ["card"],
@@ -21,13 +21,13 @@ export async function createOrRetrieveCustomer(
   email: string,
   userId: string
 ): Promise<string> {
-  const existing = await stripe.customers.list({ email, limit: 1 });
+  const existing = await getStripe().customers.list({ email, limit: 1 });
 
   if (existing.data.length > 0) {
     return existing.data[0].id;
   }
 
-  const customer = await stripe.customers.create({
+  const customer = await getStripe().customers.create({
     email,
     metadata: { userId },
   });
@@ -36,7 +36,7 @@ export async function createOrRetrieveCustomer(
 }
 
 export async function createBillingPortalSession(customerId: string) {
-  return stripe.billingPortal.sessions.create({
+  return getStripe().billingPortal.sessions.create({
     customer: customerId,
     return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/settings`,
   });
