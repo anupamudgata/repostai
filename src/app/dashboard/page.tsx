@@ -14,6 +14,7 @@ import {
   Lock,
   Send,
   CalendarClock,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -633,6 +634,11 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      <p className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Info className="h-3.5 w-3.5 shrink-0" />
+        For serious or sensitive topics, we match tone to the subject.
+      </p>
 
       {/* Generate Button — touch-friendly */}
       <Button
