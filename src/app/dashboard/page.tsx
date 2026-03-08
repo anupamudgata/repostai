@@ -79,6 +79,11 @@ function CharacterCount({
       ? tweetLines.filter((l) => l.length > 280).length
       : 0;
 
+  const isTwitterSingle = platformId === "twitter_single";
+  const isInstagram = platformId === "instagram";
+  const remaining = maxLength != null && !isThread ? maxLength - len : null;
+  const firstLineLen = (isInstagram || isThread) ? (content.split("\n")[0]?.trim().length ?? 0) : 0;
+
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
       {isThread ? (
@@ -86,10 +91,27 @@ function CharacterCount({
           <span>{len} characters total</span>
           <span>·</span>
           <span>Each tweet ≤280 chars</span>
+          {tweetLines.length > 0 && (
+            <span>
+              ({tweetLines.map((l, i) => Math.max(0, 280 - l.length)).join(", ")} chars left per tweet)
+            </span>
+          )}
           {overTweets > 0 && (
             <span className="text-amber-600 dark:text-amber-500 font-medium">
               {overTweets} tweet{overTweets > 1 ? "s" : ""} over limit
             </span>
+          )}
+        </>
+      ) : isTwitterSingle && maxLength != null ? (
+        <>
+          <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
+            {len} / {maxLength}
+          </span>
+          <span>
+            ({remaining != null && remaining >= 0 ? remaining : 0} left)
+          </span>
+          {overLimit && (
+            <span className="text-amber-600 dark:text-amber-500 font-medium">Over limit</span>
           )}
         </>
       ) : maxLength != null ? (
@@ -97,6 +119,11 @@ function CharacterCount({
           <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
             {len} / {maxLength} characters
           </span>
+          {isInstagram && (
+            <span title="First line visible before '...more'">
+              · First line: {firstLineLen}/125
+            </span>
+          )}
           {overLimit && (
             <span className="text-amber-600 dark:text-amber-500 font-medium">
               Over limit — trim for {platformName}

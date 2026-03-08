@@ -49,7 +49,7 @@ export function buildContentCreationPrompt(
   const langInstruction = LANGUAGE_BLOG_INSTRUCTIONS[outputLanguage];
 
   const voiceInstruction = brandVoice
-    ? `\n\nBRAND VOICE — match this writing style closely:\n---\n${brandVoice}\n---\nMimic their tone, vocabulary, and personality.`
+    ? `\n\nCRITICAL - BRAND VOICE: The user's writing samples are below. The blog post MUST sound like this brand — same tone, vocabulary, and personality. Do not fall back to generic AI voice.\n---\n${brandVoice}\n---`
     : "";
 
   return `You are a world-class blog writer and content strategist.

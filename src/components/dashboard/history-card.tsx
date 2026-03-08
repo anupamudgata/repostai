@@ -256,6 +256,10 @@ export function HistoryCard({ job }: HistoryCardProps) {
                       isThread && tweetLines.some((l) => l.length > 280)
                         ? tweetLines.filter((l) => l.length > 280).length
                         : 0;
+                    const isTwitterSingle = output.platform === "twitter_single";
+                    const isInstagram = output.platform === "instagram";
+                    const remaining = maxLength != null && !isThread ? maxLength - len : null;
+                    const firstLineLen = (isInstagram || isThread) ? (output.generated_content.split("\n")[0]?.trim().length ?? 0) : 0;
                     return (
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
                         {isThread ? (
@@ -263,17 +267,35 @@ export function HistoryCard({ job }: HistoryCardProps) {
                             <span>{len} chars</span>
                             <span>·</span>
                             <span>Each tweet ≤280</span>
+                            {tweetLines.length > 0 && (
+                              <span>
+                                ({tweetLines.map((l) => Math.max(0, 280 - l.length)).join(", ")} left per tweet)
+                              </span>
+                            )}
                             {overTweets > 0 && (
                               <span className="text-amber-600 dark:text-amber-500 font-medium">
                                 {overTweets} over limit
                               </span>
                             )}
                           </>
+                        ) : isTwitterSingle && maxLength != null ? (
+                          <>
+                            <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
+                              {len} / {maxLength}
+                            </span>
+                            <span>({remaining != null && remaining >= 0 ? remaining : 0} left)</span>
+                            {overLimit && <span className="text-amber-600 dark:text-amber-500 font-medium">Over limit</span>}
+                          </>
                         ) : maxLength != null ? (
                           <>
                             <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
                               {len} / {maxLength}
                             </span>
+                            {isInstagram && (
+                              <span title="First line visible before '...more'">
+                                · First line: {firstLineLen}/125
+                              </span>
+                            )}
                             {overLimit && <span className="text-amber-600 dark:text-amber-500 font-medium">Over limit</span>}
                           </>
                         ) : (

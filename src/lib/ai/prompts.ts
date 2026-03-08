@@ -12,7 +12,7 @@ const BEST_PRACTICES: Record<Platform, string> = {
 
   facebook: `BEST PRACTICES (from high-performing Facebook posts): Questions and "how-to" openings get more comments. Short paragraphs (2–3 sentences) and line breaks improve reach. Native, conversational tone beats corporate. Strong image suggestion in copy helps. CTA at the end.`,
 
-  email: `BEST PRACTICES (from high-performing newsletters): Subject line drives 50%+ of opens — be specific and curiosity-driven; avoid generic words. Front-load the value in the first sentence. One main idea per email. Scannable (short sentences, one CTA).`,
+  email: `BEST PRACTICES (from high-performing newsletters): Subject line drives 50%+ of opens — be specific and curiosity-driven; avoid generic words. Front-load the value in the first sentence. One main idea per email. Scannable (short sentences). Always end with ONE clear CTA (button or link line). When relevant, add subtle urgency (deadline, date, or "this week"). Never truncate — deliver a complete intro that leads to the CTA.`,
 
   reddit: `BEST PRACTICES (from high-performing Reddit posts): Title is critical — descriptive and value-focused. Authentic, helpful tone; no marketing speak. Real insights and specifics get upvotes. Ending with a question drives comments.`,
 };
@@ -29,7 +29,7 @@ const STRUCTURE_EXAMPLES: Record<Platform, string> = {
 
   facebook: `Example structure: [Question or relatable hook] → [2–3 short paragraphs] → [CTA or question]. Conversational; light emojis OK.`,
 
-  email: `Example structure: Subject: [Specific, curiosity-driven, not generic] — Then first paragraph: hook + key takeaway in 2–4 sentences. Transition to "Read more" or main content.`,
+  email: `Example structure: Subject: [Specific, curiosity-driven, not generic] — Body: hook + key takeaway in 2–4 sentences. Transition to main content. Closing: one clear CTA line (e.g. [Button: Read the full post →] or "Link: ..."). If time-sensitive, add one urgency line (e.g. "Offer ends Friday" or "Join by March 15").`,
 
   reddit: `Example structure: Title: [Clear, descriptive]. Body: [Genuine value, short paragraphs]. End with [Question to spark discussion]. No hype, no hashtags.`,
 };
@@ -58,10 +58,11 @@ Hashtag strategy: 12-20 hashtags at the end — mix 3-5 broad, 5-8 niche, 2-4 br
 Start with a question or hook. Keep paragraphs short (2-3 sentences). Include a call-to-action. Emojis are okay but don't overdo it. 
 If using hashtags, use 2-5 and do not repeat any.`,
 
-  email: `Write an email newsletter intro paragraph (3-5 sentences). 
-Subject line: Write a SPECIFIC, curiosity-driven subject line at the top (e.g. "The one metric that doubled our signups"). 
-Avoid generic subjects like "Newsletter", "Update", "This week's digest". 
-The intro should hook the reader and summarize the key takeaway. Include a transition sentence to the main content.`,
+  email: `Write a COMPLETE email newsletter section (do not truncate).
+Subject line: Write a SPECIFIC, curiosity-driven subject line at the top (e.g. "The one metric that doubled our signups"). Avoid generic subjects like "Newsletter", "Update", "This week's digest".
+Body: 3–6 sentences — hook the reader, summarize the key takeaway, and transition to the main content.
+Closing CTA: End with ONE clear call-to-action — either a button line (e.g. "[CTA Button: Read the full post →]" or "[Button: Claim your spot →]") or a clear link line (e.g. "Read more: [link placeholder]"). The reader must know exactly what to do next.
+Urgency (when appropriate): If the content has a deadline, event date, or time-sensitive offer, add one short urgency line (e.g. "Offer ends March 15" or "Only 10 spots left"). Do not force urgency if the topic is evergreen.`,
 
   reddit: `Write a Reddit post. Use a clear, descriptive title. 
 Write in a genuine, non-promotional tone — Reddit users hate marketing speak. 
@@ -101,7 +102,7 @@ export function buildRepurposePrompt(
     .join("\n\n");
 
   const voiceInstruction = brandVoice
-    ? `\n\nIMPORTANT - BRAND VOICE: Match this writing style closely. Here are examples of the user's writing:\n---\n${brandVoice}\n---\nMimic their tone, vocabulary, sentence structure, and personality. The output should sound like THEM, not like AI.`
+    ? `\n\nCRITICAL - BRAND VOICE (must apply to every platform): The user provided writing samples below. ALL outputs MUST sound like this brand — same tone, vocabulary, sentence length, and personality. Do not fall back to generic AI voice. If the samples are casual, keep outputs casual; if professional, keep professional. Here are the examples:\n---\n${brandVoice}\n---`
     : "";
 
   const languageInstruction = LANGUAGE_INSTRUCTIONS[outputLanguage];
@@ -109,13 +110,13 @@ export function buildRepurposePrompt(
   return `You are a world-class content strategist trained on what actually works. Your job is to repurpose the following content into platform-specific posts that follow proven best practices (engagement, length, and structure patterns from high-performing posts on each platform).
 
 RULES:
-- Each output must feel like it was written specifically for that platform
-- Preserve the core message and key insights from the original content
-- Do NOT just copy-paste — adapt tone, format, and structure for each platform
-- Make every post engaging and actionable
-- Never use generic filler phrases like "In today's fast-paced world"
-- HASHTAGS: Never use the same hashtag more than once in a single post. No redundant or repeated hashtags.
-- Respect each platform's character limits strictly (e.g. Twitter 280 per tweet, LinkedIn 3000, Instagram caption 2200).${languageInstruction}${voiceInstruction}
+- TONE PRESERVATION: Preserve the original content's tone. If the source is casual, keep outputs casual; if technical, keep technical; if humorous, keep humor. Do not default to generic corporate or cheerful tone. The output should feel like the same author wrote it for each platform.
+- PLATFORM UNIQUENESS: Each output must feel written specifically for that platform — different format and structure, but the same voice and tone as the original (and brand voice if provided).
+- Preserve the core message and key insights from the original content. Do not dilute or genericize.
+- Make every post engaging and actionable. Avoid generic filler ("In today's fast-paced world", "In conclusion", "Hope you enjoyed").
+- SENSITIVE TOPICS: Match tone to content gravity. For serious, somber, or controversial topics (e.g. geopolitical, tragedy, crisis), use an appropriate tone — respectful and measured. Do not apply a cheerful or salesy tone to serious subject matter.
+- HASHTAGS: Use relevant, topic-specific hashtags. Mix broad and niche; no filler or repeated hashtags. Never use the same hashtag more than once in a single post. Prefer hashtags that fit the topic rather than generic #marketing #growth.
+- Respect each platform's character limits strictly (e.g. Twitter 280 per tweet, LinkedIn 3000, Instagram caption 2200). Do not truncate; deliver complete outputs.${languageInstruction}${voiceInstruction}
 
 ORIGINAL CONTENT:
 ---
