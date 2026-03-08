@@ -149,6 +149,7 @@ export default function DashboardPage() {
     "email",
   ]);
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("en");
+  const [userIntent, setUserIntent] = useState("");
   const [brandVoiceId, setBrandVoiceId] = useState<string>("");
   const [brandVoices, setBrandVoices] = useState<{ id: string; name: string }[]>(
     []
@@ -277,6 +278,7 @@ export default function DashboardPage() {
           platforms: selectedPlatforms,
           outputLanguage,
           brandVoiceId: brandVoiceId || undefined,
+          userIntent: userIntent.trim() || undefined,
         }),
       });
 
@@ -635,6 +637,28 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      {/* What you want — optional intent */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">What do you want from this piece? (optional)</CardTitle>
+          <p className="text-sm text-muted-foreground font-normal">
+            We&apos;ll prioritize your goal when generating — e.g. more engagement, more casual, or emphasize a specific angle.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <Input
+            placeholder="e.g. More engagement, more casual, emphasize the launch date..."
+            value={userIntent}
+            onChange={(e) => setUserIntent(e.target.value)}
+            className="max-w-xl"
+            maxLength={300}
+          />
+          {userIntent.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-1">{userIntent.length}/300</p>
+          )}
+        </CardContent>
+      </Card>
+
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Info className="h-3.5 w-3.5 shrink-0" />
         For serious or sensitive topics, we match tone to the subject.
@@ -663,6 +687,9 @@ export default function DashboardPage() {
       {/* Output Section — single column on mobile */}
       {outputs.length > 0 && (
         <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Get the output you want — edit or regenerate until it&apos;s right, then post when you&apos;re ready.
+          </p>
           <h2 className="text-xl sm:text-2xl font-bold">Generated Content</h2>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {outputs.map((output) => {

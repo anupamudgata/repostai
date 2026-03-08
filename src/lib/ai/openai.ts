@@ -11,9 +11,10 @@ export async function repurposeContent(
   content: string,
   platforms: Platform[],
   brandVoiceSample?: string,
-  outputLanguage: OutputLanguage = "en"
+  outputLanguage: OutputLanguage = "en",
+  userIntent?: string
 ): Promise<Record<Platform, string>> {
-  const prompt = buildRepurposePrompt(content, platforms, brandVoiceSample, outputLanguage);
+  const prompt = buildRepurposePrompt(content, platforms, brandVoiceSample, outputLanguage, userIntent);
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",

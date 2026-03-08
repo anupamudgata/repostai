@@ -92,8 +92,13 @@ export function buildRepurposePrompt(
   content: string,
   platforms: Platform[],
   brandVoice?: string,
-  outputLanguage: OutputLanguage = "en"
+  outputLanguage: OutputLanguage = "en",
+  userIntent?: string
 ): string {
+  const intentInstruction = userIntent?.trim()
+    ? `\n\nUSER'S GOAL FOR THIS PIECE: "${userIntent.trim()}". Prioritize this when generating — the output should match what the user wants (e.g. more engagement, more casual, emphasize a specific angle).`
+    : "";
+
   const platformSections = platforms
     .map(
       (platform) =>
@@ -116,7 +121,7 @@ RULES:
 - Make every post engaging and actionable. Avoid generic filler ("In today's fast-paced world", "In conclusion", "Hope you enjoyed").
 - SENSITIVE TOPICS: Match tone to content gravity. For serious, somber, or controversial topics (e.g. geopolitical, tragedy, crisis), use an appropriate tone — respectful and measured. Do not apply a cheerful or salesy tone to serious subject matter.
 - HASHTAGS: Use relevant, topic-specific hashtags. Mix broad and niche; no filler or repeated hashtags. Never use the same hashtag more than once in a single post. Prefer hashtags that fit the topic rather than generic #marketing #growth.
-- Respect each platform's character limits strictly (e.g. Twitter 280 per tweet, LinkedIn 3000, Instagram caption 2200). Do not truncate; deliver complete outputs.${languageInstruction}${voiceInstruction}
+- Respect each platform's character limits strictly (e.g. Twitter 280 per tweet, LinkedIn 3000, Instagram caption 2200). Do not truncate; deliver complete outputs.${intentInstruction}${languageInstruction}${voiceInstruction}
 
 ORIGINAL CONTENT:
 ---

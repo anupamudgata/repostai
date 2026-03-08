@@ -22,6 +22,7 @@ export const repurposeSchema = z.object({
     .min(1, "Select at least one platform"),
   brandVoiceId: z.string().uuid().optional(),
   outputLanguage: z.enum(["en", "hi", "es"]).default("en"),
+  userIntent: z.string().max(300).optional(),
 });
 
 export type RepurposeInput = z.infer<typeof repurposeSchema>;

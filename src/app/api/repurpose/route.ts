@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { inputType, content, url, platforms, brandVoiceId, outputLanguage } = parsed.data;
+    const { inputType, content, url, platforms, brandVoiceId, outputLanguage, userIntent } = parsed.data;
 
     // Check usage limits for free users
     const { data: profile } = await supabase
@@ -126,7 +126,8 @@ export async function POST(request: NextRequest) {
       resolvedContent,
       allowedPlatforms,
       brandVoiceSample,
-      outputLanguage
+      outputLanguage,
+      userIntent
     );
 
     // Save to database
