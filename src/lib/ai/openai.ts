@@ -21,7 +21,7 @@ export async function repurposeContent(
       {
         role: "system",
         content:
-          "You are a content repurposing expert. Always return valid JSON only, with no markdown formatting or extra text.",
+          "You are a content repurposing expert. Follow the best-practices and structure examples given per platform — they are based on high-performing posts. Always return valid JSON only, with no markdown formatting or extra text.",
       },
       { role: "user", content: prompt },
     ],

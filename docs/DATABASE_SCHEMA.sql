@@ -210,9 +210,80 @@ end;
 $$ language plpgsql security definer;
 
 -- ============================================
+-- CONNECTED ACCOUNTS TABLE (OAuth tokens for posting)
+-- ============================================
+create table public.connected_accounts (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  provider text not null check (provider in ('twitter', 'linkedin')),
+  encrypted_access_token text not null,
+  encrypted_refresh_token text,
+  username text,
+  provider_user_id text,
+  expires_at timestamptz,
+  created_at timestamptz not null default now(),
+  unique (user_id, provider)
+);
+
+alter table public.connected_accounts enable row level security;
+
+create policy "Users can view their own connected accounts"
+  on public.connected_accounts for select
+  using (auth.uid() = user_id);
+
+create policy "Users can insert their own connected accounts"
+  on public.connected_accounts for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own connected accounts"
+  on public.connected_accounts for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete their own connected accounts"
+  on public.connected_accounts for delete
+  using (auth.uid() = user_id);
+
+-- ============================================
+-- SCHEDULED POSTS TABLE
+-- ============================================
+create table public.scheduled_posts (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  connected_account_id uuid references public.connected_accounts(id) on delete cascade not null,
+  output_id uuid references public.repurpose_outputs(id) on delete cascade not null,
+  platform text not null,
+  scheduled_at timestamptz not null,
+  status text not null default 'pending' check (status in ('pending', 'completed', 'failed')),
+  posted_at timestamptz,
+  error_message text,
+  created_at timestamptz not null default now()
+);
+
+alter table public.scheduled_posts enable row level security;
+
+create policy "Users can view their own scheduled posts"
+  on public.scheduled_posts for select
+  using (auth.uid() = user_id);
+
+create policy "Users can create their own scheduled posts"
+  on public.scheduled_posts for insert
+  with check (auth.uid() = user_id);
+
+create policy "Users can update their own scheduled posts"
+  on public.scheduled_posts for update
+  using (auth.uid() = user_id);
+
+create policy "Users can delete their own scheduled posts"
+  on public.scheduled_posts for delete
+  using (auth.uid() = user_id);
+
+-- ============================================
 -- INDEXES FOR PERFORMANCE
 -- ============================================
 create index idx_repurpose_jobs_user_id on public.repurpose_jobs(user_id);
+create index idx_connected_accounts_user_id on public.connected_accounts(user_id);
+create index idx_scheduled_posts_user_id on public.scheduled_posts(user_id);
+create index idx_scheduled_posts_scheduled_at_status on public.scheduled_posts(scheduled_at, status);
 create index idx_repurpose_jobs_created_at on public.repurpose_jobs(created_at desc);
 create index idx_repurpose_outputs_job_id on public.repurpose_outputs(job_id);
 create index idx_brand_voices_user_id on public.brand_voices(user_id);

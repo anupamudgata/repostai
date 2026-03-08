@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SUPPORT_EMAIL } from "@/config/constants";
 
 export const metadata = {
   title: "Privacy Policy - RepostAI",
@@ -76,14 +77,14 @@ export default function PrivacyPage() {
             <p className="text-muted-foreground">
               You have the right to access, correct, or delete your personal data.
               You may export your data or request account deletion. For GDPR
-              compliance, contact us at support@repostai.com with any requests.
+              compliance, contact us at {SUPPORT_EMAIL} with any requests.
             </p>
           </section>
 
           <section>
             <h2 className="text-xl font-semibold mb-2">6. Contact</h2>
             <p className="text-muted-foreground">
-              For privacy-related questions, contact support@repostai.com.
+              For privacy-related questions, contact {SUPPORT_EMAIL}.
             </p>
           </section>
         </div>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SUPPORT_EMAIL } from "@/config/constants";
 
 export const metadata = {
   title: "Terms of Service - RepostAI",
@@ -91,7 +92,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold mb-2">7. Contact</h2>
             <p className="text-muted-foreground">
-              For questions about these terms, contact support@repostai.com.
+              For questions about these terms, contact {SUPPORT_EMAIL}.
             </p>
           </section>
         </div>

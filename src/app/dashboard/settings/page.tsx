@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { PLANS } from "@/config/constants";
+import { PLANS, SUPPORT_EMAIL } from "@/config/constants";
 
 declare global {
   interface Window {
@@ -86,7 +86,7 @@ export default function SettingsPage() {
     }
 
     toast.info(
-      "Account deletion requested. Contact support@repostai.com to complete."
+      `Account deletion requested. Contact ${SUPPORT_EMAIL} to complete.`
     );
   }
 
@@ -146,7 +146,7 @@ export default function SettingsPage() {
                 </Button>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  To cancel or change plan, email support@repostai.com
+                  To cancel or change plan, email {SUPPORT_EMAIL}
                 </p>
               )
             )}

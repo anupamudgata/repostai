@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Copy, Check, ChevronDown, ChevronUp, RefreshCw, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Copy, Check, ChevronDown, ChevronUp, RefreshCw, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
 
 interface RepurposeOutput {
@@ -24,11 +26,26 @@ interface HistoryCardProps {
   };
 }
 
+function platformProvider(p: string): string | null {
+  if (p === "twitter_thread" || p === "twitter_single") return "twitter";
+  if (p === "linkedin") return "linkedin";
+  return null;
+}
+
 export function HistoryCard({ job }: HistoryCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [outputs, setOutputs] = useState(job.repurpose_outputs || []);
   const [regeneratingPlatform, setRegeneratingPlatform] = useState<string | null>(null);
+  const [connectedAccounts, setConnectedAccounts] = useState<{ id: string; provider: string }[]>([]);
+  const [postingPlatform, setPostingPlatform] = useState<string | null>(null);
+
+  useEffect(() => {
+    createClient()
+      .from("connected_accounts")
+      .select("id, provider")
+      .then(({ data }) => setConnectedAccounts(data ?? []));
+  }, []);
 
   async function handleCopy(content: string, outputId: string) {
     await navigator.clipboard.writeText(content);
@@ -63,6 +80,30 @@ export function HistoryCard({ job }: HistoryCardProps) {
     }
   }
 
+  async function handlePostNow(platform: string, connectedAccountId: string) {
+    setPostingPlatform(platform);
+    try {
+      const res = await fetch("/api/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: job.id,
+          platform,
+          connectedAccountId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Post failed");
+        return;
+      }
+      toast.success("Posted!");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setPostingPlatform(null);
+    }
+  }
 
   return (
     <Card>
@@ -112,6 +153,10 @@ export function HistoryCard({ job }: HistoryCardProps) {
               const platformName =
                 SUPPORTED_PLATFORMS.find((p) => p.id === output.platform)?.name ??
                 output.platform;
+              const provider = platformProvider(output.platform);
+              const account = provider
+                ? connectedAccounts.find((a) => a.provider === provider)
+                : null;
               return (
                 <div
                   key={output.id}
@@ -119,7 +164,40 @@ export function HistoryCard({ job }: HistoryCardProps) {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium">{platformName}</span>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 flex-wrap items-center">
+                      {provider && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="h-8"
+                            onClick={() =>
+                              account
+                                ? handlePostNow(output.platform, account.id)
+                                : undefined
+                            }
+                            disabled={postingPlatform !== null || !account}
+                            title={!account ? `Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to post` : undefined}
+                          >
+                            {postingPlatform === output.platform ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <>
+                                <Send className="h-3.5 w-3.5 mr-1" />
+                                Post now
+                              </>
+                            )}
+                          </Button>
+                          {!account && (
+                            <Link
+                              href="/dashboard/connections"
+                              className="text-xs text-primary hover:underline font-medium"
+                            >
+                              Connect {provider === "twitter" ? "Twitter" : "LinkedIn"}
+                            </Link>
+                          )}
+                        </>
+                      )}
                       <Button
                         size="sm"
                         variant="ghost"
@@ -161,6 +239,49 @@ export function HistoryCard({ job }: HistoryCardProps) {
                   <div className="text-sm text-muted-foreground whitespace-pre-wrap max-h-40 overflow-y-auto">
                     {output.generated_content}
                   </div>
+                  {(() => {
+                    const platformInfo = SUPPORTED_PLATFORMS.find((p) => p.id === output.platform);
+                    const maxLength = platformInfo?.maxLength ?? null;
+                    const len = output.generated_content.length;
+                    const isThread = output.platform === "twitter_thread";
+                    const tweetLines = isThread
+                      ? output.generated_content.split(/\n/).filter((l) => l.trim().length > 0)
+                      : [];
+                    const overLimit =
+                      maxLength != null &&
+                      (isThread
+                        ? tweetLines.some((l) => l.length > maxLength)
+                        : len > maxLength);
+                    const overTweets =
+                      isThread && tweetLines.some((l) => l.length > 280)
+                        ? tweetLines.filter((l) => l.length > 280).length
+                        : 0;
+                    return (
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-1">
+                        {isThread ? (
+                          <>
+                            <span>{len} chars</span>
+                            <span>·</span>
+                            <span>Each tweet ≤280</span>
+                            {overTweets > 0 && (
+                              <span className="text-amber-600 dark:text-amber-500 font-medium">
+                                {overTweets} over limit
+                              </span>
+                            )}
+                          </>
+                        ) : maxLength != null ? (
+                          <>
+                            <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
+                              {len} / {maxLength}
+                            </span>
+                            {overLimit && <span className="text-amber-600 dark:text-amber-500 font-medium">Over limit</span>}
+                          </>
+                        ) : (
+                          <span>{len} chars</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}

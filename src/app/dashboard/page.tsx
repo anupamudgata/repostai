@@ -12,6 +12,8 @@ import {
   Check,
   RefreshCw,
   Lock,
+  Send,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,7 +21,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import type { InputType, Platform, OutputLanguage } from "@/types";
@@ -44,6 +52,63 @@ const INPUT_TABS = [
 ];
 
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
+
+function CharacterCount({
+  content,
+  platformId,
+  maxLength,
+  platformName,
+}: {
+  content: string;
+  platformId: string;
+  maxLength: number | null;
+  platformName: string;
+}) {
+  const len = content.length;
+  const isThread = platformId === "twitter_thread";
+  const tweetLines = isThread
+    ? content.split(/\n/).filter((l) => l.trim().length > 0)
+    : [];
+  const overLimit =
+    maxLength != null &&
+    (isThread
+      ? tweetLines.some((l) => l.length > maxLength!)
+      : len > maxLength);
+  const overTweets =
+    isThread && tweetLines.some((l) => l.length > 280)
+      ? tweetLines.filter((l) => l.length > 280).length
+      : 0;
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      {isThread ? (
+        <>
+          <span>{len} characters total</span>
+          <span>·</span>
+          <span>Each tweet ≤280 chars</span>
+          {overTweets > 0 && (
+            <span className="text-amber-600 dark:text-amber-500 font-medium">
+              {overTweets} tweet{overTweets > 1 ? "s" : ""} over limit
+            </span>
+          )}
+        </>
+      ) : maxLength != null ? (
+        <>
+          <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
+            {len} / {maxLength} characters
+          </span>
+          {overLimit && (
+            <span className="text-amber-600 dark:text-amber-500 font-medium">
+              Over limit — trim for {platformName}
+            </span>
+          )}
+        </>
+      ) : (
+        <span>{len} characters</span>
+      )}
+    </div>
+  );
+}
 
 export default function DashboardPage() {
   const [inputType, setInputType] = useState<InputType>("text");
@@ -73,8 +138,34 @@ export default function DashboardPage() {
     count: number;
     limit: number;
   } | null>(null);
+  const [connectedAccounts, setConnectedAccounts] = useState<
+    { id: string; provider: string }[]
+  >([]);
+  const [postingPlatform, setPostingPlatform] = useState<string | null>(null);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [schedulePlatform, setSchedulePlatform] = useState<Platform | null>(null);
+  const [scheduleAccountId, setScheduleAccountId] = useState<string>("");
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
 
   const isFreePlan = plan === "free";
+
+  /** Map platform to connected_account provider for "Post now" */
+  const platformProvider = (p: Platform): string | null => {
+    if (p === "twitter_thread" || p === "twitter_single") return "twitter";
+    if (p === "linkedin") return "linkedin";
+    return null;
+  };
+
+  useEffect(() => {
+    async function fetchConnections() {
+      const { data } = await createClient()
+        .from("connected_accounts")
+        .select("id, provider");
+      setConnectedAccounts(data ?? []);
+    }
+    fetchConnections();
+  }, []);
 
   useEffect(() => {
     async function fetchMe() {
@@ -218,12 +309,87 @@ export default function DashboardPage() {
     }
   }
 
+  function openScheduleModal(platform: Platform) {
+    const provider = platformProvider(platform);
+    const acc = provider
+      ? connectedAccounts.find((a) => a.provider === provider)
+      : null;
+    if (!acc || !lastJobId) return;
+    setSchedulePlatform(platform);
+    setScheduleAccountId(acc.id);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(9, 0, 0, 0);
+    setScheduleAt(tomorrow.toISOString().slice(0, 16));
+    setScheduleOpen(true);
+  }
+
+  async function handleScheduleSubmit() {
+    if (!lastJobId || !schedulePlatform || !scheduleAccountId || !scheduleAt) return;
+    setScheduleSubmitting(true);
+    try {
+      const res = await fetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: lastJobId,
+          platform: schedulePlatform,
+          connectedAccountId: scheduleAccountId,
+          scheduledAt: new Date(scheduleAt).toISOString(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Failed to schedule");
+        return;
+      }
+      toast.success("Post scheduled!");
+      setScheduleOpen(false);
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setScheduleSubmitting(false);
+    }
+  }
+
+  async function handlePostNow(
+    platform: Platform,
+    connectedAccountId: string
+  ) {
+    if (!lastJobId) {
+      toast.error("Cannot post. Repurpose again first.");
+      return;
+    }
+    setPostingPlatform(platform);
+    try {
+      const res = await fetch("/api/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: lastJobId,
+          platform,
+          connectedAccountId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Post failed");
+        return;
+      }
+      toast.success("Posted to " + (platform.includes("twitter") ? "X" : platform) + "!");
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setPostingPlatform(null);
+    }
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Repurpose Content</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl sm:text-3xl font-bold">Repurpose Content</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
             Paste your content and generate platform-ready posts in seconds.
           </p>
         </div>
@@ -253,14 +419,14 @@ export default function DashboardPage() {
             value={inputType}
             onValueChange={(v) => setInputType(v as InputType)}
           >
-            <TabsList className="grid grid-cols-4 w-full max-w-md">
+            <TabsList className="grid grid-cols-4 w-full max-w-md min-h-[44px]">
               {INPUT_TABS.map((tab) => (
                 <TabsTrigger
                   key={tab.id}
                   value={tab.id}
-                  className="gap-1.5 text-xs sm:text-sm"
+                  className="gap-1.5 text-xs sm:text-sm min-h-[44px] touch-manipulation"
                 >
-                  <tab.icon className="h-3.5 w-3.5" />
+                  <tab.icon className="h-3.5 w-3.5 shrink-0" />
                   <span className="hidden sm:inline">{tab.label}</span>
                 </TabsTrigger>
               ))}
@@ -351,12 +517,12 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Platform Selection */}
+      {/* Platform Selection — touch-optimized (min 44px tap targets) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Output Platforms</CardTitle>
+          <CardTitle className="text-base sm:text-lg">Output Platforms</CardTitle>
           {isFreePlan && (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Free plan: LinkedIn, Twitter/X, Email.{" "}
               <Link href="/dashboard/settings" className="text-primary hover:underline">
                 Upgrade
@@ -366,35 +532,36 @@ export default function DashboardPage() {
           )}
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {SUPPORTED_PLATFORMS.map((platform) => {
               const isLocked = isFreePlan && !FREE_PLATFORMS_SET.has(platform.id);
+              const isSelected = selectedPlatforms.includes(platform.id as Platform);
               return (
-                <Badge
+                <button
                   key={platform.id}
-                  variant={
-                    selectedPlatforms.includes(platform.id as Platform)
-                      ? "default"
-                      : "outline"
-                  }
-                  className={`text-sm py-1.5 px-3 transition-colors ${
-                    isLocked
-                      ? "opacity-60 cursor-not-allowed"
-                      : "cursor-pointer"
-                  }`}
+                  type="button"
+                  disabled={isLocked}
                   onClick={() => !isLocked && togglePlatform(platform.id as Platform)}
                   title={
                     isLocked
                       ? "Upgrade to Pro for Instagram, Facebook, Reddit"
                       : undefined
                   }
+                  className={`
+                    inline-flex items-center gap-2 rounded-md border text-sm font-medium transition-colors
+                    min-h-[44px] px-4 py-3 touch-manipulation select-none
+                    ${isLocked
+                      ? "opacity-60 cursor-not-allowed border-muted bg-muted/50 text-muted-foreground"
+                      : isSelected
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background hover:bg-muted/50 border-input"
+                    }
+                  `}
                 >
-                  {isLocked && <Lock className="h-3 w-3 mr-1" />}
-                  {selectedPlatforms.includes(platform.id as Platform) && !isLocked && (
-                    <Check className="h-3 w-3 mr-1" />
-                  )}
+                  {isLocked && <Lock className="h-4 w-4 shrink-0" />}
+                  {isSelected && !isLocked && <Check className="h-4 w-4 shrink-0" />}
                   {platform.name}
-                </Badge>
+                </button>
               );
             })}
           </div>
@@ -412,7 +579,7 @@ export default function DashboardPage() {
               value={outputLanguage}
               onValueChange={(v) => setOutputLanguage(v as OutputLanguage)}
             >
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full sm:w-[220px] min-h-[44px]">
                 <SelectValue placeholder="Select language" />
               </SelectTrigger>
               <SelectContent>
@@ -440,10 +607,10 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Generate Button */}
+      {/* Generate Button — touch-friendly */}
       <Button
         size="lg"
-        className="w-full text-lg"
+        className="w-full min-h-[48px] text-base sm:text-lg touch-manipulation"
         onClick={handleRepurpose}
         disabled={loading}
       >
@@ -460,15 +627,19 @@ export default function DashboardPage() {
         )}
       </Button>
 
-      {/* Output Section */}
+      {/* Output Section — single column on mobile */}
       {outputs.length > 0 && (
         <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Generated Content</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <h2 className="text-xl sm:text-2xl font-bold">Generated Content</h2>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {outputs.map((output) => {
               const platformInfo = SUPPORTED_PLATFORMS.find(
                 (p) => p.id === output.platform
               );
+              const provider = platformProvider(output.platform);
+              const account = provider
+                ? connectedAccounts.find((a) => a.provider === provider)
+                : null;
               return (
                 <Card key={output.platform}>
                   <CardHeader className="pb-3">
@@ -476,10 +647,55 @@ export default function DashboardPage() {
                       <CardTitle className="text-base">
                         {platformInfo?.name || output.platform}
                       </CardTitle>
-                      <div className="flex gap-1">
+                      <div className="flex gap-2 flex-wrap items-center">
+                        {provider && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="min-h-[40px] touch-manipulation"
+                              onClick={() =>
+                                account
+                                  ? handlePostNow(output.platform, account.id)
+                                  : undefined
+                              }
+                              disabled={postingPlatform !== null || !account}
+                              title={!account ? `Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to post` : undefined}
+                            >
+                              {postingPlatform === output.platform ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <>
+                                  <Send className="h-3.5 w-3.5 mr-1" />
+                                  Post now
+                                </>
+                              )}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="min-h-[40px] touch-manipulation"
+                              onClick={() => account && openScheduleModal(output.platform)}
+                              disabled={!account}
+                              title={!account ? `Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to schedule` : undefined}
+                            >
+                              <CalendarClock className="h-3.5 w-3.5 mr-1" />
+                              Schedule
+                            </Button>
+                            {!account && (
+                              <Link
+                                href="/dashboard/connections"
+                                className="text-xs text-primary hover:underline font-medium"
+                              >
+                                Connect {provider === "twitter" ? "Twitter" : "LinkedIn"}
+                              </Link>
+                            )}
+                          </>
+                        )}
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="min-h-[40px] touch-manipulation"
                           onClick={() => handleRegenerate(output.platform)}
                           disabled={regeneratingPlatform !== null}
                         >
@@ -495,6 +711,7 @@ export default function DashboardPage() {
                         <Button
                           size="sm"
                           variant="ghost"
+                          className="min-h-[40px] touch-manipulation"
                           onClick={() =>
                             handleCopy(output.platform, output.content)
                           }
@@ -514,10 +731,18 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-2">
                     <div className="bg-muted/50 rounded-lg p-4 text-sm whitespace-pre-wrap max-h-80 overflow-y-auto">
                       {output.content}
                     </div>
+                    {platformInfo && (
+                      <CharacterCount
+                        content={output.content}
+                        platformId={output.platform}
+                        maxLength={platformInfo.maxLength}
+                        platformName={platformInfo.name}
+                      />
+                    )}
                   </CardContent>
                 </Card>
               );
@@ -525,6 +750,44 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Schedule post</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="text-sm font-medium">Date & time</label>
+              <input
+                type="datetime-local"
+                className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={scheduleAt}
+                onChange={(e) => setScheduleAt(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setScheduleOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleScheduleSubmit}
+              disabled={scheduleSubmitting}
+            >
+              {scheduleSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Schedule"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

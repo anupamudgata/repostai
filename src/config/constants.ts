@@ -3,6 +3,26 @@ export const APP_DESCRIPTION =
   "Paste one piece of content. Get 10+ ready-to-post versions for every platform. Under 60 seconds.";
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+/** Support / contact email used in footer, settings, and legal pages. */
+export const SUPPORT_EMAIL = "support@repostai.com";
+
+/** Zapier: app connect URL. When set, "Connect with Zapier" links here; otherwise show "Coming soon". */
+export const ZAPIER_APP_URL = process.env.NEXT_PUBLIC_ZAPIER_APP_URL || "";
+
+/** Landing page: "Used by X+ creators" — set to real number when you have it, or leave empty to hide. */
+export const LANDING_USER_COUNT = "5,000+";
+
+/** Landing page: optional YouTube/Vimeo embed URL for 60-second demo video. Empty = hide video section. */
+export const LANDING_VIDEO_URL = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || "";
+
+/** Landing page: testimonial / social proof quotes. Replace with real user quotes when available. */
+export const LANDING_TESTIMONIALS = [
+  { quote: "Before: 3+ hours rewriting one post for every platform. After: under 3 minutes. Game changer.", attribution: "Content creator", beforeAfter: "3+ hrs → 3 min" },
+  { quote: "I paste the blog link, click once, and get LinkedIn, Twitter, and Instagram ready. No more copy-paste hell.", attribution: "Marketing lead", beforeAfter: "5+ hours saved/week" },
+  { quote: "The brand voice feature actually makes it sound like me. First AI tool that doesn't feel robotic.", attribution: "Founder", beforeAfter: "Sounds like me" },
+  { quote: "From one YouTube video to 7 platform-ready posts in under a minute. Insane.", attribution: "Creator", beforeAfter: "1 video → 7 posts" },
+] as const;
+
 export const PLANS = {
   FREE: {
     name: "Free",
