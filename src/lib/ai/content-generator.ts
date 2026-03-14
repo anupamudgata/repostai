@@ -34,6 +34,14 @@ CRITICAL: Write the ENTIRE blog post in Hindi (हिन्दी) using Devanag
 CRITICAL: Write the ENTIRE blog post in Spanish (Español).
 - Use natural, conversational Latin American Spanish
 - The headline and all sections must be in Spanish`,
+  pt: `
+CRITICAL: Write the ENTIRE blog post in Portuguese (Português).
+- Use natural, conversational Brazilian Portuguese
+- The headline and all sections must be in Portuguese`,
+  fr: `
+CRITICAL: Write the ENTIRE blog post in French (Français).
+- Use natural, conversational international French
+- The headline and all sections must be in French`,
 };
 
 export function buildContentCreationPrompt(

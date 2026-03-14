@@ -171,6 +171,7 @@ export default function DashboardPage() {
     { id: string; provider: string }[]
   >([]);
   const [postingPlatform, setPostingPlatform] = useState<string | null>(null);
+  const [bulkPosting, setBulkPosting] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [schedulePlatform, setSchedulePlatform] = useState<Platform | null>(null);
   const [scheduleAccountId, setScheduleAccountId] = useState<string>("");
@@ -414,14 +415,84 @@ export default function DashboardPage() {
     }
   }
 
+  async function handlePostAllConnected() {
+    if (isFreePlan) {
+      toast.error("Bulk posting is available on Pro and Agency plans.");
+      return;
+    }
+    if (!lastJobId) {
+      toast.error("Cannot post. Repurpose again first.");
+      return;
+    }
+
+    const tasks: { platform: Platform; connectedAccountId: string; label: string }[] = [];
+
+    for (const output of outputs) {
+      const provider = platformProvider(output.platform);
+      if (!provider) continue;
+      const account = connectedAccounts.find((a) => a.provider === provider);
+      if (!account) continue;
+      const platformInfo = SUPPORTED_PLATFORMS.find((p) => p.id === output.platform);
+      tasks.push({
+        platform: output.platform,
+        connectedAccountId: account.id,
+        label: platformInfo?.name || output.platform,
+      });
+    }
+
+    if (tasks.length === 0) {
+      toast.error("No connected accounts for the selected platforms.");
+      return;
+    }
+
+    setBulkPosting(true);
+    const successes: string[] = [];
+    const failures: string[] = [];
+
+    try {
+      for (const task of tasks) {
+        try {
+          const res = await fetch("/api/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jobId: lastJobId,
+              platform: task.platform,
+              connectedAccountId: task.connectedAccountId,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            failures.push(task.label);
+            console.error("Bulk post failed:", task.platform, data);
+            continue;
+          }
+          successes.push(task.label);
+        } catch (e) {
+          console.error("Bulk post network error:", task.platform, e);
+          failures.push(task.label);
+        }
+      }
+    } finally {
+      setBulkPosting(false);
+    }
+
+    if (successes.length) {
+      toast.success(`Posted to: ${successes.join(", ")}`);
+    }
+    if (failures.length) {
+      toast.error(`Failed on: ${failures.join(", ")}. Check connections and try again.`);
+    }
+  }
+
   return (
     <div className="space-y-6 sm:space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Repurpose Content</h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1">
-            Paste your content and generate platform-ready posts in seconds.
-          </p>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1">
+              Paste your content and generate platform-ready posts in seconds — now including TikTok and WhatsApp Status.
+            </p>
         </div>
         {usage && (
           <div className="flex items-center gap-2">
@@ -627,11 +698,11 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
-              {outputLanguage === "en"
-                ? "Content will be generated in English"
-                : outputLanguage === "hi"
-                  ? "कंटेंट हिन्दी में जनरेट होगा"
-                  : "El contenido se generará en español"}
+              {outputLanguage === "en" && "Content will be generated in English"}
+              {outputLanguage === "hi" && "कंटेंट हिन्दी में जनरेट होगा"}
+              {outputLanguage === "es" && "El contenido se generará en español"}
+              {outputLanguage === "pt" && "O conteúdo será gerado em português"}
+              {outputLanguage === "fr" && "Le contenu sera généré en français"}
             </p>
           </div>
         </CardContent>
@@ -690,7 +761,34 @@ export default function DashboardPage() {
           <p className="text-sm text-muted-foreground">
             Get the output you want — edit or regenerate until it&apos;s right, then post when you&apos;re ready.
           </p>
-          <h2 className="text-xl sm:text-2xl font-bold">Generated Content</h2>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-xl sm:text-2xl font-bold">Generated Content</h2>
+            {!isFreePlan && (
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handlePostAllConnected}
+                  disabled={bulkPosting}
+                >
+                  {bulkPosting ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                      Posting to all connected...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-3.5 w-3.5 mr-1" />
+                      Post to all connected
+                    </>
+                  )}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Posts to every platform with a connected account.
+                </p>
+              </div>
+            )}
+          </div>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
             {outputs.map((output) => {
               const platformInfo = SUPPORTED_PLATFORMS.find(
@@ -719,7 +817,7 @@ export default function DashboardPage() {
                                   ? handlePostNow(output.platform, account.id)
                                   : undefined
                               }
-                              disabled={postingPlatform !== null || !account}
+                              disabled={postingPlatform !== null || !account || bulkPosting}
                               title={!account ? `Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to post` : undefined}
                             >
                               {postingPlatform === output.platform ? (

@@ -17,6 +17,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const SUPERUSER_EMAIL = "anupam.udgata@gmail.com";
+    const isSuperUser = user.email === SUPERUSER_EMAIL;
+
     const body = await request.json();
     const parsed = repurposeSchema.safeParse(body);
 
@@ -36,7 +39,8 @@ export async function POST(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    const isFreePlan = profile?.plan === "free" || !profile?.plan;
+    const isFreePlan =
+      !isSuperUser && (profile?.plan === "free" || !profile?.plan);
 
     if (isFreePlan) {
       const currentMonth = new Date().toISOString().slice(0, 7);

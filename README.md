@@ -43,7 +43,7 @@ AI-powered content repurposing tool that transforms your blog posts, YouTube vid
    ```bash
    cp .env.example .env.local
    ```
-   Fill in your API keys in `.env.local`. See `.env.example` for descriptions.
+   Fill in your API keys in `.env.local`. See `.env.example` for descriptions. For **post now** and **scheduled posts** (Twitter OAuth, cron, encryption), see [docs/ENV.md](docs/ENV.md).
 
 4. **Set up Supabase database:**
    - Create a new Supabase project

@@ -73,11 +73,13 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold mb-2">5. Your Rights</h2>
+            <h2 className="text-xl font-semibold mb-2">5. Your Rights & Regional Privacy</h2>
             <p className="text-muted-foreground">
               You have the right to access, correct, or delete your personal data.
-              You may export your data or request account deletion. For GDPR
-              compliance, contact us at {SUPPORT_EMAIL} with any requests.
+              You may export your data or request account deletion at any time.
+              We aim to comply with major privacy regulations, including the EU&apos;s GDPR,
+              California&apos;s CCPA/CPRA, and Brazil&apos;s LGPD. Contact us at {SUPPORT_EMAIL} with any
+              requests related to access, deletion, or privacy rights.
             </p>
           </section>
 

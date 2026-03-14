@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -13,6 +16,7 @@ import {
   Facebook,
   Mail,
   MessageCircle,
+  Play as PlayIcon,
   ChevronDown,
   Play,
   Copy,
@@ -36,6 +40,13 @@ import { Separator } from "@/components/ui/separator";
 import { PLANS, SUPPORT_EMAIL, LANDING_USER_COUNT, LANDING_VIDEO_URL, LANDING_TESTIMONIALS } from "@/config/constants";
 import { LandingNav } from "@/components/landing-nav";
 
+const PRICING_REGIONS = [
+  { id: "global", label: "Global (USD $)", symbol: "$" },
+  { id: "eu", label: "Europe (EUR €)", symbol: "€" },
+  { id: "in", label: "India (INR ₹)", symbol: "₹" },
+  { id: "latam", label: "Latin America (USD $)", symbol: "$" },
+] as const;
+
 const PLATFORMS = [
   { name: "LinkedIn", icon: Linkedin, color: "bg-blue-600" },
   { name: "Twitter/X Thread", icon: Twitter, color: "bg-sky-500" },
@@ -44,6 +55,8 @@ const PLATFORMS = [
   { name: "Facebook", icon: Facebook, color: "bg-blue-500" },
   { name: "Email", icon: Mail, color: "bg-emerald-500" },
   { name: "Reddit", icon: MessageCircle, color: "bg-orange-500" },
+  { name: "TikTok", icon: PlayIcon, color: "bg-black" },
+  { name: "WhatsApp Status", icon: MessageCircle, color: "bg-green-500" },
 ];
 
 const USE_CASES = [
@@ -99,11 +112,15 @@ const FAQ_ITEMS = [
   },
   {
     q: "Do you support multiple languages?",
-    a: "Yes! RepostAI supports 3 languages at launch: English, Hindi (हिन्दी), and Spanish (Español). Select your output language before generating — the AI writes naturally in each language, not just translates. More languages coming soon.",
+    a: "Yes! RepostAI supports 5 languages: English, Hindi (हिन्दी), Spanish (Español), Portuguese (Português), and French (Français). Select your output language before generating — the AI writes naturally in each language, not just translates.",
   },
 ];
 
 export default function LandingPage() {
+  const [pricingRegion, setPricingRegion] = useState<string>("global");
+  const pricingSymbol =
+    PRICING_REGIONS.find((r) => r.id === pricingRegion)?.symbol ?? "$";
+
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
       <LandingNav />
@@ -148,7 +165,7 @@ export default function LandingPage() {
                   </Button>
                 </a>
               </div>
-              <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-6 justify-center lg:justify-start text-sm text-muted-foreground animate-fade-up animation-delay-600">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-6 justify-center lg:justify-start text-sm text-muted-foreground animate-fade-up animation-delay-600">
                 <span className="flex items-center gap-1.5">
                   <Check className="h-4 w-4 text-primary" /> Free forever plan
                 </span>
@@ -156,7 +173,7 @@ export default function LandingPage() {
                   <Check className="h-4 w-4 text-primary" /> No credit card
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-primary" /> 3 languages
+                  <Check className="h-4 w-4 text-primary" /> 5 languages
                 </span>
                 <Link href="/integrations" className="flex items-center gap-1.5 text-primary hover:underline">
                   <Check className="h-4 w-4" /> Publish to 1000+ apps
@@ -285,11 +302,11 @@ export default function LandingPage() {
             <Separator orientation="vertical" className="h-6 w-px hidden sm:block" />
             <div>
               <p className="text-2xl font-bold">60s</p>
-              <p className="text-xs text-muted-foreground">To 7 platforms</p>
+              <p className="text-xs text-muted-foreground">To 9 platforms</p>
             </div>
             <Separator orientation="vertical" className="h-6 w-px hidden sm:block" />
             <div>
-              <p className="text-2xl font-bold">7</p>
+              <p className="text-2xl font-bold">9</p>
               <p className="text-xs text-muted-foreground">Platforms supported</p>
             </div>
             <Separator orientation="vertical" className="h-6 w-px hidden sm:block" />
@@ -491,7 +508,7 @@ export default function LandingPage() {
                     "Paste into RepostAI (5 seconds)",
                     "Select all platforms (3 seconds)",
                     "Click 'Repurpose' (1 second)",
-                    "AI generates all 7 platforms (< 60 seconds)",
+                    "AI generates all 9 platforms (< 60 seconds)",
                     "Post now with one click or schedule for later",
                     "Copy & paste to each platform (2 min)",
                   ].map((item) => (
@@ -556,11 +573,11 @@ export default function LandingPage() {
                   { feature: "Scheduled posting", us: true, rep: false, lately: true, postiv: true },
                   { feature: "Topic-to-Everywhere Flywheel", us: true, rep: false, lately: false, postiv: false },
                   { feature: "Brand Voice Training", us: true, rep: false, lately: true, postiv: false },
-                  { feature: "7+ Text Platforms", us: true, rep: false, lately: true, postiv: false },
+                  { feature: "9+ Text Platforms", us: true, rep: false, lately: true, postiv: false },
                   { feature: "URL Auto-Scraping", us: true, rep: false, lately: false, postiv: true },
                   { feature: "YouTube Transcription", us: true, rep: false, lately: false, postiv: false },
                   { feature: "One-Click All Platforms", us: true, rep: false, lately: false, postiv: false },
-                  { feature: "Multi-Language (EN/HI/ES)", us: true, rep: false, lately: false, postiv: false },
+                  { feature: "Multi-Language (EN/HI/ES/PT/FR)", us: true, rep: false, lately: false, postiv: false },
                   { feature: "Free Plan Available", us: true, rep: false, lately: false, postiv: false },
                   { feature: "Starting Price", us: "$19/mo", rep: "$35/mo", lately: "$49/mo", postiv: "$99/mo" },
                 ].map((row) => (
@@ -698,9 +715,9 @@ export default function LandingPage() {
               },
               {
                 icon: Globe,
-                title: "7+ Platforms",
+                title: "9+ Platforms",
                 description:
-                  "LinkedIn, Twitter/X threads, Instagram, Facebook, Email, Reddit — all at once.",
+                  "LinkedIn, Twitter/X threads, Instagram, Facebook, Email, Reddit, TikTok, and WhatsApp Status — all at once.",
               },
               {
                 icon: Sparkles,
@@ -794,7 +811,7 @@ export default function LandingPage() {
       <section className="py-20 bg-muted/30">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            One input. Seven platforms. Zero effort.
+            One input. Nine platforms. Zero effort.
           </h2>
           <p className="text-muted-foreground text-lg mb-12">
             Each output is crafted for that specific platform&apos;s audience and
@@ -846,16 +863,34 @@ export default function LandingPage() {
       {/* Pricing */}
       <section id="pricing" className="py-12 sm:py-20 bg-muted/30">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-16">
-            <Badge variant="secondary" className="mb-4">
-              Transparent Pricing
-            </Badge>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Start free. Scale when ready.
-            </h2>
-            <p className="text-muted-foreground text-lg">
-              No hidden fees. No surprises. Cancel anytime.
-            </p>
+          <div className="mb-16">
+            <div className="text-center mb-4">
+              <Badge variant="secondary" className="mb-4">
+                Transparent, regional-friendly pricing
+              </Badge>
+              <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+                Start free. Scale when ready.
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                No hidden fees. No surprises. Cancel anytime.
+              </p>
+            </div>
+            <div className="flex justify-center">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                Market region:
+                <select
+                  value={pricingRegion}
+                  onChange={(e) => setPricingRegion(e.target.value)}
+                  className="border rounded-md px-2 py-1 bg-background text-foreground text-sm"
+                >
+                  {PRICING_REGIONS.map((r) => (
+                    <option key={r.id} value={r.id}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
           </div>
           <div className="grid md:grid-cols-3 gap-6 items-start">
             {Object.values(PLANS).map((plan) => (
@@ -879,7 +914,8 @@ export default function LandingPage() {
                   </p>
                   <div className="mb-6">
                     <span className="text-4xl font-bold">
-                      ${plan.monthlyPrice}
+                      {pricingSymbol}
+                      {plan.monthlyPrice}
                     </span>
                     {plan.monthlyPrice > 0 && (
                       <span className="text-muted-foreground text-sm">
@@ -888,12 +924,14 @@ export default function LandingPage() {
                     )}
                     {plan.monthlyPrice > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        That&apos;s just ${(plan.monthlyPrice / 30).toFixed(2)}/day
+                        That&apos;s just {pricingSymbol}
+                        {(plan.monthlyPrice / 30).toFixed(2)}/day
                       </p>
                     )}
                     {"annualPrice" in plan && (
                       <p className="text-xs text-primary mt-0.5">
-                        or ${plan.annualPrice}/mo billed annually (save 20%)
+                        or {pricingSymbol}
+                        {plan.annualPrice}/mo billed annually (save 20%)
                       </p>
                     )}
                   </div>
@@ -927,7 +965,7 @@ export default function LandingPage() {
       <section className="py-12 border-y">
         <div className="max-w-4xl mx-auto px-4">
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 text-center">
-            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3">
               <div className="h-12 w-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0">
                 <Shield className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
@@ -956,9 +994,9 @@ export default function LandingPage() {
                 <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-sm">3 Languages</p>
+                <p className="font-semibold text-sm">5 Languages</p>
                 <p className="text-xs text-muted-foreground">
-                  English, Hindi, and Spanish.
+                  English, Hindi, Spanish, Portuguese, and French.
                 </p>
               </div>
             </div>

@@ -2,7 +2,7 @@ export type Plan = "free" | "pro" | "agency";
 
 export type InputType = "text" | "url" | "youtube" | "pdf";
 
-export type OutputLanguage = "en" | "hi" | "es";
+export type OutputLanguage = "en" | "hi" | "es" | "pt" | "fr";
 
 export type ContentTone =
   | "professional"
@@ -42,7 +42,9 @@ export type Platform =
   | "instagram"
   | "facebook"
   | "email"
-  | "reddit";
+  | "reddit"
+  | "tiktok"
+  | "whatsapp_status";
 
 export interface User {
   id: string;

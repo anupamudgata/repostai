@@ -49,14 +49,18 @@ export const PLANS = {
       "facebook",
       "email",
       "reddit",
+      "tiktok",
+      "whatsapp_status",
     ],
     brandVoices: 3,
     features: [
       "Unlimited repurposes",
       "AI Content Starter (topic to post)",
-      "All 7+ platforms",
-      "3 languages (EN, HI, ES)",
+      "All 9+ platforms",
+      "5 languages (EN, HI, ES, PT, FR)",
       "Brand voice training (3 voices)",
+      "One-click post to Twitter/X (LinkedIn coming soon)",
+      "Schedule posts (Twitter/X; LinkedIn coming soon)",
       "Full history",
       "Priority speed",
     ],
@@ -74,13 +78,16 @@ export const PLANS = {
       "facebook",
       "email",
       "reddit",
+      "tiktok",
+      "whatsapp_status",
     ],
     brandVoices: 10,
     features: [
       "Everything in Pro",
       "AI Content Starter (unlimited)",
       "10 brand voices",
-      "3 languages (EN, HI, ES)",
+      "5 languages (EN, HI, ES, PT, FR)",
+      "One-click post & schedule (Twitter/X; LinkedIn coming soon)",
       "CSV export",
       "API access",
       "Priority support",
@@ -96,6 +103,8 @@ export const SUPPORTED_PLATFORMS = [
   { id: "facebook", name: "Facebook Post", icon: "facebook", maxLength: 63206 },
   { id: "email", name: "Email Newsletter", icon: "mail", maxLength: null },
   { id: "reddit", name: "Reddit Post", icon: "message-circle", maxLength: 40000 },
+  { id: "tiktok", name: "TikTok Video Script", icon: "play", maxLength: 2200 },
+  { id: "whatsapp_status", name: "WhatsApp Status", icon: "message-circle", maxLength: 700 },
 ] as const;
 
 export const INPUT_TYPES = [
@@ -109,6 +118,8 @@ export const SUPPORTED_LANGUAGES = [
   { id: "en", name: "English", nativeName: "English", flag: "🇺🇸" },
   { id: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳" },
   { id: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
+  { id: "pt", name: "Portuguese", nativeName: "Português", flag: "🇧🇷" },
+  { id: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },
 ] as const;
 
 export const TONE_OPTIONS = [

@@ -23,6 +23,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 };
 const INFO_MESSAGES: Record<string, string> = {
   linkedin_coming_soon: "LinkedIn connection is coming soon.",
+  linkedin_connected: "LinkedIn connected successfully.",
 };
 
 export default function ConnectionsPage() {

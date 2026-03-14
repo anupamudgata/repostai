@@ -46,7 +46,7 @@ RepostAI is an AI-powered content repurposing tool that takes one piece of conte
 - Image and carousel generation
 - Team collaboration (shared workspaces)
 - Analytics (track which repurposed posts performed best)
-- Multi-language output
+- Multi-language output expansion beyond the core 5 languages (EN, HI, ES, PT, FR)
 - PDF upload and text extraction
 - Chrome extension for one-click repurposing
 
@@ -100,4 +100,4 @@ RepostAI is an AI-powered content repurposing tool that takes one piece of conte
 - All AI processing must complete in under 60 seconds
 - API costs must stay under $0.10 per user per month
 - Must work on mobile browsers (responsive design)
-- Must comply with GDPR for global launch
+- Must comply with GDPR, CCPA/CPRA, and LGPD for global launch

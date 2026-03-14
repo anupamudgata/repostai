@@ -12,14 +12,17 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const SUPERUSER_EMAIL = "anupam.udgata@gmail.com";
+  const isSuperUser = user.email === SUPERUSER_EMAIL;
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("plan")
     .eq("id", user.id)
     .single();
 
-  const plan = profile?.plan || "free";
-  const isFree = plan === "free";
+  const plan = isSuperUser ? "pro" : profile?.plan || "free";
+  const isFree = !isSuperUser && plan === "free";
 
   let repurposeCount = 0;
   if (isFree) {
@@ -37,5 +40,6 @@ export async function GET() {
     plan,
     repurposeCount: isFree ? repurposeCount : null,
     repurposeLimit: isFree ? FREE_TIER_MONTHLY_LIMIT : null,
+    isSuperUser,
   });
 }

@@ -5,6 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { PLANS, SUPPORT_EMAIL } from "@/config/constants";
@@ -27,6 +34,9 @@ export default function SettingsPage() {
   const [email, setEmail] = useState("");
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [marketRegion, setMarketRegion] = useState<string>("na");
+  const [savingRegion, setSavingRegion] = useState(false);
   const [paymentProvider, setPaymentProvider] = useState<"razorpay" | "stripe">("stripe");
   const supabase = createClient();
 
@@ -37,16 +47,22 @@ export default function SettingsPage() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
+      setUserId(user.id);
       setEmail(user.email || "");
       setUserName(user.user_metadata?.full_name || user.user_metadata?.name || "");
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("plan")
+        .select("plan, market_region")
         .eq("id", user.id)
         .single();
 
-      if (profile) setPlan(profile.plan || "free");
+      if (profile) {
+        setPlan(profile.plan || "free");
+        if (profile.market_region) {
+          setMarketRegion(profile.market_region);
+        }
+      }
     }
 
     loadProfile();
@@ -113,6 +129,50 @@ export default function SettingsPage() {
           <div>
             <p className="text-sm text-muted-foreground">Email</p>
             <p className="font-medium">{email}</p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-sm text-muted-foreground">Market region</p>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <Select
+                value={marketRegion}
+                onValueChange={setMarketRegion}
+              >
+                <SelectTrigger className="w-full sm:w-60">
+                  <SelectValue placeholder="Select your primary market" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="na">North America (USD)</SelectItem>
+                  <SelectItem value="eu">Europe (EUR)</SelectItem>
+                  <SelectItem value="in">India (INR)</SelectItem>
+                  <SelectItem value="latam">Latin America (USD)</SelectItem>
+                  <SelectItem value="other">Other / Global</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={savingRegion || !userId}
+                onClick={async () => {
+                  if (!userId) return;
+                  setSavingRegion(true);
+                  const { error } = await supabase
+                    .from("profiles")
+                    .update({ market_region: marketRegion })
+                    .eq("id", userId);
+                  setSavingRegion(false);
+                  if (error) {
+                    toast.error("Could not update market region");
+                  } else {
+                    toast.success("Market region updated");
+                  }
+                }}
+              >
+                {savingRegion ? "Saving..." : "Save"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Used to tune pricing copy and future regional features. Does not affect your existing subscription.
+            </p>
           </div>
         </CardContent>
       </Card>

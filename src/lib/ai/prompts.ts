@@ -15,6 +15,10 @@ const BEST_PRACTICES: Record<Platform, string> = {
   email: `BEST PRACTICES (from high-performing newsletters): Subject line drives 50%+ of opens — be specific and curiosity-driven; avoid generic words. Front-load the value in the first sentence. One main idea per email. Scannable (short sentences). Always end with ONE clear CTA (button or link line). When relevant, add subtle urgency (deadline, date, or "this week"). Never truncate — deliver a complete intro that leads to the CTA.`,
 
   reddit: `BEST PRACTICES (from high-performing Reddit posts): Title is critical — descriptive and value-focused. Authentic, helpful tone; no marketing speak. Real insights and specifics get upvotes. Ending with a question drives comments.`,
+
+  tiktok: `BEST PRACTICES (from high-performing TikTok videos): Hook viewers in the first 1–2 seconds with a bold statement, question, or pattern interrupt. Keep scripts tight and visual — describe what’s on screen alongside dialogue. Use short sentences and natural, spoken language. End with a clear CTA (follow, comment, save, click link in bio).`,
+
+  whatsapp_status: `BEST PRACTICES (from high-performing WhatsApp Status posts): Keep text short, clear, and personal. Avoid heavy formatting. Use 1–2 concise lines plus an optional link or CTA. Emojis are okay in moderation. Remember people skim quickly.`,
 };
 
 /** Short structure examples (tone + format). Model uses these as in-context "training" without fine-tuning. */
@@ -32,6 +36,10 @@ const STRUCTURE_EXAMPLES: Record<Platform, string> = {
   email: `Example structure: Subject: [Specific, curiosity-driven, not generic] — Body: hook + key takeaway in 2–4 sentences. Transition to main content. Closing: one clear CTA line (e.g. [Button: Read the full post →] or "Link: ..."). If time-sensitive, add one urgency line (e.g. "Offer ends Friday" or "Join by March 15").`,
 
   reddit: `Example structure: Title: [Clear, descriptive]. Body: [Genuine value, short paragraphs]. End with [Question to spark discussion]. No hype, no hashtags.`,
+
+  tiktok: `Example structure: [Hook line said on camera] → [1–3 short points or story beats] → [CTA said on camera, e.g. “Follow for more”, “Save this for later”, or “Link in bio for details”]. Include brief bracketed notes for visuals when helpful.`,
+
+  whatsapp_status: `Example structure: [1–2 short lines of text] → [Optional link or CTA]. Keep it scannable and friendly.`,
 };
 
 const PLATFORM_INSTRUCTIONS: Record<Platform, string> = {
@@ -67,6 +75,15 @@ Urgency (when appropriate): If the content has a deadline, event date, or time-s
   reddit: `Write a Reddit post. Use a clear, descriptive title. 
 Write in a genuine, non-promotional tone — Reddit users hate marketing speak. 
 Provide real value and insights. Structure with short paragraphs. End with a question to encourage discussion. No hashtags, no emojis.`,
+
+  tiktok: `Write a TikTok video script, not a blog post. 
+Start with a hook line that can be spoken in under 3 seconds. 
+Use 3–7 very short spoken lines total. You may optionally include brief bracketed stage directions like [Text on screen: ...] or [B-roll of ...]. 
+Make it feel like a real creator talking to camera. End with a natural CTA (e.g. follow, comment, save, or check link in bio).`,
+
+  whatsapp_status: `Write a short WhatsApp Status text update. 
+Use 1–3 short lines max. Keep it personal and conversational. 
+You may include one link or CTA if relevant. Avoid cluttered formatting or long paragraphs. Max ~700 characters.`,
 };
 
 const LANGUAGE_INSTRUCTIONS: Record<OutputLanguage, string> = {
@@ -82,10 +99,26 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in Hindi (हिन्�
   es: `
 CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in Spanish (Español).
 - Use natural, conversational Latin American Spanish (not overly formal Castilian)
-- Use "tú" form for informal platforms (Twitter, Instagram, Reddit) and "usted" for professional ones (LinkedIn, Email)
+- Use "tú" form for informal platforms (Twitter, Instagram, Reddit, TikTok, WhatsApp) and "usted" for professional ones (LinkedIn, Email)
 - Hashtags can be in Spanish or English, whichever is more discoverable for the topic
 - Maintain the same platform-specific formatting rules (hooks, CTAs, threads, etc.)
 - The JSON keys must remain in English, only the content values should be in Spanish`,
+
+  pt: `
+CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in Portuguese (Português).
+- Use natural, conversational Brazilian Portuguese
+- Use "você" form; avoid overly formal constructions
+- Hashtags can be in Portuguese or English, whichever is more discoverable for the topic
+- Maintain the same platform-specific formatting rules (hooks, CTAs, threads, etc.)
+- The JSON keys must remain in English, only the content values should be in Portuguese`,
+
+  fr: `
+CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in French (Français).
+- Use natural, conversational international French (not overly formal)
+- Use "tu" for informal platforms (Twitter, Instagram, Reddit, TikTok, WhatsApp) and "vous" for professional ones (LinkedIn, Email)
+- Hashtags can be in French or English, whichever is more discoverable for the topic
+- Maintain the same platform-specific formatting rules (hooks, CTAs, threads, etc.)
+- The JSON keys must remain in English, only the content values should be in French`,
 };
 
 export function buildRepurposePrompt(

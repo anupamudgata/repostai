@@ -16,6 +16,7 @@ create table public.profiles (
   avatar_url text,
   plan text not null default 'free' check (plan in ('free', 'pro', 'agency')),
   stripe_customer_id text,
+  market_region text,
   created_at timestamptz not null default now()
 );
 
@@ -33,12 +34,13 @@ create policy "Users can update their own profile"
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, email, name, avatar_url)
+  insert into public.profiles (id, email, name, avatar_url, market_region)
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name'),
-    new.raw_user_meta_data->>'avatar_url'
+    new.raw_user_meta_data->>'avatar_url',
+    new.raw_user_meta_data->>'market_region'
   );
   return new;
 end;
@@ -107,7 +109,7 @@ create table public.repurpose_jobs (
   input_content text not null,
   input_url text,
   brand_voice_id uuid references public.brand_voices(id) on delete set null,
-  output_language text not null default 'en' check (output_language in ('en', 'hi', 'es')),
+  output_language text not null default 'en' check (output_language in ('en', 'hi', 'es', 'pt', 'fr')),
   created_at timestamptz not null default now()
 );
 
@@ -180,7 +182,7 @@ create table public.created_posts (
   tone text not null check (tone in ('professional', 'casual', 'humorous', 'inspirational', 'educational')),
   length text not null check (length in ('short', 'medium', 'long')),
   audience text not null,
-  output_language text not null default 'en' check (output_language in ('en', 'hi', 'es')),
+  output_language text not null default 'en' check (output_language in ('en', 'hi', 'es', 'pt', 'fr')),
   generated_content text not null,
   brand_voice_id uuid references public.brand_voices(id) on delete set null,
   created_at timestamptz not null default now()

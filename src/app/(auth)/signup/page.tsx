@@ -11,11 +11,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const MARKET_REGIONS = [
+  { id: "na", label: "North America (USD)" },
+  { id: "eu", label: "Europe (EUR)" },
+  { id: "in", label: "India (INR)" },
+  { id: "latam", label: "Latin America (USD)" },
+  { id: "other", label: "Other / Global" },
+] as const;
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [marketRegion, setMarketRegion] = useState<string>("na");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const supabase = createClient();
@@ -28,7 +44,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { full_name: name },
+        data: { full_name: name, market_region: marketRegion },
         emailRedirectTo: `${window.location.origin}/api/auth/callback`,
       },
     });
@@ -138,6 +154,24 @@ export default function SignupPage() {
                 required
                 minLength={6}
               />
+            </div>
+            <div>
+              <Label>Market region</Label>
+              <Select
+                value={marketRegion}
+                onValueChange={setMarketRegion}
+              >
+                <SelectTrigger className="w-full mt-1.5">
+                  <SelectValue placeholder="Select your primary market" />
+                </SelectTrigger>
+                <SelectContent>
+                  {MARKET_REGIONS.map((region) => (
+                    <SelectItem key={region.id} value={region.id}>
+                      {region.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Create Account"}
