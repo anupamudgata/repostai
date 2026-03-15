@@ -125,14 +125,27 @@ export async function POST(request: NextRequest) {
       brandVoiceSample = voice?.sample_text;
     }
 
-    // Generate repurposed content
-    const outputs = await repurposeContent(
-      resolvedContent,
-      allowedPlatforms,
-      brandVoiceSample,
-      outputLanguage,
-      userIntent
-    );
+    // Generate repurposed content: 4+ platforms → 2 parallel batches for speed
+    const BATCH_THRESHOLD = 4;
+    let outputs: Record<string, string>;
+    if (allowedPlatforms.length >= BATCH_THRESHOLD) {
+      const mid = Math.ceil(allowedPlatforms.length / 2);
+      const batch1 = allowedPlatforms.slice(0, mid);
+      const batch2 = allowedPlatforms.slice(mid);
+      const [result1, result2] = await Promise.all([
+        repurposeContent(resolvedContent, batch1, brandVoiceSample, outputLanguage, userIntent),
+        repurposeContent(resolvedContent, batch2, brandVoiceSample, outputLanguage, userIntent),
+      ]);
+      outputs = { ...result1, ...result2 };
+    } else {
+      outputs = await repurposeContent(
+        resolvedContent,
+        allowedPlatforms,
+        brandVoiceSample,
+        outputLanguage,
+        userIntent
+      );
+    }
 
     // Save to database
     const { data: job } = await supabase

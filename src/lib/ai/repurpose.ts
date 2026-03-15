@@ -1,0 +1,130 @@
+import OpenAI from "openai";
+import { buildExtractorPrompt }    from "@/lib/ai/prompts/extractor";
+import { buildBrandVoicePrompt }   from "@/lib/ai/prompts/brand-voice";
+import {
+  buildLinkedInPrompt,
+  buildTwitterThreadPrompt,
+  buildTwitterSinglePrompt,
+  buildInstagramPrompt,
+  buildFacebookPrompt,
+  buildRedditPrompt,
+  buildEmailPrompt,
+} from "@/lib/ai/prompts/platforms";
+import { buildQualityCheckerPrompt } from "@/lib/ai/prompts/quality-checker";
+import type {
+  Platform, Language, ContentBrief, PlatformOutput,
+  RepurposeRequest, RepurposeResult,
+} from "@/lib/ai/types";
+import { captureError } from "@/lib/sentry";
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+const MODEL  = "gpt-4o-mini";
+
+export async function extractBrief(content: string): Promise<ContentBrief> {
+  const response = await openai.chat.completions.create({
+    model: MODEL, temperature: 0.3,
+    messages: [{ role: "user", content: buildExtractorPrompt(content) }],
+  });
+  const raw = response.choices[0]?.message?.content ?? "{}";
+  try {
+    return JSON.parse(raw.replace(/```json|```/g, "").trim()) as ContentBrief;
+  } catch {
+    return { coreMessage: content.slice(0, 200), keyPoints: [content.slice(0, 100)], audience: "general audience", tone: "conversational", contentType: "text", rawContent: content };
+  }
+}
+
+export async function extractBrandVoicePersona(samples: string): Promise<string> {
+  const response = await openai.chat.completions.create({
+    model: MODEL, temperature: 0.4,
+    messages: [{ role: "user", content: buildBrandVoicePrompt(samples) }],
+  });
+  return response.choices[0]?.message?.content ?? "";
+}
+
+async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
+  const promptBuilders: Record<Platform, () => string> = {
+    linkedin:       () => buildLinkedInPrompt(brief, voice, language),
+    twitter_thread: () => buildTwitterThreadPrompt(brief, voice, language),
+    twitter_single: () => buildTwitterSinglePrompt(brief, voice, language),
+    instagram:      () => buildInstagramPrompt(brief, voice, language),
+    facebook:       () => buildFacebookPrompt(brief, voice, language),
+    reddit:         () => buildRedditPrompt(brief, voice, language),
+    email:          () => buildEmailPrompt(brief, voice, language),
+  };
+  const temperatures: Record<Platform, number> = {
+    linkedin: 0.75, twitter_thread: 0.80, twitter_single: 0.85,
+    instagram: 0.80, facebook: 0.75, reddit: 0.70, email: 0.72,
+  };
+  const response = await openai.chat.completions.create({
+    model: MODEL, temperature: temperatures[platform],
+    messages: [
+      { role: "system", content: "You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly." },
+      { role: "user",   content: promptBuilders[platform]() },
+    ],
+  });
+  const raw = response.choices[0]?.message?.content ?? "";
+  const jsonPlatforms: Platform[] = ["twitter_thread", "instagram", "reddit", "email"];
+  if (jsonPlatforms.includes(platform)) {
+    try {
+      const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+      if (platform === "twitter_thread") return { platform, content: parsed.tweets?.join("\n\n") ?? raw, tweets: parsed.tweets ?? [], charCount: (parsed.tweets ?? []).join("").length };
+      if (platform === "instagram") return { platform, content: parsed.caption ?? raw, hashtags: (parsed.hashtags ?? []) as string[], charCount: (parsed.caption ?? "").length };
+      if (platform === "reddit")    return { platform, title: parsed.title ?? "", content: parsed.body ?? raw, charCount: (parsed.body ?? "").length };
+      if (platform === "email")     return { platform, subject: parsed.subject ?? "", content: parsed.body ?? raw, charCount: (parsed.body ?? "").length };
+    } catch { /* fallthrough to raw */ }
+  }
+  return { platform, content: raw, charCount: raw.length };
+}
+
+async function qualityCheck(platform: Platform, output: PlatformOutput): Promise<{ passed: boolean; fixInstruction: string }> {
+  const contentToCheck = platform === "twitter_thread" ? output.tweets?.join("\n---\n") ?? output.content : output.content;
+  const response = await openai.chat.completions.create({
+    model: MODEL, temperature: 0.1,
+    messages: [{ role: "user", content: buildQualityCheckerPrompt(platform, contentToCheck) }],
+  });
+  const raw = response.choices[0]?.message?.content ?? "{}";
+  try {
+    const result = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    return { passed: result.passed ?? true, fixInstruction: result.fixInstruction ?? "" };
+  } catch {
+    return { passed: true, fixInstruction: "" };
+  }
+}
+
+export async function repurposeContent(req: RepurposeRequest): Promise<RepurposeResult> {
+  const startTime = Date.now();
+  const brief = await extractBrief(req.content);
+  brief.rawContent = req.content;
+
+  let voicePersona: string | null = null;
+  if (req.brandVoice?.samples) {
+    voicePersona = req.brandVoice.persona ?? await extractBrandVoicePersona(req.brandVoice.samples);
+  }
+
+  const agentResults = await Promise.allSettled(
+    req.platforms.map((platform) => runPlatformAgent(platform, brief, voicePersona, req.language))
+  );
+
+  const outputs: PlatformOutput[] = [];
+  for (let i = 0; i < agentResults.length; i++) {
+    const result   = agentResults[i]!;
+    const platform = req.platforms[i]!;
+    if (result.status === "rejected") {
+      captureError(result.reason, { action: "platform_agent", extra: { platform } });
+      outputs.push({ platform, content: "", passed: false });
+      continue;
+    }
+    let output = result.value;
+    const qc   = await qualityCheck(platform, output);
+    if (!qc.passed && qc.fixInstruction) {
+      try {
+        const retryBrief = { ...brief, coreMessage: `${brief.coreMessage}\n\nFIX REQUIRED: ${qc.fixInstruction}` };
+        output = await runPlatformAgent(platform, retryBrief, voicePersona, req.language);
+      } catch (err) {
+        captureError(err, { action: "platform_agent_retry", extra: { platform } });
+      }
+    }
+    outputs.push({ ...output, passed: true });
+  }
+  return { brief, outputs, durationMs: Date.now() - startTime };
+}

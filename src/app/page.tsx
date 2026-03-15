@@ -504,7 +504,7 @@ export default function LandingPage() {
                 </div>
                 <ul className="space-y-3">
                   {[
-                    "Write blog post (2 hours)",
+                    "Generate blog with AI or paste existing (5–10 min)",
                     "Paste into RepostAI (5 seconds)",
                     "Select all platforms (3 seconds)",
                     "Click 'Repurpose' (1 second)",
@@ -788,9 +788,9 @@ export default function LandingPage() {
                       {feature.description}
                     </p>
                     {isIntegrations && (
-                      <Link href="/integrations" className="inline-flex items-center gap-1 text-sm text-primary font-medium mt-3 hover:underline">
+                      <span className="inline-flex items-center gap-1 text-sm text-primary font-medium mt-3 hover:underline">
                         Integrations <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
+                      </span>
                     )}
                   </CardContent>
                 </Card>

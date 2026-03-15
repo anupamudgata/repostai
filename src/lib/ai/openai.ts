@@ -4,7 +4,7 @@ import { buildRepurposePrompt } from "./prompts";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 30_000,
+  timeout: 60_000, // allow time for 9-platform single call or parallel batches
 });
 
 export async function repurposeContent(
@@ -37,7 +37,25 @@ export async function repurposeContent(
   }
 
   try {
-    return JSON.parse(text) as Record<Platform, string>;
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+    const result: Record<string, string> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "string") {
+        result[key] = value;
+      } else if (value && typeof value === "object") {
+        const obj = value as Record<string, unknown>;
+        if ("subject" in obj && "body" in obj) {
+          result[key] = `Subject: ${obj.subject}\n\n${obj.body}`;
+        } else if ("body" in obj) {
+          result[key] = String(obj.body);
+        } else {
+          result[key] = JSON.stringify(value);
+        }
+      } else {
+        result[key] = String(value ?? "");
+      }
+    }
+    return result as Record<Platform, string>;
   } catch {
     throw new Error(
       "AI returned an unexpected format. Please try again."

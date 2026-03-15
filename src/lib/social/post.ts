@@ -1,24 +1,29 @@
-const TWITTER_MAX_LENGTH = 280;
+import { postToLinkedIn } from "@/lib/social/posters/linkedin";
+import { postToTwitter  } from "@/lib/social/posters/twitter";
+import { postToFacebook } from "@/lib/social/posters/facebook";
+import { postToReddit   } from "@/lib/social/posters/reddit";
+import { captureError   } from "@/lib/sentry";
+import type { Platform, PostResult } from "@/lib/social/types";
 
-export async function postToTwitter(
-  content: string,
-  accessToken: string
-): Promise<{ success: true }> {
-  const text =
-    content.length > TWITTER_MAX_LENGTH
-      ? content.slice(0, TWITTER_MAX_LENGTH - 3) + "..."
-      : content;
-  const res = await fetch("https://api.x.com/2/tweets", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify({ text }),
-  });
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(err || `Twitter API ${res.status}`);
+interface PostOptions { userId: string; platform: Platform; text: string; subreddit?: string; }
+
+export async function postToPlatform(opts: PostOptions): Promise<PostResult> {
+  const { userId, platform, text, subreddit } = opts;
+  try {
+    switch (platform) {
+      case "linkedin":  return await postToLinkedIn(userId, text);
+      case "twitter":   return await postToTwitter(userId, text);
+      case "facebook":  return await postToFacebook(userId, text);
+      case "reddit":    return await postToReddit(userId, text, subreddit ?? "");
+      default: return { platform, success: false, error: `Platform ${platform} not yet supported` };
+    }
+  } catch (err) {
+    captureError(err, { userId, action: "social_post", extra: { platform } });
+    return { platform, success: false, error: "Unexpected error posting. Our team has been notified." };
   }
-  return { success: true };
+}
+
+export async function postToAllPlatforms(opts: { userId: string; posts: Array<{ platform: Platform; text: string; subreddit?: string }> }): Promise<PostResult[]> {
+  const results = await Promise.allSettled(opts.posts.map((p) => postToPlatform({ userId: opts.userId, platform: p.platform, text: p.text, subreddit: p.subreddit })));
+  return results.map((r, i) => r.status === "fulfilled" ? r.value : { platform: opts.posts[i]!.platform, success: false, error: "Failed to post" });
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { decrypt } from "@/lib/crypto/tokens";
-import { postToTwitter } from "@/lib/social/post";
+import { postToTwitterWithToken } from "@/lib/social/posters/twitter";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
 
       if (account.provider === "twitter") {
         try {
-          await postToTwitter(content, accessToken);
+          await postToTwitterWithToken(content, accessToken);
           await supabaseAdmin
             .from("scheduled_posts")
             .update({
