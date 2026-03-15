@@ -129,4 +129,28 @@ If the dashboard shows on local but features like Connections or “Post now” 
 - Set **NEXT_PUBLIC_APP_URL** in Vercel to that exact root URL (e.g. `https://repostai-xxx.vercel.app`). Required for auth and OAuth redirects; if missing, some assets or redirects can break.
 - For **preview** deployments, use the preview URL: e.g. `https://repostai-ib377kgli-anupamudgatas-projects.vercel.app` (no path). Redeploy after changing env vars.
 
+---
+
+## Nothing changes on Vercel? (Troubleshooting)
+
+If the app works locally but on Vercel you still see the old page, wrong redirect after login, or “nothing changes”:
+
+1. **Supabase Redirect URLs**
+   - **Supabase** → **Authentication** → **URL Configuration** → **Redirect URLs**.
+   - Add **every** URL you use, including the exact Vercel URL (e.g. `https://repostai-xxx-anupamudgatas-projects.vercel.app/**`). Use the **same** URL you see in the browser when you open the app.
+   - Optional: set **Site URL** to that same base URL (e.g. `https://repostai-xxx.vercel.app`) so Supabase uses it as the default redirect target.
+
+2. **Which deployment are you opening?**
+   - Each deploy has a unique URL like `repostai-<hash>-anupamudgatas-projects.vercel.app`. Open the **latest** deployment: **Vercel** → **Deployments** → click the top one → open its **Visit** URL.
+   - Or use the **stable** branch URL: `https://repostai-git-<branch>-anupamudgatas-projects.vercel.app` (e.g. `repostai-git-main-...` or `repostai-git-dev-...`), which always points to the latest deploy for that branch.
+
+3. **Redeploy after env or Supabase changes**
+   - Env vars are applied at **build** time. After changing **Environment Variables** in Vercel or **Redirect URLs** in Supabase, trigger a **new deploy** (e.g. **Deployments** → **⋯** → **Redeploy**), then wait for it to finish and open that deployment’s URL.
+
+4. **Cache**
+   - Do a hard refresh: **Ctrl+Shift+R** (Windows) or **Cmd+Shift+R** (Mac), or test in an **incognito/private** window.
+
+5. **Auth callback**
+   - The app redirects after login to the **same host** that received the callback (no need to set `NEXT_PUBLIC_APP_URL` just for that). If you use Google OAuth, the redirect URL Supabase uses must be exactly `https://<your-vercel-host>/api/auth/callback` and that host must be in **Redirect URLs**.
+
 That’s it. You’re production-ready.
