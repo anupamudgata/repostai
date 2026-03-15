@@ -4,7 +4,7 @@ import { repurposeContent } from "@/lib/ai/openai";
 import { scrapeUrl } from "@/lib/scrapers/url-scraper";
 import { getYouTubeTranscript } from "@/lib/scrapers/youtube-scraper";
 import { repurposeSchema } from "@/lib/validators/repurpose";
-import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS } from "@/config/constants";
+import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS, SUPERUSER_EMAIL } from "@/config/constants";
 import { notifyZapier } from "@/lib/zapier/notify";
 
 export async function POST(request: NextRequest) {
@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const SUPERUSER_EMAIL = "anupam.udgata@gmail.com";
     const isSuperUser = user.email === SUPERUSER_EMAIL;
 
     const body = await request.json();

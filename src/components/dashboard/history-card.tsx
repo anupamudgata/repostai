@@ -37,13 +37,13 @@ export function HistoryCard({ job }: HistoryCardProps) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [outputs, setOutputs] = useState(job.repurpose_outputs || []);
   const [regeneratingPlatform, setRegeneratingPlatform] = useState<string | null>(null);
-  const [connectedAccounts, setConnectedAccounts] = useState<{ id: string; provider: string }[]>([]);
+  const [connectedAccounts, setConnectedAccounts] = useState<{ id: string; platform: string }[]>([]);
   const [postingPlatform, setPostingPlatform] = useState<string | null>(null);
 
   useEffect(() => {
     createClient()
       .from("connected_accounts")
-      .select("id, provider")
+      .select("id, platform")
       .then(({ data }) => setConnectedAccounts(data ?? []));
   }, []);
 
@@ -155,7 +155,7 @@ export function HistoryCard({ job }: HistoryCardProps) {
                 output.platform;
               const provider = platformProvider(output.platform);
               const account = provider
-                ? connectedAccounts.find((a) => a.provider === provider)
+                ? connectedAccounts.find((a) => a.platform === provider)
                 : null;
               return (
                 <div

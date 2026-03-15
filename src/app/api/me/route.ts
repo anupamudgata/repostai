@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { FREE_TIER_MONTHLY_LIMIT } from "@/config/constants";
+import { FREE_TIER_MONTHLY_LIMIT, SUPERUSER_EMAIL } from "@/config/constants";
 
 export async function GET() {
   const supabase = await createClient();
@@ -12,7 +12,6 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const SUPERUSER_EMAIL = "anupam.udgata@gmail.com";
   const isSuperUser = user.email === SUPERUSER_EMAIL;
 
   const { data: profile } = await supabase

@@ -111,6 +111,14 @@ Run the migration in `docs/SUPABASE_FULL_SCHEMA_AND_MIGRATION.sql` to add the `z
 5. Add **RESEND_API_KEY** and **RESEND_FROM_EMAIL**.
 6. Add **NEXT_PUBLIC_SENTRY_DSN** (and **SENTRY_AUTH_TOKEN** for releases).
 7. Add **NEXT_PUBLIC_POSTHOG_KEY**.
-8. Set **NEXT_PUBLIC_APP_URL** = `https://repostai.com` (or your production URL).
+8. Set **NEXT_PUBLIC_APP_URL** = your production URL (e.g. `https://your-app.vercel.app`). Required for auth redirects and OAuth (LinkedIn/Twitter).
+9. For **Connections** (Connect LinkedIn / Twitter): add **LINKEDIN_CLIENT_ID**, **LINKEDIN_CLIENT_SECRET**, **TWITTER_CLIENT_ID**, **TWITTER_CLIENT_SECRET** in Vercel, and add the matching redirect URLs in the LinkedIn and Twitter app settings (e.g. `https://your-app.vercel.app/api/connect/linkedin/callback`).
+
+If the dashboard shows on local but features like Connections or “Post now” are missing on Vercel, the usual cause is missing or incorrect env vars in Vercel (especially **NEXT_PUBLIC_APP_URL** and Supabase keys). Redeploy after adding them.
+
+**Landing page not showing or looks wrong on Vercel**
+- Open the **root** URL: `https://your-deployment.vercel.app/` (not `/dashboard/history`). The landing page is only at `/`.
+- Set **NEXT_PUBLIC_APP_URL** in Vercel to that exact root URL (e.g. `https://repostai-xxx.vercel.app`). Required for auth and OAuth redirects; if missing, some assets or redirects can break.
+- For **preview** deployments, use the preview URL: e.g. `https://repostai-ib377kgli-anupamudgatas-projects.vercel.app` (no path). Redeploy after changing env vars.
 
 That’s it. You’re production-ready.

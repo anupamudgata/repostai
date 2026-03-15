@@ -6,6 +6,9 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000
 /** Support / contact email used in footer, settings, and legal pages. */
 export const SUPPORT_EMAIL = "support@repostai.com";
 
+/** Superuser email: bypasses free limits, gets Pro plan everywhere (repurpose, stream, create, nav). */
+export const SUPERUSER_EMAIL = "anupam.udgata@gmail.com";
+
 /** Zapier: app connect URL. When set, "Connect with Zapier" links here; otherwise show "Coming soon". */
 export const ZAPIER_APP_URL = process.env.NEXT_PUBLIC_ZAPIER_APP_URL || "";
 

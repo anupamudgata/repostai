@@ -3,6 +3,7 @@ import { createClient }                  from "@/lib/supabase/server";
 import { supabaseAdmin }                 from "@/lib/supabase/admin";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
+import { SUPERUSER_EMAIL } from "@/config/constants";
 import { burstLimiter, freeTierLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
 import { captureError }                  from "@/lib/sentry";
 import OpenAI                            from "openai";
@@ -90,8 +91,9 @@ export async function POST(req: NextRequest) {
         const burst = await burstLimiter.limit(user.id);
         if (!burst.success) { send({ type: "error", error: "Too many requests. Please slow down." }); close(); return; }
 
+        const isSuperUser = user.email === SUPERUSER_EMAIL;
         const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan, status").eq("user_id", user.id).single();
-        const plan    = sub?.status === "active" ? sub.plan : "free";
+        const plan    = isSuperUser ? "pro" : (sub?.status === "active" ? sub.plan : "free");
         const limiter = plan === "agency" ? agencyTierLimiter : plan === "pro" ? proTierLimiter : freeTierLimiter;
         const tierResult = await limiter.limit(user.id);
         if (!tierResult.success) {

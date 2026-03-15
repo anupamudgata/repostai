@@ -77,15 +77,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ensure connected account belongs to user and matches provider
+    // Ensure connected account belongs to user and matches platform
     const { data: account, error: accountError } = await supabase
       .from("connected_accounts")
-      .select("id, provider")
+      .select("id, platform")
       .eq("id", connectedAccountId)
       .eq("user_id", user.id)
       .single();
 
-    if (accountError || !account || account.provider !== provider) {
+    if (accountError || !account || account.platform !== provider) {
       return NextResponse.json(
         { error: "Connected account not found or wrong platform" },
         { status: 404 }

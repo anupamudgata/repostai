@@ -168,7 +168,7 @@ export default function DashboardPage() {
     limit: number;
   } | null>(null);
   const [connectedAccounts, setConnectedAccounts] = useState<
-    { id: string; provider: string }[]
+    { id: string; platform: string }[]
   >([]);
   const [postingPlatform, setPostingPlatform] = useState<string | null>(null);
   const [bulkPosting, setBulkPosting] = useState(false);
@@ -180,7 +180,7 @@ export default function DashboardPage() {
 
   const isFreePlan = plan === "free";
 
-  /** Map platform to connected_account provider for "Post now" */
+  /** Map repurpose platform to connected_account platform for "Post now" */
   const platformProvider = (p: Platform): string | null => {
     if (p === "twitter_thread" || p === "twitter_single") return "twitter";
     if (p === "linkedin") return "linkedin";
@@ -191,7 +191,7 @@ export default function DashboardPage() {
     async function fetchConnections() {
       const { data } = await createClient()
         .from("connected_accounts")
-        .select("id, provider");
+        .select("id, platform");
       setConnectedAccounts(data ?? []);
     }
     fetchConnections();
@@ -343,7 +343,7 @@ export default function DashboardPage() {
   function openScheduleModal(platform: Platform) {
     const provider = platformProvider(platform);
     const acc = provider
-      ? connectedAccounts.find((a) => a.provider === provider)
+      ? connectedAccounts.find((a) => a.platform === provider)
       : null;
     if (!acc || !lastJobId) return;
     setSchedulePlatform(platform);
@@ -430,7 +430,7 @@ export default function DashboardPage() {
     for (const output of outputs) {
       const provider = platformProvider(output.platform);
       if (!provider) continue;
-      const account = connectedAccounts.find((a) => a.provider === provider);
+      const account = connectedAccounts.find((a) => a.platform === provider);
       if (!account) continue;
       const platformInfo = SUPPORTED_PLATFORMS.find((p) => p.id === output.platform);
       tasks.push({
@@ -796,7 +796,7 @@ export default function DashboardPage() {
               );
               const provider = platformProvider(output.platform);
               const account = provider
-                ? connectedAccounts.find((a) => a.provider === provider)
+                ? connectedAccounts.find((a) => a.platform === provider)
                 : null;
               return (
                 <Card key={output.platform}>
