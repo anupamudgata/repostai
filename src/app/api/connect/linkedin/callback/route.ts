@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { encrypt } from "@/lib/crypto/tokens";
 import { APP_URL } from "@/config/constants";
 
 export async function GET(request: NextRequest) {
@@ -81,34 +80,44 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let username: string | null = null;
-  let providerUserId: string | null = null;
+  let platformUsername: string | null = null;
+  let platformUserId: string = "unknown";
 
   try {
-    const meRes = await fetch("https://api.linkedin.com/v2/me", {
-      headers: {
-        Authorization: `Bearer ${tokenData.access_token}`,
-        "X-Restli-Protocol-Version": "2.0.0",
-      },
+    const userInfoRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
     });
-
-    if (meRes.ok) {
-      const me = (await meRes.json()) as {
-        id?: string;
-        localizedFirstName?: string;
-        localizedLastName?: string;
+    if (userInfoRes.ok) {
+      const userInfo = (await userInfoRes.json()) as {
+        sub?: string;
+        name?: string;
+        given_name?: string;
+        family_name?: string;
       };
-      providerUserId = me.id ?? null;
-      const first = me.localizedFirstName ?? "";
-      const last = me.localizedLastName ?? "";
-      const fullName = `${first} ${last}`.trim();
-      username = fullName || null;
+      platformUserId = userInfo.sub ?? "unknown";
+      platformUsername = userInfo.name ?? [userInfo.given_name, userInfo.family_name].filter(Boolean).join(" ") || null;
     }
-  } catch (e) {
-    console.error("LinkedIn profile fetch failed:", e);
+  } catch {
+    try {
+      const meRes = await fetch("https://api.linkedin.com/v2/me", {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+          "X-Restli-Protocol-Version": "2.0.0",
+        },
+      });
+      if (meRes.ok) {
+        const me = (await meRes.json()) as { id?: string; localizedFirstName?: string; localizedLastName?: string };
+        platformUserId = me.id ?? "unknown";
+        const first = me.localizedFirstName ?? "";
+        const last = me.localizedLastName ?? "";
+        platformUsername = `${first} ${last}`.trim() || null;
+      }
+    } catch (e) {
+      console.error("LinkedIn profile fetch failed:", e);
+    }
   }
 
-  const expiresAt = tokenData.expires_in
+  const tokenExpiresAt = tokenData.expires_in
     ? new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
     : null;
 
@@ -116,16 +125,15 @@ export async function GET(request: NextRequest) {
     await supabase.from("connected_accounts").upsert(
       {
         user_id: user.id,
-        provider: "linkedin",
-        encrypted_access_token: encrypt(tokenData.access_token),
-        encrypted_refresh_token: tokenData.refresh_token
-          ? encrypt(tokenData.refresh_token)
-          : null,
-        username,
-        provider_user_id: providerUserId,
-        expires_at: expiresAt,
+        platform: "linkedin",
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token ?? null,
+        platform_username: platformUsername,
+        platform_user_id: platformUserId,
+        token_expires_at: tokenExpiresAt,
+        updated_at: new Date().toISOString(),
       },
-      { onConflict: "user_id,provider" }
+      { onConflict: "user_id,platform" }
     );
   } catch (e) {
     console.error("Save LinkedIn connected account failed:", e);

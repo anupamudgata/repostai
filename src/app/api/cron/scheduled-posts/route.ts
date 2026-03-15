@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { decrypt } from "@/lib/crypto/tokens";
 import { postToTwitterWithToken } from "@/lib/social/posters/twitter";
+import { postToLinkedIn } from "@/lib/social/posters/linkedin";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -71,7 +71,7 @@ export async function GET(request: Request) {
 
       const { data: account } = await supabaseAdmin
         .from("connected_accounts")
-        .select("encrypted_access_token, provider")
+        .select("platform, access_token, user_id")
         .eq("id", row.connected_account_id)
         .single();
 
@@ -88,25 +88,9 @@ export async function GET(request: Request) {
         continue;
       }
 
-      let accessToken: string;
-      try {
-        accessToken = decrypt(account.encrypted_access_token);
-      } catch {
-        await supabaseAdmin
-          .from("scheduled_posts")
-          .update({
-            status: "failed",
-            error_message: "Could not decrypt token",
-            posted_at: new Date().toISOString(),
-          })
-          .eq("id", row.id);
-        processed++;
-        continue;
-      }
-
-      if (account.provider === "twitter") {
+      if (account.platform === "twitter") {
         try {
-          await postToTwitterWithToken(content, accessToken);
+          await postToTwitterWithToken(content, account.access_token);
           await supabaseAdmin
             .from("scheduled_posts")
             .update({
@@ -126,22 +110,45 @@ export async function GET(request: Request) {
             .eq("id", row.id);
         }
         processed++;
-      } else if (account.provider === "linkedin") {
-        await supabaseAdmin
-          .from("scheduled_posts")
-          .update({
-            status: "failed",
-            error_message: "LinkedIn posting not yet implemented",
-            posted_at: new Date().toISOString(),
-          })
-          .eq("id", row.id);
+      } else if (account.platform === "linkedin") {
+        try {
+          const result = await postToLinkedIn(account.user_id, content);
+          if (result.success) {
+            await supabaseAdmin
+              .from("scheduled_posts")
+              .update({
+                status: "completed",
+                posted_at: new Date().toISOString(),
+              })
+              .eq("id", row.id);
+          } else {
+            await supabaseAdmin
+              .from("scheduled_posts")
+              .update({
+                status: "failed",
+                error_message: result.error ?? "LinkedIn post failed",
+                posted_at: new Date().toISOString(),
+              })
+              .eq("id", row.id);
+          }
+        } catch (e) {
+          console.error("Cron LinkedIn post failed for scheduled_posts id:", row.id, e);
+          await supabaseAdmin
+            .from("scheduled_posts")
+            .update({
+              status: "failed",
+              error_message: String(e instanceof Error ? e.message : e),
+              posted_at: new Date().toISOString(),
+            })
+            .eq("id", row.id);
+        }
         processed++;
       } else {
         await supabaseAdmin
           .from("scheduled_posts")
           .update({
             status: "failed",
-            error_message: "Unsupported provider",
+            error_message: "Unsupported platform",
             posted_at: new Date().toISOString(),
           })
           .eq("id", row.id);

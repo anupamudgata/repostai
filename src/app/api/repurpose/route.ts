@@ -5,6 +5,7 @@ import { scrapeUrl } from "@/lib/scrapers/url-scraper";
 import { getYouTubeTranscript } from "@/lib/scrapers/youtube-scraper";
 import { repurposeSchema } from "@/lib/validators/repurpose";
 import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS } from "@/config/constants";
+import { notifyZapier } from "@/lib/zapier/notify";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,10 +33,10 @@ export async function POST(request: NextRequest) {
 
     const { inputType, content, url, platforms, brandVoiceId, outputLanguage, userIntent } = parsed.data;
 
-    // Check usage limits for free users
+    // Check usage limits for free users (and Zapier webhook for post-completion notify)
     const { data: profile } = await supabase
       .from("profiles")
-      .select("plan")
+      .select("plan, zapier_webhook_url")
       .eq("id", user.id)
       .single();
 
@@ -118,11 +119,11 @@ export async function POST(request: NextRequest) {
     if (brandVoiceId) {
       const { data: voice } = await supabase
         .from("brand_voices")
-        .select("sample_text")
+        .select("samples")
         .eq("id", brandVoiceId)
         .eq("user_id", user.id)
         .single();
-      brandVoiceSample = voice?.sample_text;
+      brandVoiceSample = voice?.samples;
     }
 
     // Generate repurposed content: 4+ platforms → 2 parallel batches for speed
@@ -176,6 +177,15 @@ export async function POST(request: NextRequest) {
       await supabase.rpc("increment_usage", {
         p_user_id: user.id,
         p_month: currentMonth,
+      });
+
+      notifyZapier(profile?.zapier_webhook_url, {
+        jobId: job.id,
+        outputs: Object.entries(outputs).map(([platform, generatedContent]) => ({
+          platform,
+          content: generatedContent,
+        })),
+        createdAt: new Date().toISOString(),
       });
     }
 

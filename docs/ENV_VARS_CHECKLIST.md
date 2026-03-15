@@ -70,11 +70,25 @@ Use this list to configure **local** (`.env.local`) and **production** (e.g. Ver
 
 | Variable | Description | Get it from |
 |----------|-------------|-------------|
-| `LINKEDIN_CLIENT_ID` | LinkedIn OAuth app client ID | LinkedIn Developer Portal |
+| `LINKEDIN_CLIENT_ID` | LinkedIn OAuth app client ID | LinkedIn Developer Portal → your app → Auth |
 | `LINKEDIN_CLIENT_SECRET` | LinkedIn OAuth app secret | Same |
 | `TWITTER_CLIENT_ID` | Twitter/X OAuth 2.0 Client ID | Twitter Developer Portal → your app |
 | `TWITTER_CLIENT_SECRET` | Twitter/X OAuth 2.0 Client Secret | Same |
-| `NEXT_PUBLIC_APP_URL` | Must match OAuth redirect URIs | You set this |
+| `NEXT_PUBLIC_APP_URL` | Must match OAuth redirect URIs | You set this (e.g. `http://localhost:3000` or `https://yourdomain.com`) |
+
+**LinkedIn:** In the [LinkedIn Developer Portal](https://www.linkedin.com/developers/apps), open your app → **Auth** → **OAuth 2.0 settings** and add this **exact** redirect URL: `{NEXT_PUBLIC_APP_URL}/api/connect/linkedin/callback` (e.g. `http://localhost:3000/api/connect/linkedin/callback` for local).
+
+---
+
+## Zapier
+
+RepostAI sends repurpose results to Zapier via a **per-user webhook URL**. Users set their URL on the Integrations page (stored in `profiles.zapier_webhook_url`). No app-level env var is required.
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_ZAPIER_APP_URL` | Optional. If set, Integrations page shows an "Open Zapier app" link (e.g. to your custom Zapier app). |
+
+Run the migration in `docs/SUPABASE_FULL_SCHEMA_AND_MIGRATION.sql` to add the `zapier_webhook_url` column to `profiles` if you haven’t already.
 
 ---
 

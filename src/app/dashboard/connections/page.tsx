@@ -10,8 +10,8 @@ import { Link2, Loader2, Unplug } from "lucide-react";
 
 type ConnectedAccount = {
   id: string;
-  provider: string;
-  username: string | null;
+  platform: string;
+  platform_username: string | null;
   created_at: string;
 };
 
@@ -48,7 +48,7 @@ export default function ConnectionsPage() {
     let cancelled = false;
     supabase
       .from("connected_accounts")
-      .select("id, provider, username, created_at")
+      .select("id, platform, platform_username, created_at")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -80,7 +80,7 @@ export default function ConnectionsPage() {
     setAccounts((prev) => prev.filter((a) => a.id !== id));
   }
 
-  const providerLabel: Record<string, string> = {
+  const platformLabel: Record<string, string> = {
     twitter: "Twitter / X",
     linkedin: "LinkedIn",
   };
@@ -119,11 +119,11 @@ export default function ConnectionsPage() {
                     >
                       <div>
                         <span className="font-medium">
-                          {providerLabel[acc.provider] ?? acc.provider}
+                          {platformLabel[acc.platform] ?? acc.platform}
                         </span>
-                        {acc.username && (
+                        {acc.platform_username && (
                           <span className="text-muted-foreground ml-2">
-                            @{acc.username}
+                            {acc.platform_username}
                           </span>
                         )}
                       </div>

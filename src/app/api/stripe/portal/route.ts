@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     if (authError || !user) return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
 
     const { data: userData, error: userError } = await supabaseAdmin
-      .from("users").select("stripe_customer_id, email").eq("id", user.id).single();
+      .from("profiles").select("stripe_customer_id, email").eq("id", user.id).single();
 
     if (userError || !userData) return NextResponse.json({ error: "User not found." }, { status: 404 });
 
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
         metadata: { supabase_user_id: user.id },
       });
       customerId = customer.id;
-      await supabaseAdmin.from("users").update({ stripe_customer_id: customerId, updated_at: new Date().toISOString() }).eq("id", user.id);
+      await supabaseAdmin.from("profiles").update({ stripe_customer_id: customerId, updated_at: new Date().toISOString() }).eq("id", user.id);
     }
 
     const portalSession = await stripe.billingPortal.sessions.create({

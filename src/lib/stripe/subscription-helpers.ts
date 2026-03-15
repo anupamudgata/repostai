@@ -28,7 +28,7 @@ export async function handleCheckoutCompleted(
   const plan         = getPlanFromSubscription(subscription);
 
   const { data: userData, error: userError } = await supabaseAdmin
-    .from("users")
+    .from("profiles")
     .select("id")
     .eq("email", userEmail)
     .single();
@@ -65,7 +65,7 @@ export async function handleCheckoutCompleted(
   }
 
   await supabaseAdmin
-    .from("users")
+    .from("profiles")
     .update({ stripe_customer_id: customerId, plan, updated_at: new Date().toISOString() })
     .eq("id", userId);
 
@@ -82,7 +82,7 @@ export async function handleSubscriptionUpdated(subscription: Stripe.Subscriptio
   const customerId = subscription.customer as string;
 
   const { data: userData, error: userError } = await supabaseAdmin
-    .from("users").select("id").eq("stripe_customer_id", customerId).single();
+    .from("profiles").select("id").eq("stripe_customer_id", customerId).single();
 
   if (userError || !userData) {
     console.error("[webhook] User not found for customer:", customerId);
@@ -105,7 +105,7 @@ export async function handleSubscriptionUpdated(subscription: Stripe.Subscriptio
     .eq("user_id", userData.id);
 
   await supabaseAdmin
-    .from("users")
+    .from("profiles")
     .update({ plan, updated_at: new Date().toISOString() })
     .eq("id", userData.id);
 
@@ -116,7 +116,7 @@ export async function handleSubscriptionDeleted(subscription: Stripe.Subscriptio
   const customerId = subscription.customer as string;
 
   const { data: userData } = await supabaseAdmin
-    .from("users").select("id").eq("stripe_customer_id", customerId).single();
+    .from("profiles").select("id").eq("stripe_customer_id", customerId).single();
 
   if (!userData) return;
 
@@ -126,7 +126,7 @@ export async function handleSubscriptionDeleted(subscription: Stripe.Subscriptio
     .eq("user_id", userData.id);
 
   await supabaseAdmin
-    .from("users")
+    .from("profiles")
     .update({ plan: "free", updated_at: new Date().toISOString() })
     .eq("id", userData.id);
 
@@ -136,7 +136,7 @@ export async function handleSubscriptionDeleted(subscription: Stripe.Subscriptio
 export async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const customerId = invoice.customer as string;
   const { data: userData } = await supabaseAdmin
-    .from("users").select("id, email").eq("stripe_customer_id", customerId).single();
+    .from("profiles").select("id, email").eq("stripe_customer_id", customerId).single();
 
   if (!userData) return;
 

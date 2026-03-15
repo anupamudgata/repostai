@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { LandingNav } from "@/components/landing-nav";
+import { ZapierWebhookForm } from "@/components/integrations/ZapierWebhookForm";
 import { ZAPIER_APP_URL, SUPPORT_EMAIL } from "@/config/constants";
 
 const FEATURES = [
@@ -88,38 +89,33 @@ export default function IntegrationsPage() {
               <div className="text-center sm:text-left flex-1">
                 <h2 className="text-xl font-semibold mb-1">How it works</h2>
                 <p className="text-sm text-muted-foreground">
-                  Connect RepostAI in Zapier as a trigger (e.g. &quot;New repurposed content&quot;).
-                  Then add actions: post to LinkedIn, Twitter, Instagram, or any of 1000+ apps.
-                  One Zap, zero friction.
+                  Use <strong>Webhooks by Zapier</strong> (Catch Hook) as the trigger. When you finish a repurpose,
+                  we send the content to your webhook; your Zap then posts to LinkedIn, Twitter, Notion, or 1000+ apps.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
+        <ZapierWebhookForm />
+
         <div className="text-center">
           {ZAPIER_APP_URL ? (
             <a href={ZAPIER_APP_URL} target="_blank" rel="noopener noreferrer">
-              <Button size="lg" className="min-h-[48px] px-8 gap-2">
+              <Button size="lg" className="min-h-[48px] px-8 gap-2" variant="outline">
                 <Zap className="h-5 w-5" />
-                Connect with Zapier
+                Open Zapier app
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </a>
           ) : (
-            <>
-              <Button size="lg" className="min-h-[48px] px-8 gap-2" disabled>
-                <Zap className="h-5 w-5" />
-                Zapier integration coming soon
-              </Button>
-              <p className="text-sm text-muted-foreground mt-4 max-w-md mx-auto">
-                We&apos;re building the Zapier app now. Want early access?{" "}
-                <a href={`mailto:${SUPPORT_EMAIL}?subject=Zapier%20early%20access`} className="text-primary hover:underline">
-                  Email us
-                </a>
-                .
-              </p>
-            </>
+            <p className="text-sm text-muted-foreground max-w-md mx-auto">
+              Sign in and paste your Zapier webhook URL above to connect. Questions?{" "}
+              <a href={`mailto:${SUPPORT_EMAIL}?subject=Zapier`} className="text-primary hover:underline">
+                Email us
+              </a>
+              .
+            </p>
           )}
           <div className="mt-8">
             <Link href="/dashboard">

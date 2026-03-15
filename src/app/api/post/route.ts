@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { decrypt } from "@/lib/crypto/tokens";
 import { postToTwitterWithToken } from "@/lib/social/posters/twitter";
+import { postToLinkedIn } from "@/lib/social/posters/linkedin";
 import type { Platform } from "@/types";
 
-/** Map repurpose platform to connected_account provider */
+/** Map repurpose platform to connected_account platform */
 function platformToProvider(platform: Platform): "twitter" | "linkedin" | null {
   if (platform === "twitter_thread" || platform === "twitter_single") return "twitter";
   if (platform === "linkedin") return "linkedin";
@@ -72,12 +72,12 @@ export async function POST(request: NextRequest) {
 
     const { data: account, error: accountError } = await supabase
       .from("connected_accounts")
-      .select("id, provider, encrypted_access_token")
+      .select("id, platform, access_token")
       .eq("id", connectedAccountId)
       .eq("user_id", user.id)
       .single();
 
-    if (accountError || !account || account.provider !== provider) {
+    if (accountError || !account || account.platform !== provider) {
       return NextResponse.json(
         { error: "Connected account not found or wrong platform" },
         { status: 404 }
@@ -93,19 +93,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let accessToken: string;
-    try {
-      accessToken = decrypt(account.encrypted_access_token);
-    } catch {
-      return NextResponse.json(
-        { error: "Could not use saved credentials. Reconnect the account." },
-        { status: 500 }
-      );
-    }
-
     if (provider === "twitter") {
       try {
-        await postToTwitterWithToken(content, accessToken);
+        await postToTwitterWithToken(content, account.access_token);
         return NextResponse.json({ success: true });
       } catch (e) {
         console.error("Twitter post failed:", e);
@@ -117,10 +107,22 @@ export async function POST(request: NextRequest) {
     }
 
     if (provider === "linkedin") {
-      return NextResponse.json(
-        { error: "LinkedIn posting not yet implemented" },
-        { status: 501 }
-      );
+      try {
+        const result = await postToLinkedIn(user.id, content);
+        if (!result.success) {
+          return NextResponse.json(
+            { error: result.error ?? "Failed to post to LinkedIn" },
+            { status: 502 }
+          );
+        }
+        return NextResponse.json({ success: true });
+      } catch (e) {
+        console.error("LinkedIn post failed:", e);
+        return NextResponse.json(
+          { error: "Failed to post to LinkedIn. Try reconnecting the account." },
+          { status: 502 }
+        );
+      }
     }
 
     return NextResponse.json(

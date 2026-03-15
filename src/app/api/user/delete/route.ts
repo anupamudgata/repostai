@@ -21,13 +21,14 @@ export async function DELETE(req: NextRequest) {
       }
     } catch (stripeErr) { captureError(stripeErr, { userId, action: "delete_account_stripe_cancel" }); }
 
-    // Delete all data in order
-    const tables = ["connected_accounts", "usage_tracking", "repurpose_history", "brand_voices", "subscriptions", "users"];
+    // Delete all data in order (repurpose_outputs deleted via cascade from repurpose_jobs)
+    const tables = ["scheduled_posts", "connected_accounts", "repurpose_jobs", "usage", "brand_voices", "subscriptions", "profiles"];
     for (const table of tables) {
-      const { error } = await supabaseAdmin.from(table).delete().eq("user_id", userId);
+      const col = table === "profiles" ? "id" : "user_id";
+      const { error } = await supabaseAdmin.from(table).delete().eq(col, userId);
       if (error) {
         captureError(error, { userId, action: "delete_account_table", extra: { table } });
-        if (table === "users") return NextResponse.json({ error: "Failed to delete account data. Please contact support@repostai.com." }, { status: 500 });
+        if (table === "profiles") return NextResponse.json({ error: "Failed to delete account data. Please contact support@repostai.com." }, { status: 500 });
       }
     }
 

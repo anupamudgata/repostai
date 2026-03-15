@@ -48,11 +48,11 @@ export async function POST(request: NextRequest) {
     if (brandVoiceId) {
       const { data: voice } = await supabase
         .from("brand_voices")
-        .select("sample_text")
+        .select("samples")
         .eq("id", brandVoiceId)
         .eq("user_id", user.id)
         .single();
-      brandVoiceSample = voice?.sample_text;
+      brandVoiceSample = voice?.samples;
     }
 
     const generatedContent = await generateBlogPost(

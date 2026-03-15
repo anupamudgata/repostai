@@ -79,7 +79,7 @@ export default function BrandVoicePage() {
     const { error } = await supabase.from("brand_voices").insert({
       user_id: user.id,
       name,
-      sample_text: sampleText,
+      samples: sampleText,
     });
 
     if (error) {
@@ -226,7 +226,7 @@ export default function BrandVoicePage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground line-clamp-4">
-                  {voice.sample_text}
+                  {voice.samples ?? voice.sample_text}
                 </p>
                 <p className="text-xs text-muted-foreground mt-3">
                   Created {new Date(voice.created_at).toLocaleDateString()}

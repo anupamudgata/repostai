@@ -17,7 +17,7 @@ export async function GET() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan")
+    .select("plan, zapier_webhook_url")
     .eq("id", user.id)
     .single();
 
@@ -41,5 +41,44 @@ export async function GET() {
     repurposeCount: isFree ? repurposeCount : null,
     repurposeLimit: isFree ? FREE_TIER_MONTHLY_LIMIT : null,
     isSuperUser,
+    zapier_webhook_url: profile?.zapier_webhook_url ?? null,
   });
+}
+
+export async function PATCH(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let body: { zapier_webhook_url?: string | null };
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const url = body.zapier_webhook_url;
+  if (url !== undefined) {
+    const toSet = url === null || url === "" ? null : String(url).trim();
+    if (toSet !== null && (!toSet.startsWith("https://") || toSet.length > 500)) {
+      return NextResponse.json(
+        { error: "Zapier webhook URL must be a valid HTTPS URL (max 500 characters)" },
+        { status: 400 }
+      );
+    }
+    const { error } = await supabase
+      .from("profiles")
+      .update({ zapier_webhook_url: toSet })
+      .eq("id", user.id);
+    if (error) {
+      return NextResponse.json({ error: "Could not update profile" }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ ok: true });
 }

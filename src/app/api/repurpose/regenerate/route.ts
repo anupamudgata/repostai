@@ -65,11 +65,11 @@ export async function POST(request: NextRequest) {
       if (job.brand_voice_id) {
         const { data: voice } = await supabase
           .from("brand_voices")
-          .select("sample_text")
+          .select("samples")
           .eq("id", job.brand_voice_id)
           .eq("user_id", user.id)
           .single();
-        brandVoiceSample = voice?.sample_text;
+        brandVoiceSample = voice?.samples;
       }
     } else {
       const { originalContent: content, brandVoiceId } = body;
@@ -83,11 +83,11 @@ export async function POST(request: NextRequest) {
       if (brandVoiceId) {
         const { data: voice } = await supabase
           .from("brand_voices")
-          .select("sample_text")
+          .select("samples")
           .eq("id", brandVoiceId)
           .eq("user_id", user.id)
           .single();
-        brandVoiceSample = voice?.sample_text;
+        brandVoiceSample = voice?.samples;
       }
       if (body.outputLanguage) {
         outputLanguage = body.outputLanguage;
