@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { SUPERUSER_EMAIL } from "@/config/constants";
 import { DashboardNav } from "@/components/dashboard/nav";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({
   children,
 }: {
