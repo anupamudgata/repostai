@@ -14,6 +14,14 @@ Use this list to configure **local** (`.env.local`) and **production** (e.g. Ver
 | `OPENAI_API_KEY` | OpenAI API key | https://platform.openai.com/api-keys |
 | `NEXT_PUBLIC_APP_URL` | App URL (e.g. `https://repostai.com` or `http://localhost:3000`) | You set this |
 
+**Supabase Redirect URLs (required for login on Vercel)**  
+In **Supabase Dashboard** → **Authentication** → **URL Configuration** → **Redirect URLs**, add every URL where the app runs, for example:
+- `http://localhost:3000/**` (local)
+- `https://your-app.vercel.app/**` (production)
+- `https://repostai-p0nfkgytw-anupamudgatas-projects.vercel.app/**` (each Vercel preview URL, or use a wildcard if your plan allows)
+
+If the Vercel URL is missing, login can redirect to the wrong place or the dashboard may not load correctly after sign-in.
+
 ---
 
 ## Rate limiting (Upstash)
