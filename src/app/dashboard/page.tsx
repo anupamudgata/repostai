@@ -619,7 +619,13 @@ export default function DashboardPage() {
                         method: "POST",
                         body: formData,
                       });
-                      const data = await res.json();
+                      let data: { error?: string; text?: string };
+                      try {
+                        data = await res.json();
+                      } catch {
+                        toast.error("Invalid response from server");
+                        return;
+                      }
                       if (!res.ok) {
                         toast.error(data.error || "Failed to extract text");
                         return;
@@ -627,8 +633,8 @@ export default function DashboardPage() {
                       setPdfFileName(file.name);
                       setPdfExtractedText(data.text ?? "");
                       toast.success("PDF text extracted!");
-                    } catch {
-                      toast.error("Failed to process PDF");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Failed to process PDF");
                     } finally {
                       setPdfExtracting(false);
                       e.target.value = "";

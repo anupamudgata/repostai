@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { PDFParse } from "pdf-parse";
+import { extractText, getDocumentProxy } from "unpdf";
 
 const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_EXTRACTED_LENGTH = 50000; // Match repurpose schema limit
@@ -40,12 +40,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const parser = new PDFParse({ data: buffer });
-    const result = await parser.getText();
-    await parser.destroy();
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+    const { text: rawText } = await extractText(pdf, { mergePages: true });
 
-    const text = (result?.text ?? "").trim();
+    const text = (rawText ?? "").trim();
     if (!text) {
       return NextResponse.json(
         { error: "Could not extract text from this PDF. It may be scanned/image-based." },
