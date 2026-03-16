@@ -177,6 +177,9 @@ export default function DashboardPage() {
   const [scheduleAccountId, setScheduleAccountId] = useState<string>("");
   const [scheduleAt, setScheduleAt] = useState("");
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
+  const [pdfFileName, setPdfFileName] = useState<string>("");
+  const [pdfExtractedText, setPdfExtractedText] = useState<string>("");
+  const [pdfExtracting, setPdfExtracting] = useState(false);
 
   const isFreePlan = plan === "free";
 
@@ -249,10 +252,11 @@ export default function DashboardPage() {
 
   async function handleRepurpose() {
     if (inputType === "pdf") {
-      toast.error("PDF upload is coming soon. Please use the Text tab to paste your content.");
-      return;
-    }
-    if (inputType === "text" && !content.trim()) {
+      if (!pdfExtractedText.trim()) {
+        toast.error("Please upload a PDF first");
+        return;
+      }
+    } else if (inputType === "text" && !content.trim()) {
       toast.error("Please paste some content first");
       return;
     }
@@ -274,8 +278,13 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           inputType,
-          content: inputType === "text" ? content : "Fetching from URL...",
-          url: inputType !== "text" ? url : undefined,
+          content:
+            inputType === "text"
+              ? content
+              : inputType === "pdf"
+                ? pdfExtractedText
+                : "Fetching from URL...",
+          url: inputType !== "text" && inputType !== "pdf" ? url : undefined,
           platforms: selectedPlatforms,
           outputLanguage,
           brandVoiceId: brandVoiceId || undefined,
@@ -576,12 +585,61 @@ export default function DashboardPage() {
             </TabsContent>
 
             <TabsContent value="pdf" className="mt-4">
-              <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-sm text-muted-foreground">
-                  PDF upload coming soon. For now, copy-paste your PDF content
-                  into the Text tab.
-                </p>
+              <div className="border-2 border-dashed rounded-lg p-6">
+                <Label htmlFor="pdf-upload" className="cursor-pointer block">
+                  <div className="text-center py-4">
+                    <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-sm font-medium text-foreground">
+                      {pdfFileName ? pdfFileName : "Click to upload PDF"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Max 10MB. Text will be extracted automatically.
+                    </p>
+                    {pdfExtracting && (
+                      <Loader2 className="h-5 w-5 mx-auto mt-2 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                </Label>
+                <input
+                  id="pdf-upload"
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  disabled={pdfExtracting}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    setPdfExtracting(true);
+                    setPdfFileName("");
+                    setPdfExtractedText("");
+                    try {
+                      const formData = new FormData();
+                      formData.append("file", file);
+                      const res = await fetch("/api/pdf/extract", {
+                        method: "POST",
+                        body: formData,
+                      });
+                      const data = await res.json();
+                      if (!res.ok) {
+                        toast.error(data.error || "Failed to extract text");
+                        return;
+                      }
+                      setPdfFileName(file.name);
+                      setPdfExtractedText(data.text ?? "");
+                      toast.success("PDF text extracted!");
+                    } catch {
+                      toast.error("Failed to process PDF");
+                    } finally {
+                      setPdfExtracting(false);
+                      e.target.value = "";
+                    }
+                  }}
+                />
+                {pdfExtractedText && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {pdfExtractedText.length} characters extracted
+                  </p>
+                )}
               </div>
             </TabsContent>
           </Tabs>
