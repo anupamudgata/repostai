@@ -3,10 +3,16 @@ import { createClient } from "@supabase/supabase-js";
 import { getRazorpay } from "@/lib/razorpay/client";
 import { verifyPaymentSignature, getPlanFromRazorpayPlanId } from "@/lib/razorpay/helpers";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key || url.includes("placeholder") || key === "placeholder") {
+    throw new Error("Supabase not configured");
+  }
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -37,6 +43,7 @@ export async function GET(request: NextRequest) {
       ? new Date(payload.current_end * 1000).toISOString()
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
+    const supabaseAdmin = getSupabaseAdmin();
     await supabaseAdmin.from("profiles").update({
       plan,
       stripe_customer_id: `rzp_${subscriptionId}`,
