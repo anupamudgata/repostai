@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { APP_URL } from "@/config/constants";
+
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get("x-forwarded-host");
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  if (host) return `${proto === "https" ? "https" : "http"}://${host}`;
+  return request.nextUrl.origin;
+}
 
 export async function GET(request: NextRequest) {
+  const baseUrl = getBaseUrl(request);
   const url = new URL(request.url);
   const searchParams = url.searchParams;
   const code = searchParams.get("code");
@@ -11,7 +18,7 @@ export async function GET(request: NextRequest) {
 
   if (errorParam) {
     return NextResponse.redirect(
-      new URL("/dashboard/connections?error=token", APP_URL)
+      new URL("/dashboard/connections?error=token", baseUrl)
     );
   }
 
@@ -19,7 +26,7 @@ export async function GET(request: NextRequest) {
 
   if (!code || !state || state !== cookieState) {
     return NextResponse.redirect(
-      new URL("/dashboard/connections?error=invalid_callback", APP_URL)
+      new URL("/dashboard/connections?error=invalid_callback", baseUrl)
     );
   }
 
@@ -29,7 +36,7 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(new URL("/login", APP_URL));
+    return NextResponse.redirect(new URL("/login", baseUrl));
   }
 
   const clientId = process.env.LINKEDIN_CLIENT_ID;
@@ -37,11 +44,11 @@ export async function GET(request: NextRequest) {
 
   if (!clientId || !clientSecret) {
     return NextResponse.redirect(
-      new URL("/dashboard/connections?error=config", APP_URL)
+      new URL("/dashboard/connections?error=config", baseUrl)
     );
   }
 
-  const redirectUri = `${APP_URL}/api/connect/linkedin/callback`;
+  const redirectUri = `${baseUrl}/api/connect/linkedin/callback`;
   const tokenUrl = "https://www.linkedin.com/oauth/v2/accessToken";
   const body = new URLSearchParams({
     grant_type: "authorization_code",
@@ -63,7 +70,7 @@ export async function GET(request: NextRequest) {
     const err = await tokenRes.text();
     console.error("LinkedIn token exchange failed:", err);
     return NextResponse.redirect(
-      new URL("/dashboard/connections?error=token", APP_URL)
+      new URL("/dashboard/connections?error=token", baseUrl)
     );
   }
 
@@ -76,7 +83,7 @@ export async function GET(request: NextRequest) {
 
   if (!tokenData.access_token) {
     return NextResponse.redirect(
-      new URL("/dashboard/connections?error=token", APP_URL)
+      new URL("/dashboard/connections?error=token", baseUrl)
     );
   }
 
@@ -95,7 +102,7 @@ export async function GET(request: NextRequest) {
         family_name?: string;
       };
       platformUserId = userInfo.sub ?? "unknown";
-      platformUsername = userInfo.name ?? [userInfo.given_name, userInfo.family_name].filter(Boolean).join(" ") || null;
+      platformUsername = userInfo.name ?? ([userInfo.given_name, userInfo.family_name].filter(Boolean).join(" ") || null);
     }
   } catch {
     try {
@@ -138,14 +145,14 @@ export async function GET(request: NextRequest) {
   } catch (e) {
     console.error("Save LinkedIn connected account failed:", e);
     const res = NextResponse.redirect(
-      new URL("/dashboard/connections?error=save", APP_URL)
+      new URL("/dashboard/connections?error=save", baseUrl)
     );
     res.cookies.delete("linkedin_oauth_state");
     return res;
   }
 
   const res = NextResponse.redirect(
-    new URL("/dashboard/connections?info=linkedin_connected", APP_URL)
+    new URL("/dashboard/connections?info=linkedin_connected", baseUrl)
   );
   res.cookies.delete("linkedin_oauth_state");
   return res;

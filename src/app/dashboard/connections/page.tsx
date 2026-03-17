@@ -16,9 +16,9 @@ type ConnectedAccount = {
 };
 
 const ERROR_MESSAGES: Record<string, string> = {
-  config: "Twitter/Connections are not configured. Contact support.",
-  invalid_callback: "Invalid callback. Please try connecting again.",
-  token: "Could not get access. Try again or contact support.",
+  config: "LinkedIn/Twitter are not configured. Add LINKEDIN_CLIENT_ID, LINKEDIN_CLIENT_SECRET (and Twitter keys) in env.",
+  invalid_callback: "Invalid callback (state mismatch). Try again in the same browser session.",
+  token: "Could not get access token. Check redirect URL in LinkedIn app matches exactly.",
   save: "Connected but failed to save. Please try again.",
 };
 const INFO_MESSAGES: Record<string, string> = {

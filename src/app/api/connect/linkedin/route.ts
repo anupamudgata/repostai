@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import { APP_URL } from "@/config/constants";
 
 function base64UrlEncode(buf: Buffer): string {
   return buf
@@ -11,24 +10,32 @@ function base64UrlEncode(buf: Buffer): string {
     .replace(/=+$/, "");
 }
 
-export async function GET() {
+function getBaseUrl(request: NextRequest): string {
+  const host = request.headers.get("x-forwarded-host");
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  if (host) return `${proto === "https" ? "https" : "http"}://${host}`;
+  return request.nextUrl.origin;
+}
+
+export async function GET(request: NextRequest) {
+  const baseUrl = getBaseUrl(request);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    return NextResponse.redirect(new URL("/login", APP_URL));
+    return NextResponse.redirect(new URL("/login", baseUrl));
   }
 
   const clientId = process.env.LINKEDIN_CLIENT_ID;
   if (!clientId) {
     return NextResponse.redirect(
-      new URL("/dashboard/connections?error=config", APP_URL)
+      new URL("/dashboard/connections?error=config", baseUrl)
     );
   }
 
   const state = base64UrlEncode(randomBytes(24));
-  const redirectUri = `${APP_URL}/api/connect/linkedin/callback`;
+  const redirectUri = `${baseUrl}/api/connect/linkedin/callback`;
   const scope = "openid profile w_member_social";
 
   const authUrl = new URL("https://www.linkedin.com/oauth/v2/authorization");

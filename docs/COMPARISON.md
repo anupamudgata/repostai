@@ -24,7 +24,7 @@
 
 | Spec | PRD | Built |
 |------|-----|--------|
-| **Inputs** | Text, blog URL, YouTube, PDF (v2) | Text, blog URL, YouTube. PDF in UI as “coming soon”, no backend. |
+| **Inputs** | Text, blog URL, YouTube, PDF (v2) | Text, blog URL, YouTube, **PDF** (unpdf). |
 | **Output platforms** | 7 (LinkedIn, Twitter thread, Twitter single, Instagram, Facebook, Email, Reddit) | Same 7; free tier restricted to 4. |
 | **Brand voice** | 3 on Pro, 10 on Agency | Same; enforced on brand-voice page and in repurpose flow. |
 | **Usage limits** | Free: 5/month, 3 platforms; Pro/Agency: unlimited | Free: 5/month, 4 platforms; Pro/Agency: unlimited, all 7. |
@@ -40,7 +40,7 @@
 | Team collaboration (shared workspaces) | v2 | Not built. |
 | Analytics (which repurposed posts performed best) | v2 | Not built. |
 | Multi-language output | v2 | **Done** – EN, HI, ES in repurpose and AI Content Starter. |
-| PDF upload and text extraction | v2 | Not built; UI “coming soon” only. |
+| PDF upload and text extraction | v2 | **Done** — unpdf. |
 | Chrome extension | v2 | Not built. |
 
 ---
@@ -69,7 +69,7 @@
 | **Core job** | One piece of content → **AI-generated text** for 7 platforms | **Video/audio** → distribute to many platforms |
 | **Input** | Text, URL, YouTube (transcript) | Video (TikTok, Reels, Lives, etc.) |
 | **Output** | Platform-native **copy** (LinkedIn, Twitter, IG caption, etc.) | Same/resized **video** on many channels |
-| **Publish** | Copy only (connect + post/schedule in Phase 2) | Connect accounts + **auto-publish** |
+| **Publish** | Connect + Post now + Schedule (LinkedIn, Twitter) | Connect accounts + **auto-publish** |
 | **Differentiators** | Brand voice, multi-language, AI Content Starter, India pricing (Razorpay) | Multi-account, video workflows, resizing, watermark removal |
 | **Pricing** | Free + Pro (~$19/₹1499) + Agency (~$49/₹3499) | ~$35–179/mo |
 

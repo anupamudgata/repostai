@@ -84,7 +84,11 @@ If the Vercel URL is missing, login can redirect to the wrong place or the dashb
 | `TWITTER_CLIENT_SECRET` | Twitter/X OAuth 2.0 Client Secret | Same |
 | `NEXT_PUBLIC_APP_URL` | Must match OAuth redirect URIs | You set this (e.g. `http://localhost:3000` or `https://yourdomain.com`) |
 
-**LinkedIn:** In the [LinkedIn Developer Portal](https://www.linkedin.com/developers/apps), open your app → **Auth** → **OAuth 2.0 settings** and add this **exact** redirect URL: `{NEXT_PUBLIC_APP_URL}/api/connect/linkedin/callback` (e.g. `http://localhost:3000/api/connect/linkedin/callback` for local).
+**LinkedIn:** In the [LinkedIn Developer Portal](https://www.linkedin.com/developers/apps), open your app → **Auth** → **OAuth 2.0 settings** → **Authorized redirect URLs**. Add the **exact** redirect URL for each environment you use:
+- Local: `http://localhost:3000/api/connect/linkedin/callback`
+- Production: `https://your-domain.com/api/connect/linkedin/callback` (no trailing slash)
+
+The redirect URL must match the host the user accesses the app from. If you use multiple URLs (e.g. preview + production), add each to LinkedIn.
 
 ---
 
@@ -132,6 +136,8 @@ If the dashboard shows on local but features like Connections or “Post now” 
 ---
 
 ## Nothing changes on Vercel? (Troubleshooting)
+
+**Full guide:** [VERCEL_DEPLOYMENT_TROUBLESHOOTING.md](VERCEL_DEPLOYMENT_TROUBLESHOOTING.md) — same old page, login redirect, landing, cron, env.
 
 If the app works locally but on Vercel you still see the old page, wrong redirect after login, or “nothing changes”:
 

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock } from "lucide-react";
-import { HistoryCard } from "@/components/dashboard/history-card";
+import { HistoryList } from "@/components/dashboard/history-list";
 
 export default async function HistoryPage() {
   const supabase = await createClient();
@@ -39,11 +39,7 @@ export default async function HistoryPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          {jobs.map((job) => (
-            <HistoryCard key={job.id} job={job} />
-          ))}
-        </div>
+        <HistoryList initialJobs={jobs} />
       )}
     </div>
   );

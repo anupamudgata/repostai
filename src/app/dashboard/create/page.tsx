@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Sparkles,
   Loader2,
@@ -11,6 +12,7 @@ import {
   Lock,
   Wand2,
   Info,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 import type {
   ContentTone,
   ContentLength,
@@ -43,6 +46,12 @@ import {
 } from "@/config/constants";
 
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
+
+function platformProvider(p: Platform): "twitter" | "linkedin" | null {
+  if (p === "twitter_thread" || p === "twitter_single") return "twitter";
+  if (p === "linkedin") return "linkedin";
+  return null;
+}
 
 type Step = "form" | "preview" | "repurpose";
 
@@ -72,8 +81,13 @@ export default function CreatePage() {
   const [repurposeOutputs, setRepurposeOutputs] = useState<
     { platform: Platform; content: string }[]
   >([]);
+  const [lastJobId, setLastJobId] = useState<string | null>(null);
   const [repurposing, setRepurposing] = useState(false);
   const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
+  const [bulkPosting, setBulkPosting] = useState(false);
+  const [connectedAccounts, setConnectedAccounts] = useState<
+    { id: string; platform: string }[]
+  >([]);
 
   const [planError, setPlanError] = useState(false);
   const [userPlan, setUserPlan] = useState("free");
@@ -85,6 +99,13 @@ export default function CreatePage() {
       .then((r) => r.json())
       .then((d) => { if (d.plan) setUserPlan(d.plan); })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    createClient()
+      .from("connected_accounts")
+      .select("id, platform")
+      .then(({ data }) => setConnectedAccounts(data ?? []));
   }, []);
 
   useEffect(() => {
@@ -211,6 +232,7 @@ export default function CreatePage() {
       }
 
       setRepurposeOutputs(data.outputs);
+      setLastJobId(data.jobId ?? null);
       setStep("repurpose");
       toast.success(
         `Repurposed to ${data.outputs.length} platforms!`
@@ -232,6 +254,70 @@ export default function CreatePage() {
       setTimeout(() => setCopied(false), 2000);
     }
     toast.success("Copied to clipboard!");
+  }
+
+  async function handlePostAll() {
+    if (!lastJobId) {
+      toast.error("Cannot post. Repurpose again first.");
+      return;
+    }
+
+    const tasks: { platform: Platform; connectedAccountId: string; label: string }[] = [];
+
+    for (const output of repurposeOutputs) {
+      const provider = platformProvider(output.platform);
+      if (!provider) continue;
+      const account = connectedAccounts.find((a) => a.platform === provider);
+      if (!account) continue;
+      const platformInfo = SUPPORTED_PLATFORMS.find((p) => p.id === output.platform);
+      tasks.push({
+        platform: output.platform,
+        connectedAccountId: account.id,
+        label: platformInfo?.name || output.platform,
+      });
+    }
+
+    if (tasks.length === 0) {
+      toast.error("No connected accounts for these platforms. Connect LinkedIn or Twitter first.");
+      return;
+    }
+
+    setBulkPosting(true);
+    const successes: string[] = [];
+    const failures: string[] = [];
+
+    try {
+      for (const task of tasks) {
+        try {
+          const res = await fetch("/api/post", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              jobId: lastJobId,
+              platform: task.platform,
+              connectedAccountId: task.connectedAccountId,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            failures.push(task.label);
+            continue;
+          }
+          successes.push(task.label);
+        } catch {
+          failures.push(task.label);
+        }
+      }
+    } finally {
+      setBulkPosting(false);
+    }
+
+    if (successes.length) {
+      toast.success(`Posted to: ${successes.join(", ")}`);
+    }
+    if (failures.length) {
+      toast.error(`Failed on: ${failures.join(", ")}. Check connections and try again.`);
+    }
   }
 
   if (planError) {
@@ -573,11 +659,28 @@ export default function CreatePage() {
       {/* Step 3: Repurposed Outputs */}
       {step === "repurpose" && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <h2 className="text-2xl font-bold">
               Repurposed to {repurposeOutputs.length} Platforms
             </h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                onClick={handlePostAll}
+                disabled={bulkPosting || !connectedAccounts.some((a) => ["twitter", "linkedin"].includes(a.platform))}
+              >
+                {bulkPosting ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    Posting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5 mr-1.5" />
+                    Post all at one click
+                  </>
+                )}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -593,6 +696,7 @@ export default function CreatePage() {
                   setGeneratedContent("");
                   setEditedContent("");
                   setRepurposeOutputs([]);
+                  setLastJobId(null);
                   setTopic("");
                   setAudience("");
                   setPostId(null);
@@ -603,6 +707,15 @@ export default function CreatePage() {
               </Button>
             </div>
           </div>
+
+          {!connectedAccounts.some((a) => ["twitter", "linkedin"].includes(a.platform)) && (
+            <p className="text-sm text-muted-foreground">
+              <Link href="/dashboard/connections" className="text-primary hover:underline">
+                Connect LinkedIn or Twitter
+              </Link>
+              {" "}to post all at one click.
+            </p>
+          )}
 
           {/* Original blog post (collapsed) */}
           <Card className="bg-muted/30">
