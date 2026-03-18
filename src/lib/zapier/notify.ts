@@ -8,6 +8,7 @@ export function notifyZapier(
     jobId: string;
     outputs: Array<{ platform: string; content: string }>;
     createdAt: string;
+    sourceUrl?: string;
   }
 ): void {
   if (!webhookUrl || typeof webhookUrl !== "string" || !webhookUrl.startsWith("https://")) {

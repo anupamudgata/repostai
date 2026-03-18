@@ -4,7 +4,8 @@ import { repurposeContent } from "@/lib/ai/openai";
 import { scrapeUrl } from "@/lib/scrapers/url-scraper";
 import { getYouTubeTranscript } from "@/lib/scrapers/youtube-scraper";
 import { repurposeSchema } from "@/lib/validators/repurpose";
-import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS, SUPERUSER_EMAIL } from "@/config/constants";
+import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS, SUPPORTED_PLATFORMS, SUPERUSER_EMAIL } from "@/config/constants";
+import { addFreeTierWatermark } from "@/lib/watermark";
 import { notifyZapier } from "@/lib/zapier/notify";
 
 export async function POST(request: NextRequest) {
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { inputType, content, url, platforms, brandVoiceId, outputLanguage, userIntent } = parsed.data;
+    const { inputType, content, url, platforms, brandVoiceId, outputLanguage, userIntent, contentAngle, hookMode } = parsed.data;
 
     // Check usage limits for free users (and Zapier webhook for post-completion notify)
     const { data: profile } = await supabase
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
         .eq("month", currentMonth)
         .single();
 
-      if (usage && usage.repurpose_count >= FREE_TIER_MONTHLY_LIMIT) {
+      if (Number.isFinite(FREE_TIER_MONTHLY_LIMIT) && usage && usage.repurpose_count >= FREE_TIER_MONTHLY_LIMIT) {
         return NextResponse.json(
           {
             error: `Free plan limit reached (${FREE_TIER_MONTHLY_LIMIT}/month). Upgrade to Pro for unlimited repurposes.`,
@@ -113,41 +114,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get brand voice sample if provided
+    // Get brand voice sample and authenticity settings if provided
     let brandVoiceSample: string | undefined;
+    let authenticityTuning: { humanizationLevel?: string; imperfectionMode?: boolean; personalStoryInjection?: boolean } | undefined;
     if (brandVoiceId) {
       const { data: voice } = await supabase
         .from("brand_voices")
-        .select("samples")
+        .select("samples, humanization_level, imperfection_mode, personal_story_injection")
         .eq("id", brandVoiceId)
         .eq("user_id", user.id)
         .single();
       brandVoiceSample = voice?.samples;
+      if (voice && (voice.humanization_level || voice.imperfection_mode || voice.personal_story_injection)) {
+        authenticityTuning = {
+          humanizationLevel: voice.humanization_level ?? undefined,
+          imperfectionMode: voice.imperfection_mode ?? false,
+          personalStoryInjection: voice.personal_story_injection ?? false,
+        };
+      }
     }
 
-    // Generate repurposed content: 4+ platforms → 2 parallel batches for speed
-    const BATCH_THRESHOLD = 4;
-    let outputs: Record<string, string>;
-    if (allowedPlatforms.length >= BATCH_THRESHOLD) {
-      const mid = Math.ceil(allowedPlatforms.length / 2);
-      const batch1 = allowedPlatforms.slice(0, mid);
-      const batch2 = allowedPlatforms.slice(mid);
-      const [result1, result2] = await Promise.all([
-        repurposeContent(resolvedContent, batch1, brandVoiceSample, outputLanguage, userIntent),
-        repurposeContent(resolvedContent, batch2, brandVoiceSample, outputLanguage, userIntent),
-      ]);
-      outputs = { ...result1, ...result2 };
-    } else {
-      outputs = await repurposeContent(
-        resolvedContent,
-        allowedPlatforms,
-        brandVoiceSample,
-        outputLanguage,
-        userIntent
-      );
+    // Deduplication: return existing job if same content was repurposed in last hour
+    const contentToSave = resolvedContent.slice(0, 10000);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const { data: recentJobs } = await supabase
+      .from("repurpose_jobs")
+      .select("id, input_content")
+      .eq("user_id", user.id)
+      .gte("created_at", oneHourAgo)
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    const duplicate = recentJobs?.find((j) => j.input_content === contentToSave);
+    if (duplicate) {
+      const { data: existingOutputs } = await supabase
+        .from("repurpose_outputs")
+        .select("platform, generated_content")
+        .eq("job_id", duplicate.id)
+        .order("platform");
+
+      // Only return duplicate if it has outputs (avoids returning jobs from pre-RLS-fix era)
+      if (existingOutputs && existingOutputs.length > 0) {
+        return NextResponse.json({
+          jobId: duplicate.id,
+          outputs: existingOutputs.map((o) => ({
+            platform: o.platform,
+            content: o.generated_content,
+          })),
+        });
+      }
     }
 
-    // Save to database
+    // Insert job first (status: pending), then generate
     const { data: job } = await supabase
       .from("repurpose_jobs")
       .insert({
@@ -161,32 +179,113 @@ export async function POST(request: NextRequest) {
       .select("id")
       .single();
 
-    if (job) {
-      const outputRows = Object.entries(outputs).map(
-        ([platform, generatedContent]) => ({
-          job_id: job.id,
-          platform,
-          generated_content: generatedContent,
-        })
+    if (!job) {
+      return NextResponse.json(
+        { error: "Failed to create job. Please try again." },
+        { status: 500 }
       );
-
-      await supabase.from("repurpose_outputs").insert(outputRows);
-
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      await supabase.rpc("increment_usage", {
-        p_user_id: user.id,
-        p_month: currentMonth,
-      });
-
-      notifyZapier(profile?.zapier_webhook_url, {
-        jobId: job.id,
-        outputs: Object.entries(outputs).map(([platform, generatedContent]) => ({
-          platform,
-          content: generatedContent,
-        })),
-        createdAt: new Date().toISOString(),
-      });
     }
+
+    // Generate repurposed content: 4+ platforms → 2 parallel batches for speed
+    const BATCH_THRESHOLD = 4;
+    let outputs: Record<string, string>;
+    if (allowedPlatforms.length >= BATCH_THRESHOLD) {
+      const mid = Math.ceil(allowedPlatforms.length / 2);
+      const batch1 = allowedPlatforms.slice(0, mid);
+      const batch2 = allowedPlatforms.slice(mid);
+      const [result1, result2] = await Promise.all([
+        repurposeContent(resolvedContent, batch1, brandVoiceSample, outputLanguage, userIntent, contentAngle, hookMode, authenticityTuning),
+        repurposeContent(resolvedContent, batch2, brandVoiceSample, outputLanguage, userIntent, contentAngle, hookMode, authenticityTuning),
+      ]);
+      outputs = { ...result1, ...result2 };
+    } else {
+      outputs = await repurposeContent(
+        resolvedContent,
+        allowedPlatforms,
+        brandVoiceSample,
+        outputLanguage,
+        userIntent,
+        contentAngle,
+        hookMode,
+        authenticityTuning
+      );
+    }
+
+    // Add watermark for free users (Pro removes it)
+    if (isFreePlan) {
+      outputs = addFreeTierWatermark(outputs);
+    }
+
+    // Build outputs array: { platform: display name, content, type }
+    const PLATFORM_TYPE: Record<string, string> = {
+      linkedin: "post",
+      twitter_thread: "thread",
+      twitter_single: "post",
+      instagram: "caption",
+      facebook: "post",
+      email: "newsletter",
+      reddit: "post",
+      tiktok: "script",
+      whatsapp_status: "status",
+    };
+    const generatedOutputs = Object.entries(outputs).map(([platformId, content]) => {
+      const platformInfo = SUPPORTED_PLATFORMS.find((p) => p.id === platformId);
+      return {
+        platform: platformInfo?.name ?? platformId,
+        content,
+        type: PLATFORM_TYPE[platformId] ?? "post",
+      };
+    });
+
+    // Update job with outputs and status (like repurposed_content pattern)
+    const { error: updateError } = await supabase
+      .from("repurpose_jobs")
+      .update({
+        outputs: generatedOutputs,
+        status: "completed",
+      })
+      .eq("id", job.id);
+
+    if (updateError) {
+      console.error("Failed to save outputs:", updateError);
+      return NextResponse.json(
+        { error: "Failed to save outputs. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    // Also insert into repurpose_outputs for per-platform operations (post, schedule, regenerate)
+    const outputRows = Object.entries(outputs).map(
+      ([platform, generatedContent]) => ({
+        job_id: job.id,
+        platform,
+        generated_content: generatedContent,
+      })
+    );
+
+    const { error: outputsError } = await supabase
+      .from("repurpose_outputs")
+      .insert(outputRows);
+
+    if (outputsError) {
+      console.error("Failed to save outputs to repurpose_outputs:", outputsError);
+      return NextResponse.json(
+        { error: "Failed to save outputs. Please try again." },
+        { status: 500 }
+      );
+    }
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    await supabase.rpc("increment_usage", {
+      p_user_id: user.id,
+      p_month: currentMonth,
+    });
+
+    notifyZapier(profile?.zapier_webhook_url, {
+      jobId: job.id,
+      outputs: generatedOutputs,
+      createdAt: new Date().toISOString(),
+    });
 
     return NextResponse.json({
       jobId: job?.id,

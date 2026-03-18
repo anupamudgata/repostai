@@ -26,7 +26,7 @@ export function BillingSection({ plan, status, currentPeriodEnd }: BillingSectio
       </div>
       {plan === "free" && (
         <p style={{ fontSize: "13px", color: "#6B7280", lineHeight: 1.6 }}>
-          You are on the free plan (5 repurposes/month). <a href="/pricing" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>Upgrade to Pro</a> for unlimited access.
+          You are on the free plan (unlimited repurposes with watermark). <a href="/pricing" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>Upgrade to Pro</a> to remove the watermark.
         </p>
       )}
       {plan !== "free" && currentPeriodEnd && (

@@ -39,7 +39,17 @@ function platformProvider(p: string): string | null {
 export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode }: HistoryCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [outputs, setOutputs] = useState(job.repurpose_outputs || []);
+  const initialOutputs = (() => {
+    const raw = job.repurpose_outputs;
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw as RepurposeOutput[];
+    if (typeof raw === "object" && raw !== null && "id" in raw)
+      return [raw as RepurposeOutput];
+    return [];
+  })();
+  const [outputs, setOutputs] = useState<RepurposeOutput[] | null>(initialOutputs.length > 0 ? initialOutputs : null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [regeneratingPlatform, setRegeneratingPlatform] = useState<string | null>(null);
   const [connectedAccounts, setConnectedAccounts] = useState<{ id: string; platform: string }[]>([]);
   const [postingPlatform, setPostingPlatform] = useState<string | null>(null);
@@ -51,6 +61,48 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
       .select("id, platform")
       .then(({ data }) => setConnectedAccounts(data ?? []));
   }, []);
+
+  const fetchOutputs = async (recordId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const supabase = createClient();
+      const { data, error: fetchErr } = await supabase
+        .from("repurpose_jobs")
+        .select("outputs")
+        .eq("id", recordId)
+        .single();
+
+      if (fetchErr) throw fetchErr;
+      const rawOutputs = (data?.outputs ?? []) as { platform?: string; content?: string; type?: string }[];
+      if (rawOutputs.length > 0) {
+        const mapped: RepurposeOutput[] = rawOutputs.map((o, i) => {
+          const platformId = SUPPORTED_PLATFORMS.find((p) => p.name === o.platform)?.id ?? o.platform ?? "";
+          return {
+            id: `${recordId}-${platformId}-${i}`,
+            platform: platformId,
+            generated_content: o.content ?? "",
+          };
+        });
+        setOutputs(mapped);
+      } else {
+        const res = await fetch(`/api/history/${recordId}/outputs`);
+        const apiData = await res.json();
+        if (res.ok && Array.isArray(apiData.outputs)) {
+          setOutputs(apiData.outputs);
+        } else {
+          setOutputs([]);
+        }
+      }
+    } catch (e) {
+      setError("Failed to load outputs");
+      setOutputs([]);
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   async function handleCopy(content: string, outputId: string) {
     await navigator.clipboard.writeText(content);
@@ -73,7 +125,7 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
         return;
       }
       setOutputs((prev) =>
-        prev.map((o) =>
+        (prev ?? []).map((o) =>
           o.platform === platform ? { ...o, generated_content: data.content } : o
         )
       );
@@ -171,7 +223,7 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap gap-1.5">
-          {outputs.map((o) => (
+          {(outputs ?? []).map((o) => (
             <Badge key={o.id} variant="secondary" className="text-xs">
               {SUPPORTED_PLATFORMS.find((p) => p.id === o.platform)?.name ?? o.platform}
             </Badge>
@@ -181,7 +233,13 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
           variant="ghost"
           size="sm"
           className="gap-1.5 text-muted-foreground"
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => {
+            const next = !expanded;
+            setExpanded(next);
+            if (next && (outputs === null || outputs.length === 0)) {
+              fetchOutputs(job.id);
+            }
+          }}
         >
           {expanded ? (
             <>
@@ -197,7 +255,19 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
         </Button>
         {expanded && (
           <div className="space-y-3 pt-2 border-t">
-            {outputs.map((output) => {
+            {loading && (
+              <p className="text-muted-foreground py-6">Loading outputs...</p>
+            )}
+            {error && (
+              <p className="text-destructive py-4">Error: {error}</p>
+            )}
+            {!loading && !error && (outputs?.length ?? 0) === 0 && (
+              <p className="text-muted-foreground py-4">
+                No outputs found. This may mean the repurpose job didn&apos;t save its results.
+              </p>
+            )}
+            {!loading && !error && (outputs?.length ?? 0) > 0 &&
+            (outputs ?? []).map((output) => {
               const platformName =
                 SUPPORTED_PLATFORMS.find((p) => p.id === output.platform)?.name ??
                 output.platform;
@@ -354,7 +424,8 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
                   })()}
                 </div>
               );
-            })}
+            })
+            }
           </div>
         )}
       </CardContent>

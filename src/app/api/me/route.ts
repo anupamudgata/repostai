@@ -38,7 +38,7 @@ export async function GET() {
   return NextResponse.json({
     plan,
     repurposeCount: isFree ? repurposeCount : null,
-    repurposeLimit: isFree ? FREE_TIER_MONTHLY_LIMIT : null,
+    repurposeLimit: isFree && Number.isFinite(FREE_TIER_MONTHLY_LIMIT) ? FREE_TIER_MONTHLY_LIMIT : null,
     isSuperUser,
     zapier_webhook_url: profile?.zapier_webhook_url ?? null,
   });

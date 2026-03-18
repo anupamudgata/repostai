@@ -14,7 +14,17 @@ export default async function HistoryPage() {
 
   const { data: jobs } = await supabase
     .from("repurpose_jobs")
-    .select("*, repurpose_outputs(*)")
+    .select(`
+      id,
+      input_content,
+      input_type,
+      created_at,
+      repurpose_outputs (
+        id,
+        platform,
+        generated_content
+      )
+    `)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(20);

@@ -31,6 +31,13 @@ function validateUrl(input: string): URL {
     throw new Error("This URL is not allowed.");
   }
 
+  // YouTube pages cannot be scraped meaningfully (video pages, no article body)
+  if (/^(www\.)?youtube\.com$/i.test(hostname) || /^youtu\.be$/i.test(hostname)) {
+    throw new Error(
+      "YouTube URLs cannot be scraped. Use the YouTube option to paste a transcript, or paste your content directly."
+    );
+  }
+
   return parsed;
 }
 

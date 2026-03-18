@@ -2,23 +2,45 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2, Mic, Lock } from "lucide-react";
+import { Plus, Trash2, Mic, Lock, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
-import { PLANS } from "@/config/constants";
-import type { BrandVoice } from "@/types";
+import { PLANS, HUMANIZATION_LEVELS } from "@/config/constants";
+import type { BrandVoice, HumanizationLevel } from "@/types";
 
 export default function BrandVoicePage() {
   const [voices, setVoices] = useState<BrandVoice[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [sampleText, setSampleText] = useState("");
+  const [humanizationLevel, setHumanizationLevel] = useState<HumanizationLevel>("professional");
+  const [imperfectionMode, setImperfectionMode] = useState(false);
+  const [personalStoryInjection, setPersonalStoryInjection] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingVoice, setEditingVoice] = useState<BrandVoice | null>(null);
+  const [editHumanization, setEditHumanization] = useState<HumanizationLevel>("professional");
+  const [editImperfection, setEditImperfection] = useState(false);
+  const [editPersonalStory, setEditPersonalStory] = useState(false);
   const [userPlan, setUserPlan] = useState("free");
   const supabase = createClient();
 
@@ -80,6 +102,9 @@ export default function BrandVoicePage() {
       user_id: user.id,
       name,
       samples: sampleText,
+      humanization_level: humanizationLevel,
+      imperfection_mode: imperfectionMode,
+      personal_story_injection: personalStoryInjection,
     });
 
     if (error) {
@@ -88,11 +113,42 @@ export default function BrandVoicePage() {
       toast.success("Brand voice created!");
       setName("");
       setSampleText("");
+      setHumanizationLevel("professional");
+      setImperfectionMode(false);
+      setPersonalStoryInjection(false);
       setShowForm(false);
       loadVoices();
     }
 
     setLoading(false);
+  }
+
+  async function handleUpdateAuthenticity() {
+    if (!editingVoice) return;
+    setLoading(true);
+    const { error } = await supabase
+      .from("brand_voices")
+      .update({
+        humanization_level: editHumanization,
+        imperfection_mode: editImperfection,
+        personal_story_injection: editPersonalStory,
+      })
+      .eq("id", editingVoice.id);
+    setLoading(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Authenticity settings updated");
+      setEditingVoice(null);
+      loadVoices();
+    }
+  }
+
+  function openEditDialog(voice: BrandVoice) {
+    setEditingVoice(voice);
+    setEditHumanization((voice.humanization_level as HumanizationLevel) || "professional");
+    setEditImperfection(voice.imperfection_mode ?? false);
+    setEditPersonalStory(voice.personal_story_injection ?? false);
   }
 
   async function handleDelete(id: string) {
@@ -176,6 +232,41 @@ export default function BrandVoicePage() {
                   The AI will learn your tone, vocabulary, and style.
                 </p>
               </div>
+
+              <div className="space-y-4 rounded-lg border p-4">
+                <h4 className="font-medium text-sm">Authenticity Tuning</h4>
+                <div>
+                  <Label className="text-xs">Humanization Level</Label>
+                  <Select value={humanizationLevel} onValueChange={(v) => setHumanizationLevel(v as HumanizationLevel)}>
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HUMANIZATION_LEVELS.map((l) => (
+                        <SelectItem key={l.id} value={l.id} title={l.description}>
+                          {l.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">Casual ↔ Professional ↔ Raw/Unfiltered</p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Imperfection Mode</Label>
+                    <p className="text-xs text-muted-foreground">Add typos, fragments, lowercase for vibe</p>
+                  </div>
+                  <Switch checked={imperfectionMode} onCheckedChange={setImperfectionMode} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label className="text-sm">Personal Story Injection</Label>
+                    <p className="text-xs text-muted-foreground">AI adds relevant personal anecdotes</p>
+                  </div>
+                  <Switch checked={personalStoryInjection} onCheckedChange={setPersonalStoryInjection} />
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button type="submit" disabled={loading}>
                   {loading ? "Creating..." : "Create Voice"}
@@ -214,21 +305,43 @@ export default function BrandVoicePage() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">{voice.name}</CardTitle>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                    onClick={() => handleDelete(voice.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => openEditDialog(voice)}
+                      title="Authenticity settings"
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(voice.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground line-clamp-4">
                   {voice.samples ?? voice.sample_text}
                 </p>
-                <p className="text-xs text-muted-foreground mt-3">
+                <div className="flex flex-wrap gap-1 mt-3">
+                  {voice.imperfection_mode && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted">Imperfection</span>
+                  )}
+                  {voice.personal_story_injection && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted">Stories</span>
+                  )}
+                  {voice.humanization_level && voice.humanization_level !== "professional" && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-muted capitalize">{voice.humanization_level}</span>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
                   Created {new Date(voice.created_at).toLocaleDateString()}
                 </p>
               </CardContent>
@@ -236,6 +349,47 @@ export default function BrandVoicePage() {
           ))}
         </div>
       )}
+
+      <Dialog open={!!editingVoice} onOpenChange={(open) => !open && setEditingVoice(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Authenticity Tuning — {editingVoice?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Humanization Level</Label>
+              <Select value={editHumanization} onValueChange={(v) => setEditHumanization(v as HumanizationLevel)}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {HUMANIZATION_LEVELS.map((l) => (
+                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Imperfection Mode</Label>
+                <p className="text-xs text-muted-foreground">Typos, fragments, lowercase for vibe</p>
+              </div>
+              <Switch checked={editImperfection} onCheckedChange={setEditImperfection} />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Personal Story Injection</Label>
+                <p className="text-xs text-muted-foreground">AI adds relevant anecdotes</p>
+              </div>
+              <Switch checked={editPersonalStory} onCheckedChange={setEditPersonalStory} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingVoice(null)}>Cancel</Button>
+            <Button onClick={handleUpdateAuthenticity} disabled={loading}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

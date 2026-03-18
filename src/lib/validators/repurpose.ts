@@ -25,6 +25,8 @@ export const repurposeSchema = z.object({
   brandVoiceId: z.string().uuid().optional(),
   outputLanguage: z.enum(["en", "hi", "es", "pt", "fr"]).default("en"),
   userIntent: z.string().max(300).optional(),
+  contentAngle: z.enum(["default", "insight", "story", "howto", "contrarian", "listicle"]).optional(),
+  hookMode: z.enum(["default", "pattern_interrupt", "story", "statistic", "fomo", "controversy", "sneak_peek"]).optional(),
 });
 
 export type RepurposeInput = z.infer<typeof repurposeSchema>;

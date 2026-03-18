@@ -30,13 +30,13 @@ export const PLANS = {
   FREE: {
     name: "Free",
     monthlyPrice: 0,
-    repurposesPerMonth: 5,
+    repurposesPerMonth: -1, // unlimited with watermark
     platforms: ["linkedin", "twitter_thread", "twitter_single", "email"],
     brandVoices: 0,
     features: [
-      "5 repurposes/month",
+      "Unlimited repurposes",
       "LinkedIn, Twitter/X, Email",
-      "Basic formatting",
+      "Small 'RepostAI' watermark (remove with Pro)",
     ],
   },
   PRO: {
@@ -98,6 +98,27 @@ export const PLANS = {
   },
 } as const;
 
+/** Viral hook style — how to open the first line (80% of engagement). */
+export const HOOK_MODES = [
+  { id: "default", name: "Auto (best fit)", description: "Let AI pick the best hook" },
+  { id: "pattern_interrupt", name: "Pattern interrupt", description: '"95% of algo traders do this wrong..."' },
+  { id: "story", name: "Story hook", description: '"I lost $3,200 in 3 hours. Here\'s what happened..."' },
+  { id: "statistic", name: "Statistic hook", description: '"62% of creators burn out. I found the fix."' },
+  { id: "fomo", name: "FOMO hook", description: '"Everyone\'s talking about this strategy. Here\'s why."' },
+  { id: "controversy", name: "Controversy hook", description: '"Stop paper trading. It\'s wasting your time."' },
+  { id: "sneak_peek", name: "Sneak peek hook", description: '"I spent 30 days testing this. Results shocked me."' },
+] as const;
+
+/** Content angle / format — how to frame the repurposed content (Reddit users often request this). */
+export const CONTENT_ANGLES = [
+  { id: "default", name: "Auto (best fit)", description: "Let AI pick the best angle" },
+  { id: "insight", name: "Insight post", description: "Share a key takeaway or lesson learned" },
+  { id: "story", name: "Story post", description: "Narrative format with personal anecdote" },
+  { id: "howto", name: "How-to", description: "Step-by-step or tutorial style" },
+  { id: "contrarian", name: "Contrarian take", description: "Challenge common beliefs or assumptions" },
+  { id: "listicle", name: "Listicle", description: "Numbered list format (e.g. 5 lessons, 7 tips)" },
+] as const;
+
 export const SUPPORTED_PLATFORMS = [
   { id: "linkedin", name: "LinkedIn", icon: "linkedin", maxLength: 3000 },
   { id: "twitter_thread", name: "Twitter/X Thread", icon: "twitter", maxLength: 280 },
@@ -139,7 +160,19 @@ export const LENGTH_OPTIONS = [
   { id: "long", name: "Long", words: 1000, description: "~1000+ words, in-depth article" },
 ] as const;
 
-export const FREE_TIER_MONTHLY_LIMIT = 5;
+/** Free tier: unlimited repurposes with watermark. Set to Infinity to disable limit. */
+/** Humanization level for brand voice authenticity tuning */
+export const HUMANIZATION_LEVELS = [
+  { id: "casual", name: "Casual", description: "Friendly, conversational, approachable" },
+  { id: "professional", name: "Professional", description: "Polished, authoritative, business-appropriate" },
+  { id: "raw", name: "Raw / Unfiltered", description: "Direct, unfiltered, authentic" },
+] as const;
+
+export const FREE_TIER_MONTHLY_LIMIT = Infinity;
+
+/** Watermark appended to free-tier outputs. Pro removes it. */
+export const FREE_TIER_WATERMARK = "\n\n— Repurposed with RepostAI";
+export const FREE_TIER_WATERMARK_SHORT = " RepostAI"; // For Twitter (280 char limit)
 
 /** Platform IDs allowed on Free plan. Pro/Agency get all platforms. */
 export const FREE_PLATFORM_IDS = [

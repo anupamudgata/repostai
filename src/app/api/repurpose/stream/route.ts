@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
         const limiter = plan === "agency" ? agencyTierLimiter : plan === "pro" ? proTierLimiter : freeTierLimiter;
         const tierResult = await limiter.limit(user.id);
         if (!tierResult.success) {
-          send({ type: "error", error: plan === "free" ? "You have used all 5 free repurposes this month. Upgrade to Pro for unlimited." : "Daily limit reached. Resets at midnight UTC." });
+          send({ type: "error", error: plan === "free" ? "Free tier limit reached. Upgrade to Pro for unlimited." : "Daily limit reached. Resets at midnight UTC." });
           close(); return;
         }
 

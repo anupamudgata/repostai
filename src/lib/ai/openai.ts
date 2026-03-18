@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import type { Platform, OutputLanguage } from "@/types";
-import { buildRepurposePrompt } from "./prompts";
+import { buildRepurposePrompt, type AuthenticityTuning } from "./prompts";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -12,9 +12,12 @@ export async function repurposeContent(
   platforms: Platform[],
   brandVoiceSample?: string,
   outputLanguage: OutputLanguage = "en",
-  userIntent?: string
+  userIntent?: string,
+  contentAngle?: string,
+  hookMode?: string,
+  authenticityTuning?: AuthenticityTuning
 ): Promise<Record<Platform, string>> {
-  const prompt = buildRepurposePrompt(content, platforms, brandVoiceSample, outputLanguage, userIntent);
+  const prompt = buildRepurposePrompt(content, platforms, brandVoiceSample, outputLanguage, userIntent, contentAngle, hookMode, authenticityTuning);
 
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",

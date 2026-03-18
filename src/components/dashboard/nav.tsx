@@ -16,6 +16,9 @@ import {
   Link2,
   CalendarClock,
   Plug,
+  BarChart3,
+  Bot,
+  Scissors,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,10 +43,13 @@ interface NavProps {
 
 const NAV_LINKS = [
   { href: "/dashboard", label: "Repurpose", icon: LayoutDashboard },
+  { href: "/dashboard/agent", label: "Content Agent", icon: Bot, badge: "NEW" },
+  { href: "/dashboard/clips", label: "Video → Clips", icon: Scissors },
   { href: "/dashboard/create", label: "Create", icon: Sparkles, badge: "PRO" },
   { href: "/dashboard/history", label: "History", icon: History },
   { href: "/dashboard/connections", label: "Connections", icon: Link2 },
-  { href: "/dashboard/scheduled", label: "Scheduled", icon: CalendarClock },
+  { href: "/dashboard/scheduled", label: "Calendar", icon: CalendarClock },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/dashboard/brand-voice", label: "Brand Voice", icon: Mic },
 ];

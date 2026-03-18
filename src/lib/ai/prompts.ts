@@ -121,16 +121,53 @@ CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in French (Français).
 - The JSON keys must remain in English, only the content values should be in French`,
 };
 
+const CONTENT_ANGLE_INSTRUCTIONS: Record<string, string> = {
+  insight: "CONTENT ANGLE: Generate as an INSIGHT POST — lead with a key takeaway, lesson learned, or 'aha' moment. Focus on the one thing the reader should remember.",
+  story: "CONTENT ANGLE: Generate as a STORY POST — use a narrative format with a personal anecdote, before/after, or journey. Hook with the story, land with the lesson.",
+  howto: "CONTENT ANGLE: Generate as a HOW-TO — step-by-step, tutorial, or actionable guide. Make it practical and easy to follow.",
+  contrarian: "CONTENT ANGLE: Generate as a CONTRARIAN TAKE — challenge common beliefs, question the status quo, or offer an unpopular-but-defensible opinion. Be bold but reasoned.",
+  listicle: "CONTENT ANGLE: Generate as a LISTICLE — numbered list format (e.g. 5 lessons, 7 tips, 3 mistakes). Each point should be scannable and standalone.",
+};
+
+/** Viral hook style — the first line drives 80% of engagement. Must stop the scroll. */
+const HOOK_MODE_INSTRUCTIONS: Record<string, string> = {
+  pattern_interrupt: "VIRAL HOOK (first line): Use a PATTERN INTERRUPT — start with a surprising stat or bold claim that contradicts common belief (e.g. '95% of algo traders do this wrong...', 'Nobody talks about this...'). Make the reader stop scrolling.",
+  story: "VIRAL HOOK (first line): Use a STORY HOOK — open with a personal loss, win, or dramatic moment (e.g. 'I lost $3,200 in 3 hours. Here's what happened...', 'I failed 3 times before this worked.'). Create curiosity and emotional pull.",
+  statistic: "VIRAL HOOK (first line): Use a STATISTIC HOOK — lead with a surprising number or data point (e.g. '62% of creators burn out. I found the fix.', 'Only 3% of people do this.'). Numbers create credibility and curiosity.",
+  fomo: "VIRAL HOOK (first line): Use a FOMO HOOK — start with social proof or urgency (e.g. 'Everyone's talking about this strategy. Here's why.', 'Your competitors are already doing this.'). Make them feel they're missing out.",
+  controversy: "VIRAL HOOK (first line): Use a CONTROVERSY HOOK — challenge a popular practice or belief (e.g. 'Stop paper trading. It's wasting your time.', 'Most advice on X is wrong.'). Be bold and direct.",
+  sneak_peek: "VIRAL HOOK (first line): Use a SNEAK PEEK HOOK — tease results or a discovery (e.g. 'I spent 30 days testing this. Results shocked me.', 'I tried this for a week. Here's what changed.'). Create curiosity about the outcome.",
+};
+
+export type AuthenticityTuning = {
+  humanizationLevel?: string;
+  imperfectionMode?: boolean;
+  personalStoryInjection?: boolean;
+};
+
 export function buildRepurposePrompt(
   content: string,
   platforms: Platform[],
   brandVoice?: string,
   outputLanguage: OutputLanguage = "en",
-  userIntent?: string
+  userIntent?: string,
+  contentAngle?: string,
+  hookMode?: string,
+  authenticityTuning?: AuthenticityTuning
 ): string {
   const intentInstruction = userIntent?.trim()
     ? `\n\nUSER'S GOAL FOR THIS PIECE: "${userIntent.trim()}". Prioritize this when generating — the output should match what the user wants (e.g. more engagement, more casual, emphasize a specific angle).`
     : "";
+
+  const angleInstruction =
+    contentAngle && contentAngle !== "default" && CONTENT_ANGLE_INSTRUCTIONS[contentAngle]
+      ? `\n\n${CONTENT_ANGLE_INSTRUCTIONS[contentAngle]}`
+      : "";
+
+  const hookInstruction =
+    hookMode && hookMode !== "default" && HOOK_MODE_INSTRUCTIONS[hookMode]
+      ? `\n\n${HOOK_MODE_INSTRUCTIONS[hookMode]}`
+      : "";
 
   const platformSections = platforms
     .map(
@@ -143,6 +180,27 @@ export function buildRepurposePrompt(
     ? `\n\nCRITICAL - BRAND VOICE (must apply to every platform): The user provided writing samples below. ALL outputs MUST sound like this brand — same tone, vocabulary, sentence length, and personality. Do not fall back to generic AI voice. If the samples are casual, keep outputs casual; if professional, keep professional. Here are the examples:\n---\n${brandVoice}\n---`
     : "";
 
+  let authenticityInstruction = "";
+  if (authenticityTuning) {
+    const parts: string[] = [];
+    if (authenticityTuning.humanizationLevel && authenticityTuning.humanizationLevel !== "professional") {
+      if (authenticityTuning.humanizationLevel === "casual") {
+        parts.push("HUMANIZATION: Write in a CASUAL tone — friendly, conversational, approachable. Use everyday language, contractions, and a relaxed vibe.");
+      } else if (authenticityTuning.humanizationLevel === "raw") {
+        parts.push("HUMANIZATION: Write in a RAW/UNFILTERED tone — direct, authentic, no corporate polish. Say it like you mean it. Bold and unfiltered.");
+      }
+    }
+    if (authenticityTuning.imperfectionMode) {
+      parts.push("IMPERFECTION MODE: Intentionally add human imperfections — occasional lowercase starts, sentence fragments, minor typos (e.g. 'tbh', 'gonna'), casual abbreviations. Example: 'tbh i used to think...' instead of 'To be honest, I previously believed...'. Makes it feel real, not AI-polished.");
+    }
+    if (authenticityTuning.personalStoryInjection) {
+      parts.push("PERSONAL STORY INJECTION: Weave in a relevant personal anecdote or story based on the topic. Example: Topic about algo trading → 'I remember debugging at 3 AM when my first bot lost $3,200...'. Make it specific, relatable, and tied to the content. One short anecdote per post.");
+    }
+    if (parts.length > 0) {
+      authenticityInstruction = `\n\nAUTHENTICITY TUNING (apply to every platform):\n${parts.join("\n")}`;
+    }
+  }
+
   const languageInstruction = LANGUAGE_INSTRUCTIONS[outputLanguage];
 
   return `You are a world-class content strategist trained on what actually works. Your job is to repurpose the following content into platform-specific posts that follow proven best practices (engagement, length, and structure patterns from high-performing posts on each platform).
@@ -154,7 +212,7 @@ RULES:
 - Make every post engaging and actionable. Avoid generic filler ("In today's fast-paced world", "In conclusion", "Hope you enjoyed").
 - SENSITIVE TOPICS: Match tone to content gravity. For serious, somber, or controversial topics (e.g. geopolitical, tragedy, crisis), use an appropriate tone — respectful and measured. Do not apply a cheerful or salesy tone to serious subject matter.
 - HASHTAGS: Use relevant, topic-specific hashtags. Mix broad and niche; no filler or repeated hashtags. Never use the same hashtag more than once in a single post. Prefer hashtags that fit the topic rather than generic #marketing #growth.
-- Respect each platform's character limits strictly (e.g. Twitter 280 per tweet, LinkedIn 3000, Instagram caption 2200). Do not truncate; deliver complete outputs.${intentInstruction}${languageInstruction}${voiceInstruction}
+- Respect each platform's character limits strictly (e.g. Twitter 280 per tweet, LinkedIn 3000, Instagram caption 2200). Do not truncate; deliver complete outputs.${angleInstruction}${hookInstruction}${authenticityInstruction}${intentInstruction}${languageInstruction}${voiceInstruction}
 
 ORIGINAL CONTENT:
 ---

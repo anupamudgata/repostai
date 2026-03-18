@@ -6,9 +6,10 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
+/** Free tier: effectively unlimited (with watermark). High limit for abuse protection only. */
 export const freeTierLimiter = new Ratelimit({
   redis,
-  limiter: Ratelimit.slidingWindow(5, "30 d"),
+  limiter: Ratelimit.slidingWindow(500, "30 d"),
   analytics: true,
   prefix: "repostai:free",
 });

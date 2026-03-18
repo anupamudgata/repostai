@@ -99,3 +99,103 @@ export async function getYouTubeTranscript(url: string): Promise<string> {
     );
   }
 }
+
+export type TranscriptSegment = { text: string; start: number; dur: number };
+
+/** Returns transcript with timestamps for clip extraction. */
+export async function getYouTubeTranscriptWithTimestamps(url: string): Promise<TranscriptSegment[]> {
+  const videoId = extractYouTubeVideoId(url);
+  if (!videoId) {
+    throw new Error("Invalid YouTube URL. Please provide a valid YouTube video link.");
+  }
+
+  const watchPageResponse = await fetchWithTimeout(
+    `https://www.youtube.com/watch?v=${videoId}`,
+    {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+      },
+    }
+  );
+
+  const html = await watchPageResponse.text();
+  const captionsMatch = html.match(new RegExp('"captions":\\s*({.*?"captionTracks".*?})\\s*,\\s*"videoDetails"', "s"));
+  if (!captionsMatch) {
+    throw new Error(
+      "No captions/transcript available for this video. Try a video with subtitles enabled."
+    );
+  }
+
+  try {
+    const captionsData = JSON.parse(captionsMatch[1]);
+    const tracks = captionsData?.playerCaptionsTracklistRenderer?.captionTracks;
+    if (!tracks || tracks.length === 0) {
+      throw new Error("No caption tracks found");
+    }
+
+    const englishTrack = tracks.find(
+      (t: { languageCode: string }) =>
+        t.languageCode === "en" || t.languageCode.startsWith("en")
+    );
+    const track = englishTrack || tracks[0];
+
+    const transcriptResponse = await fetchWithTimeout(track.baseUrl);
+    const transcriptXml = await transcriptResponse.text();
+
+    const segmentRegex = /<text[^>]*start="([\d.]+)"[^>]*(?:dur="([\d.]+)")?[^>]*>([^<]*)<\/text>/gi;
+    const segments: TranscriptSegment[] = [];
+    let m;
+    while ((m = segmentRegex.exec(transcriptXml)) !== null) {
+      const start = parseFloat(m[1]);
+      const dur = m[2] ? parseFloat(m[2]) : 3;
+      let text = m[3]
+        .replace(/&amp;/g, "&")
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (text) segments.push({ text, start, dur });
+    }
+
+    if (segments.length === 0) {
+      const fallbackRegex = /<text[^>]*start="([\d.]+)"[^>]*>([^<]*)<\/text>/gi;
+      const fallbackMatches = [...transcriptXml.matchAll(fallbackRegex)];
+      let prevStart = 0;
+      for (const fm of fallbackMatches) {
+        const start = parseFloat(fm[1]);
+        const text = fm[2]
+          .replace(/&amp;/g, "&")
+          .replace(/&lt;/g, "<")
+          .replace(/&gt;/g, ">")
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/\s+/g, " ")
+          .trim();
+        if (text) {
+          segments.push({ text, start, dur: Math.max(1, start - prevStart) });
+          prevStart = start;
+        }
+      }
+    }
+
+    if (segments.length < 2) {
+      throw new Error("Transcript too short for clip extraction");
+    }
+
+    return segments;
+  } catch (e) {
+    if (e instanceof Error && e.message.includes("Transcript")) throw e;
+    throw new Error(
+      "Could not extract transcript from this video. Try a video with subtitles enabled."
+    );
+  }
+}
+
+export function formatTimestamp(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}

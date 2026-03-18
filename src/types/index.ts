@@ -66,6 +66,8 @@ export interface Subscription {
   created_at: string;
 }
 
+export type HumanizationLevel = "casual" | "professional" | "raw";
+
 export interface BrandVoice {
   id: string;
   user_id: string;
@@ -75,6 +77,9 @@ export interface BrandVoice {
   samples?: string;
   description: string | null;
   created_at: string;
+  humanization_level?: HumanizationLevel | null;
+  imperfection_mode?: boolean | null;
+  personal_story_injection?: boolean | null;
 }
 
 export interface RepurposeJob {

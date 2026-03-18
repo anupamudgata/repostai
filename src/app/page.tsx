@@ -100,7 +100,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Is there a free trial?",
-    a: "Better — there's a free plan. 5 repurposes per month, forever, no credit card required. Upgrade to Pro only when you need unlimited.",
+    a: "Better — there's a free plan. Unlimited repurposes with a small watermark, no credit card required. Upgrade to Pro to remove it.",
   },
   {
     q: "What if it's not for me?",

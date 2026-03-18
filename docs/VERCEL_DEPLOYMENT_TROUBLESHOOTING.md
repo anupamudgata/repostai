@@ -83,3 +83,40 @@ Use this guide when the app works locally but has issues on Vercel (same old pag
 | Cron rejected | Use daily schedule (`0 0 * * *`) on Hobby, or use Pro / external cron. |
 
 See **docs/ENV_VARS_CHECKLIST.md** for the full list of environment variables.
+
+---
+
+## 7. Brand voice error: "Could not find the 'samples' column of 'brand_voices'"
+
+**Cause:** The database has `sample_text` (old schema) but the app expects `samples`.
+
+**Fix:** Run this migration in **Supabase** → **SQL Editor**:
+
+```sql
+ALTER TABLE public.brand_voices
+  ADD COLUMN IF NOT EXISTS samples text,
+  ADD COLUMN IF NOT EXISTS persona text,
+  ADD COLUMN IF NOT EXISTS persona_generated_at timestamptz,
+  ADD COLUMN IF NOT EXISTS samples_hash text,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'brand_voices' AND column_name = 'sample_text'
+  ) THEN
+    UPDATE public.brand_voices SET samples = sample_text WHERE (samples IS NULL OR samples = '') AND sample_text IS NOT NULL;
+  END IF;
+END $$;
+```
+
+Or run the full migration file: `supabase/migrations/20250317_add_brand_voices_samples.sql`.
+
+---
+
+## 8. Content Performance Analytics (post_engagement table)
+
+**Cause:** The Analytics page requires the `post_engagement` table to track likes, comments, shares per post.
+
+**Fix:** Run **MIGRATION 5** from `MIGRATIONS.sql` in Supabase SQL Editor, or run `supabase/migrations/20250317_post_engagement.sql`.

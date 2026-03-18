@@ -15,6 +15,12 @@ import {
   Send,
   CalendarClock,
   Info,
+  Bot,
+  ChevronRight,
+  Scissors,
+  BarChart3,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,6 +49,8 @@ import {
   SUPPORTED_PLATFORMS,
   SUPPORTED_LANGUAGES,
   FREE_PLATFORM_IDS,
+  CONTENT_ANGLES,
+  HOOK_MODES,
 } from "@/config/constants";
 
 const INPUT_TABS = [
@@ -149,6 +157,8 @@ export default function DashboardPage() {
     "email",
   ]);
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("en");
+  const [contentAngle, setContentAngle] = useState<string>("default");
+  const [hookMode, setHookMode] = useState<string>("default");
   const [userIntent, setUserIntent] = useState("");
   const [brandVoiceId, setBrandVoiceId] = useState<string>("");
   const [brandVoices, setBrandVoices] = useState<{ id: string; name: string }[]>(
@@ -177,9 +187,19 @@ export default function DashboardPage() {
   const [scheduleAccountId, setScheduleAccountId] = useState<string>("");
   const [scheduleAt, setScheduleAt] = useState("");
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
+  const [scheduleJobId, setScheduleJobId] = useState<string | null>(null);
   const [pdfFileName, setPdfFileName] = useState<string>("");
   const [pdfExtractedText, setPdfExtractedText] = useState<string>("");
   const [pdfExtracting, setPdfExtracting] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkUrls, setBulkUrls] = useState("");
+  const [bulkSources, setBulkSources] = useState<
+    { sourceUrl: string; jobId: string; outputs: { platform: Platform; content: string }[] }[]
+  >([]);
+  const [platformFitScores, setPlatformFitScores] = useState<
+    { platform: string; score: number; reason: string; recommendation: "post" | "consider" | "skip" }[]
+  >([]);
+  const [platformFitLoading, setPlatformFitLoading] = useState(false);
 
   const isFreePlan = plan === "free";
 
@@ -250,6 +270,22 @@ export default function DashboardPage() {
     );
   }
 
+  function parseBulkUrls(text: string): string[] {
+    return text
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  }
+
+  function isValidUrl(s: string): boolean {
+    try {
+      new URL(s);
+      return s.startsWith("http://") || s.startsWith("https://");
+    } catch {
+      return false;
+    }
+  }
+
   async function handleRepurpose() {
     if (inputType === "pdf") {
       if (!pdfExtractedText.trim()) {
@@ -260,48 +296,120 @@ export default function DashboardPage() {
       toast.error("Please paste some content first");
       return;
     }
-    if ((inputType === "url" || inputType === "youtube") && !url.trim()) {
+    if (inputType === "youtube" && !url.trim()) {
       toast.error("Please enter a URL");
       return;
+    }
+    if (inputType === "url") {
+      if (bulkMode) {
+        const parsed = parseBulkUrls(bulkUrls);
+        const valid = parsed.filter(isValidUrl);
+        if (valid.length < 2 || valid.length > 5) {
+          toast.error("Enter 2–5 valid blog URLs (one per line or comma-separated)");
+          return;
+        }
+      } else if (!url.trim()) {
+        toast.error("Please enter a URL");
+        return;
+      }
     }
     if (selectedPlatforms.length === 0) {
       toast.error("Select at least one platform");
       return;
     }
 
+    const isBulk = inputType === "url" && bulkMode;
     setLoading(true);
     setOutputs([]);
+    setBulkSources([]);
+    setPlatformFitScores([]);
 
     try {
-      const res = await fetch("/api/repurpose", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          inputType,
-          content:
-            inputType === "text"
-              ? content
-              : inputType === "pdf"
-                ? pdfExtractedText
-                : "Fetching from URL...",
-          url: inputType !== "text" && inputType !== "pdf" ? url : undefined,
-          platforms: selectedPlatforms,
-          outputLanguage,
-          brandVoiceId: brandVoiceId || undefined,
+      if (isBulk) {
+        const parsed = parseBulkUrls(bulkUrls);
+        const validUrls = parsed.filter(isValidUrl);
+        const res = await fetch("/api/repurpose/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            urls: validUrls,
+            platforms: selectedPlatforms,
+            outputLanguage,
+            brandVoiceId: brandVoiceId || undefined,
           userIntent: userIntent.trim() || undefined,
+          contentAngle: contentAngle !== "default" ? contentAngle : undefined,
+          hookMode: hookMode !== "default" ? hookMode : undefined,
         }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
         toast.error(data.error || "Something went wrong");
         return;
       }
-
-      setOutputs(data.outputs);
-      setLastJobId(data.jobId ?? null);
-      toast.success(`Generated content for ${data.outputs.length} platforms!`);
+        setBulkSources(
+          data.sources.map((s: { sourceUrl: string; jobId: string; outputs: { platform: string; content: string }[] }) => ({
+            sourceUrl: s.sourceUrl,
+            jobId: s.jobId,
+            outputs: s.outputs.map((o: { platform: string; content: string }) => ({
+              platform: o.platform as Platform,
+              content: o.content,
+            })),
+          }))
+        );
+        setLastJobId(data.sources?.[data.sources.length - 1]?.jobId ?? null);
+        toast.success(`Generated ${data.totalOutputs} posts from ${data.sources.length} sources!`);
+      } else {
+        const res = await fetch("/api/repurpose", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            inputType,
+            content:
+              inputType === "text"
+                ? content
+                : inputType === "pdf"
+                  ? pdfExtractedText
+                  : "Fetching from URL...",
+            url: inputType !== "text" && inputType !== "pdf" ? url : undefined,
+            platforms: selectedPlatforms,
+          outputLanguage,
+          brandVoiceId: brandVoiceId || undefined,
+          userIntent: userIntent.trim() || undefined,
+          contentAngle: contentAngle !== "default" ? contentAngle : undefined,
+          hookMode: hookMode !== "default" ? hookMode : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Something went wrong");
+        return;
+      }
+        setOutputs(data.outputs);
+        setLastJobId(data.jobId ?? null);
+        toast.success(`Generated content for ${data.outputs.length} platforms!`);
+        // Fetch platform fit analysis for single repurpose
+        const outputsMap = (data.outputs as { platform: string; content: string }[]).reduce(
+          (acc: Record<string, string>, o: { platform: string; content: string }) => {
+            acc[o.platform] = o.content;
+            return acc;
+          },
+          {}
+        );
+        if (Object.keys(outputsMap).length > 0) {
+          setPlatformFitLoading(true);
+          fetch("/api/repurpose/platform-fit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ outputs: outputsMap }),
+          })
+            .then((r) => r.json())
+            .then((d) => {
+              if (d.scores?.length) setPlatformFitScores(d.scores);
+            })
+            .catch(() => {})
+            .finally(() => setPlatformFitLoading(false));
+        }
+      }
       if (usage) {
         setUsage((u) => (u ? { ...u, count: u.count + 1 } : null));
       }
@@ -312,9 +420,9 @@ export default function DashboardPage() {
     }
   }
 
-  async function handleCopy(platform: string, text: string) {
+  async function handleCopy(platform: string, text: string, copyKey?: string) {
     await navigator.clipboard.writeText(text);
-    setCopiedPlatform(platform);
+    setCopiedPlatform(copyKey ?? platform);
     toast.success("Copied to clipboard!");
     setTimeout(() => setCopiedPlatform(null), 2000);
   }
@@ -349,14 +457,23 @@ export default function DashboardPage() {
     }
   }
 
-  function openScheduleModal(platform: Platform) {
+  function openScheduleModal(platform: Platform, jobId?: string) {
     const provider = platformProvider(platform);
     const acc = provider
       ? connectedAccounts.find((a) => a.platform === provider)
       : null;
-    if (!acc || !lastJobId) return;
+    const jid = jobId ?? lastJobId;
+    if (!acc) {
+      toast.error(`Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to schedule posts`);
+      return;
+    }
+    if (!jid) {
+      toast.error("Cannot schedule. Generate content again first.");
+      return;
+    }
     setSchedulePlatform(platform);
     setScheduleAccountId(acc.id);
+    setScheduleJobId(jid);
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(9, 0, 0, 0);
@@ -365,14 +482,15 @@ export default function DashboardPage() {
   }
 
   async function handleScheduleSubmit() {
-    if (!lastJobId || !schedulePlatform || !scheduleAccountId || !scheduleAt) return;
+    const jid = scheduleJobId ?? lastJobId;
+    if (!jid || !schedulePlatform || !scheduleAccountId || !scheduleAt) return;
     setScheduleSubmitting(true);
     try {
       const res = await fetch("/api/schedule", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobId: lastJobId,
+          jobId: jid,
           platform: schedulePlatform,
           connectedAccountId: scheduleAccountId,
           scheduledAt: new Date(scheduleAt).toISOString(),
@@ -385,6 +503,7 @@ export default function DashboardPage() {
       }
       toast.success("Post scheduled!");
       setScheduleOpen(false);
+      setScheduleJobId(null);
     } catch {
       toast.error("Network error");
     } finally {
@@ -394,9 +513,11 @@ export default function DashboardPage() {
 
   async function handlePostNow(
     platform: Platform,
-    connectedAccountId: string
+    connectedAccountId: string,
+    jobId?: string
   ) {
-    if (!lastJobId) {
+    const jid = jobId ?? lastJobId;
+    if (!jid) {
       toast.error("Cannot post. Repurpose again first.");
       return;
     }
@@ -406,7 +527,7 @@ export default function DashboardPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          jobId: lastJobId,
+          jobId: jid,
           platform,
           connectedAccountId,
         }),
@@ -519,6 +640,22 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Content Agent CTA */}
+      <Link href="/dashboard/agent">
+        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent hover:from-primary/10 hover:to-primary/5 transition-colors cursor-pointer">
+          <CardContent className="py-4 flex items-center gap-4">
+            <Bot className="h-10 w-10 text-primary shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold">Content Agent — Plan your entire content week</p>
+              <p className="text-sm text-muted-foreground">
+                Paste a blog URL → AI suggests platforms, optimal times, generates all variations, and schedules them.
+              </p>
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
+          </CardContent>
+        </Card>
+      </Link>
+
       {/* Input Section */}
       <Card>
         <CardHeader>
@@ -551,23 +688,65 @@ export default function DashboardPage() {
               />
             </TabsContent>
 
-            <TabsContent value="url" className="mt-4">
-              <div>
-                <Label htmlFor="blog-url">Blog Post URL</Label>
-                <Input
-                  id="blog-url"
-                  type="url"
-                  placeholder="https://example.com/my-blog-post"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  We&apos;ll automatically extract the article content.
-                </p>
+            <TabsContent value="url" className="mt-4 space-y-4">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBulkMode(false);
+                    setBulkUrls("");
+                  }}
+                  className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                    !bulkMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  Single URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBulkMode(true);
+                    setUrl("");
+                  }}
+                  className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
+                    bulkMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  }`}
+                >
+                  Bulk (2–5 URLs)
+                </button>
               </div>
+              {bulkMode ? (
+                <div>
+                  <Label htmlFor="bulk-urls">Blog URLs (one per line or comma-separated)</Label>
+                  <Textarea
+                    id="bulk-urls"
+                    placeholder={"https://example.com/post-1\nhttps://example.com/post-2\nhttps://example.com/post-3"}
+                    className="min-h-[140px] mt-2 font-mono text-sm"
+                    value={bulkUrls}
+                    onChange={(e) => setBulkUrls(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Paste 2–5 blog URLs. We&apos;ll extract each article and generate {selectedPlatforms.length} platforms × your URLs = up to {selectedPlatforms.length * 5} posts in one queue.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="blog-url">Blog Post URL</Label>
+                  <Input
+                    id="blog-url"
+                    type="url"
+                    placeholder="https://example.com/my-blog-post"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    We&apos;ll automatically extract the article content.
+                  </p>
+                </div>
+              )}
             </TabsContent>
 
-            <TabsContent value="youtube" className="mt-4">
+            <TabsContent value="youtube" className="mt-4 space-y-3">
               <div>
                 <Label htmlFor="yt-url">YouTube Video URL</Label>
                 <Input
@@ -582,6 +761,12 @@ export default function DashboardPage() {
                   must have captions enabled.
                 </p>
               </div>
+              <Link href="/dashboard/clips" className="block">
+                <p className="text-sm text-primary hover:underline flex items-center gap-1.5">
+                  <Scissors className="h-4 w-4" />
+                  Extract viral clips from long videos →
+                </p>
+              </Link>
             </TabsContent>
 
             <TabsContent value="pdf" className="mt-4">
@@ -733,6 +918,50 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
+      {/* Content Angle + Hook Mode */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Generate as</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Choose the angle and hook style — the first line drives 80% of engagement
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground">Content angle</Label>
+              <Select value={contentAngle} onValueChange={setContentAngle}>
+                <SelectTrigger className="w-full min-h-[44px] mt-1">
+                  <SelectValue placeholder="Select angle" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CONTENT_ANGLES.map((angle) => (
+                    <SelectItem key={angle.id} value={angle.id} title={angle.description}>
+                      {angle.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground">Hook mode — first line drives 80% of engagement</Label>
+              <Select value={hookMode} onValueChange={setHookMode}>
+                <SelectTrigger className="w-full min-h-[44px] mt-1">
+                  <SelectValue placeholder="Select hook" />
+                </SelectTrigger>
+                <SelectContent>
+                  {HOOK_MODES.map((mode) => (
+                    <SelectItem key={mode.id} value={mode.id} title={mode.description}>
+                      {mode.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Language Selection */}
       <Card>
         <CardHeader>
@@ -809,25 +1038,34 @@ export default function DashboardPage() {
         {loading ? (
           <>
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            Generating ({selectedPlatforms.length} platforms)...
+            {inputType === "url" && bulkMode
+              ? `Generating (${parseBulkUrls(bulkUrls).filter(isValidUrl).length} sources × ${selectedPlatforms.length} platforms)...`
+              : `Generating (${selectedPlatforms.length} platforms)...`}
           </>
         ) : (
           <>
             <RefreshCw className="h-5 w-5 mr-2" />
-            Repurpose to {selectedPlatforms.length} Platforms
+            {inputType === "url" && bulkMode
+              ? `Bulk Repurpose (${selectedPlatforms.length} platforms × your URLs)`
+              : `Repurpose to ${selectedPlatforms.length} Platforms`}
           </>
         )}
       </Button>
 
       {/* Output Section — single column on mobile */}
-      {outputs.length > 0 && (
+      {(outputs.length > 0 || bulkSources.length > 0) && (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Get the output you want — edit or regenerate until it&apos;s right, then post when you&apos;re ready.
+            {isFreePlan && (
+              <span className="block mt-1 text-xs">
+                Free posts include a small &quot;Repurposed with RepostAI&quot; watermark. <Link href="/pricing" className="text-primary hover:underline">Upgrade to Pro</Link> to remove it.
+              </span>
+            )}
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <h2 className="text-xl sm:text-2xl font-bold">Generated Content</h2>
-            {!isFreePlan && (
+            {!isFreePlan && bulkSources.length === 0 && (
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Button
                   size="sm"
@@ -853,17 +1091,191 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-            {outputs.map((output) => {
-              const platformInfo = SUPPORTED_PLATFORMS.find(
-                (p) => p.id === output.platform
-              );
-              const provider = platformProvider(output.platform);
-              const account = provider
-                ? connectedAccounts.find((a) => a.platform === provider)
-                : null;
-              return (
-                <Card key={output.platform}>
+          {/* Where to Post — platform fit scorecard (single repurpose only) */}
+          {outputs.length > 0 && bulkSources.length === 0 && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  Where to Post
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  AI analysis of which platforms will perform best for this content
+                </p>
+              </CardHeader>
+              <CardContent>
+                {platformFitLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyzing platform fit...
+                  </div>
+                ) : platformFitScores.length > 0 ? (
+                  <div className="space-y-3">
+                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {platformFitScores.map((s) => {
+                        const info = SUPPORTED_PLATFORMS.find((p) => p.id === s.platform);
+                        const isPost = s.recommendation === "post";
+                        const isSkip = s.recommendation === "skip";
+                        return (
+                          <div
+                            key={s.platform}
+                            className={`rounded-lg border p-3 text-sm ${
+                              isPost ? "border-green-500/30 bg-green-500/5" : isSkip ? "border-muted bg-muted/30" : "border-amber-500/20 bg-amber-500/5"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-medium">{info?.name ?? s.platform}</span>
+                              <span className={`font-mono text-xs font-semibold ${isPost ? "text-green-600" : isSkip ? "text-muted-foreground" : "text-amber-600"}`}>
+                                {s.score.toFixed(1)}/10
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.reason}</p>
+                            <div className="flex items-center gap-1 mt-2">
+                              {isPost && <ThumbsUp className="h-3 w-3 text-green-600" />}
+                              {isSkip && <ThumbsDown className="h-3 w-3 text-muted-foreground" />}
+                              <span className={`text-xs font-medium ${isPost ? "text-green-600" : isSkip ? "text-muted-foreground" : "text-amber-600"}`}>
+                                {isPost ? "Post" : isSkip ? "Consider skipping" : "Consider"}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {platformFitScores.some((s) => s.recommendation === "skip") && (
+                      <p className="text-xs text-muted-foreground">
+                        Focus on high-scoring platforms. Skip the weak ones to save time.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground py-2">Platform analysis unavailable</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="space-y-8">
+            {bulkSources.length > 0 ? (
+              bulkSources.map((source, idx) => (
+                <div key={source.jobId} className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">Source {idx + 1}</span>
+                    <a
+                      href={source.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-primary hover:underline truncate max-w-md"
+                    >
+                      {source.sourceUrl}
+                    </a>
+                    {!isFreePlan && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          setBulkPosting(true);
+                          const tasks: { platform: Platform; connectedAccountId: string; label: string }[] = [];
+                          for (const o of source.outputs) {
+                            const prov = platformProvider(o.platform);
+                            const acc = prov ? connectedAccounts.find((a) => a.platform === prov) : null;
+                            if (acc) tasks.push({ platform: o.platform, connectedAccountId: acc.id, label: SUPPORTED_PLATFORMS.find((p) => p.id === o.platform)?.name ?? o.platform });
+                          }
+                          const successes: string[] = [];
+                          const failures: string[] = [];
+                          for (const t of tasks) {
+                            try {
+                              const res = await fetch("/api/post", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ jobId: source.jobId, platform: t.platform, connectedAccountId: t.connectedAccountId }),
+                              });
+                              if (res.ok) successes.push(t.label);
+                              else failures.push(t.label);
+                            } catch {
+                              failures.push(t.label);
+                            }
+                          }
+                          setBulkPosting(false);
+                          if (successes.length) toast.success(`Posted to: ${successes.join(", ")}`);
+                          if (failures.length) toast.error(`Failed: ${failures.join(", ")}`);
+                        }}
+                        disabled={bulkPosting}
+                      >
+                        Post this source
+                      </Button>
+                    )}
+                  </div>
+                  <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                    {source.outputs.map((output) => {
+                      const platformInfo = SUPPORTED_PLATFORMS.find((p) => p.id === output.platform);
+                      const provider = platformProvider(output.platform);
+                      const account = provider ? connectedAccounts.find((a) => a.platform === provider) : null;
+                      return (
+                        <Card key={output.platform}>
+                          <CardHeader className="pb-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <CardTitle className="text-base">{platformInfo?.name || output.platform}</CardTitle>
+                              <div className="flex gap-2 flex-wrap items-center">
+                                {provider && (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      className="min-h-[40px] touch-manipulation"
+                                      onClick={() => account && handlePostNow(output.platform, account.id, source.jobId)}
+                                      disabled={postingPlatform !== null || !account || bulkPosting}
+                                      title={!account ? `Connect ${provider}` : undefined}
+                                    >
+                                      {postingPlatform === output.platform ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Send className="h-3.5 w-3.5 mr-1" /> Post now</>}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="min-h-[40px] touch-manipulation"
+                                      onClick={() => openScheduleModal(output.platform, source.jobId)}
+                                      disabled={scheduleSubmitting}
+                                      title={!account ? `Connect ${provider} to schedule` : undefined}
+                                    >
+                                      <CalendarClock className="h-3.5 w-3.5 mr-1" />
+                                      Schedule
+                                    </Button>
+                                  </>
+                                )}
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="min-h-[40px] touch-manipulation"
+                                  onClick={() => handleCopy(output.platform, output.content, `${source.jobId}-${output.platform}`)}
+                                >
+                                  {copiedPlatform === `${source.jobId}-${output.platform}` ? <><Check className="h-3.5 w-3.5 mr-1" /> Copied</> : <><Copy className="h-3.5 w-3.5 mr-1" /> Copy</>}
+                                </Button>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-2">
+                            <div className="bg-muted/50 rounded-lg p-4 text-sm whitespace-pre-wrap max-h-80 overflow-y-auto">
+                              {output.content}
+                            </div>
+                            {platformInfo && <CharacterCount content={output.content} platformId={output.platform} maxLength={platformInfo.maxLength} platformName={platformInfo.name} />}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              {outputs.map((output) => {
+                const platformInfo = SUPPORTED_PLATFORMS.find(
+                  (p) => p.id === output.platform
+                );
+                const provider = platformProvider(output.platform);
+                const account = provider
+                  ? connectedAccounts.find((a) => a.platform === provider)
+                  : null;
+                return (
+                  <Card key={output.platform}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between gap-2">
                       <CardTitle className="text-base">
@@ -897,8 +1309,8 @@ export default function DashboardPage() {
                               size="sm"
                               variant="outline"
                               className="min-h-[40px] touch-manipulation"
-                              onClick={() => account && openScheduleModal(output.platform)}
-                              disabled={!account}
+                              onClick={() => openScheduleModal(output.platform)}
+                              disabled={scheduleSubmitting}
                               title={!account ? `Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to schedule` : undefined}
                             >
                               <CalendarClock className="h-3.5 w-3.5 mr-1" />
@@ -969,6 +1381,8 @@ export default function DashboardPage() {
                 </Card>
               );
             })}
+              </div>
+            )}
           </div>
         </div>
       )}

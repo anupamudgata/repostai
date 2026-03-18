@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { regenerateSingle } from "@/lib/ai/openai";
+import { repurposeContent } from "@/lib/ai/openai";
 import type { Platform } from "@/types";
 
 export async function POST(request: NextRequest) {
@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
 
     let originalContent: string;
     let brandVoiceSample: string | undefined;
+    let authenticityTuning: { humanizationLevel?: string; imperfectionMode?: boolean; personalStoryInjection?: boolean } | undefined;
     let outputLanguage: "en" | "hi" | "es" = "en";
 
     if (jobId) {
@@ -65,11 +66,14 @@ export async function POST(request: NextRequest) {
       if (job.brand_voice_id) {
         const { data: voice } = await supabase
           .from("brand_voices")
-          .select("samples")
+          .select("samples, humanization_level, imperfection_mode, personal_story_injection")
           .eq("id", job.brand_voice_id)
           .eq("user_id", user.id)
           .single();
         brandVoiceSample = voice?.samples;
+        authenticityTuning = voice && (voice.humanization_level || voice.imperfection_mode || voice.personal_story_injection)
+          ? { humanizationLevel: voice.humanization_level ?? undefined, imperfectionMode: voice.imperfection_mode ?? false, personalStoryInjection: voice.personal_story_injection ?? false }
+          : undefined;
       }
     } else {
       const { originalContent: content, brandVoiceId } = body;
@@ -83,23 +87,31 @@ export async function POST(request: NextRequest) {
       if (brandVoiceId) {
         const { data: voice } = await supabase
           .from("brand_voices")
-          .select("samples")
+          .select("samples, humanization_level, imperfection_mode, personal_story_injection")
           .eq("id", brandVoiceId)
           .eq("user_id", user.id)
           .single();
         brandVoiceSample = voice?.samples;
+        authenticityTuning = voice && (voice.humanization_level || voice.imperfection_mode || voice.personal_story_injection)
+          ? { humanizationLevel: voice.humanization_level ?? undefined, imperfectionMode: voice.imperfection_mode ?? false, personalStoryInjection: voice.personal_story_injection ?? false }
+          : undefined;
       }
       if (body.outputLanguage) {
         outputLanguage = body.outputLanguage;
       }
     }
 
-    const newContent = await regenerateSingle(
+    const results = await repurposeContent(
       originalContent,
-      platform as Platform,
+      [platform as Platform],
       brandVoiceSample,
-      outputLanguage
+      outputLanguage,
+      undefined,
+      undefined,
+      undefined,
+      authenticityTuning
     );
+    const newContent = results[platform as Platform] ?? "";
 
     if (jobId) {
       const { data: existing } = await supabase
