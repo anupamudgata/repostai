@@ -130,11 +130,14 @@ export async function GET(req: NextRequest) {
         results.failed++;
 
         // Mark as failed so it doesn't get stuck in "processing"
-        await supabaseAdmin
-          .from("scheduled_posts")
-          .update({ status: "failed", updated_at: new Date().toISOString() })
-          .eq("id", post.id)
-          .catch(() => {}); // Don't throw if this update also fails
+        try {
+          await supabaseAdmin
+            .from("scheduled_posts")
+            .update({ status: "failed", updated_at: new Date().toISOString() })
+            .eq("id", post.id);
+        } catch {
+          // Don't throw if this update also fails
+        }
       }
     }
 
