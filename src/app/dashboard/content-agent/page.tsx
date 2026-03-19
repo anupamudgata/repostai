@@ -285,10 +285,10 @@ export default function ContentAgentPage() {
               </pre>
               <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "0.5px solid #F3F4F6" }}>
                 <a
-                  href={`/dashboard/repurpose?jobId=${result.jobId}`}
+                  href="/dashboard/history"
                   style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "9px 20px", borderRadius: "8px", background: "#1E3A5F", color: "#FFFFFF", fontSize: "13px", fontWeight: 600, textDecoration: "none" }}
                 >
-                  Repurpose to all platforms →
+                  View outputs in history →
                 </a>
               </div>
             </div>

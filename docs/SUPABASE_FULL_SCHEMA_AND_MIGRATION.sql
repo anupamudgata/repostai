@@ -24,7 +24,6 @@ create table if not exists public.profiles (
 create table if not exists public.subscriptions (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references public.profiles(id) on delete cascade not null,
-  stripe_customer_id text,
   stripe_subscription_id text unique not null,
   stripe_price_id text,
   plan text not null check (plan in ('pro', 'agency')),
@@ -53,8 +52,11 @@ create table if not exists public.repurpose_jobs (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references public.profiles(id) on delete cascade not null,
   input_type text not null check (input_type in ('text', 'url', 'youtube', 'pdf')),
-  input_content text not null,
+  input_content text,
   input_url text,
+  constraint repurpose_jobs_input_check check (
+    (input_content is not null and trim(input_content) <> '') or (input_url is not null and trim(input_url) <> '')
+  ),
   brand_voice_id uuid references public.brand_voices(id) on delete set null,
   output_language text not null default 'en' check (output_language in ('en', 'hi', 'es', 'pt', 'fr')),
   created_at timestamptz not null default now()
@@ -125,11 +127,12 @@ create table if not exists public.scheduled_posts (
 -- ============================================
 
 alter table public.profiles
-  add column if not exists market_region text,
   add column if not exists zapier_webhook_url text;
 
+-- Remove stripe_customer_id from subscriptions (canonical place is profiles)
+alter table public.subscriptions drop column if exists stripe_customer_id;
+
 alter table public.subscriptions
-  add column if not exists stripe_customer_id text,
   add column if not exists stripe_price_id text,
   add column if not exists current_period_start timestamptz,
   add column if not exists cancel_at_period_end boolean default false,
@@ -142,6 +145,13 @@ alter table public.brand_voices
   add column if not exists samples_hash text,
   add column if not exists updated_at timestamptz default now();
 
+-- repurpose_jobs: make input_content nullable + add input check (for existing tables)
+alter table public.repurpose_jobs alter column input_content drop not null;
+alter table public.repurpose_jobs drop constraint if exists repurpose_jobs_input_check;
+alter table public.repurpose_jobs add constraint repurpose_jobs_input_check check (
+  (input_content is not null and trim(input_content) <> '') or (input_url is not null and trim(input_url) <> '')
+);
+
 -- If old schema had sample_text, copy to samples for existing rows
 do $$
 begin
@@ -153,8 +163,12 @@ begin
   end if;
 end $$;
 
--- Relax output_language check if needed (Postgres: drop and re-add constraint by recreating column default is complex; skip if your repurpose_jobs already have en/hi/es only — run once: alter table repurpose_jobs drop constraint if exists repurpose_jobs_output_language_check; alter table repurpose_jobs add constraint repurpose_jobs_output_language_check check (output_language in ('en', 'hi', 'es', 'pt', 'fr'));)
--- Same for created_posts if you need pt/fr. Omitted here to avoid breaking existing rows; add new jobs will get new constraint from table def.
+-- Ensure output_language check includes pt, fr (for existing DBs with old constraint)
+alter table public.repurpose_jobs drop constraint if exists repurpose_jobs_output_language_check;
+alter table public.repurpose_jobs add constraint repurpose_jobs_output_language_check check (output_language in ('en', 'hi', 'es', 'pt', 'fr'));
+
+alter table public.created_posts drop constraint if exists created_posts_output_language_check;
+alter table public.created_posts add constraint created_posts_output_language_check check (output_language in ('en', 'hi', 'es', 'pt', 'fr'));
 
 -- connected_accounts: if you had provider/encrypted_* columns, add new columns for new code
 alter table public.connected_accounts

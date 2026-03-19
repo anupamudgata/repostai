@@ -43,7 +43,7 @@ export function PDFUploader({ onExtracted }: Props) {
     try {
       const form = new FormData();
       form.append("file", file);
-      const res  = await fetch("/api/extract/pdf", { method: "POST", body: form });
+      const res  = await fetch("/api/pdf/extract", { method: "POST", body: form });
       clearInterval(tick);
       setProgress(100);
       if (!res.ok) {

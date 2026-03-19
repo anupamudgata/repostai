@@ -105,13 +105,17 @@ export default function HistoryPage() {
     if (selected.size === 0) return;
     if (!confirm(`Delete ${selected.size} item${selected.size !== 1 ? "s" : ""}?`)) return;
     setDeleting(true);
-    await Promise.all(
-      Array.from(selected).map((id) =>
-        fetch(`/api/history?id=${id}`, { method: "DELETE" })
-      )
-    );
-    setItems((prev) => prev.filter((i) => !selected.has(i.id)));
-    setSelected(new Set());
+    const selectedItems = items.filter((i) => selected.has(i.id));
+    const jobIds = [...new Set(selectedItems.map((i) => i.job_id))];
+    const res = await fetch("/api/history/bulk-delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ jobIds }),
+    });
+    if (res.ok) {
+      setItems((prev) => prev.filter((i) => !selected.has(i.id)));
+      setSelected(new Set());
+    }
     setDeleting(false);
   }
 
