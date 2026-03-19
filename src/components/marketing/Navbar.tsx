@@ -17,7 +17,7 @@ const NAV_LINKS = [
 
 export function MarketingNavbar() {
   const [scrolled,    setScrolled]    = useState(false);
-  const [menuOpen,    setMenuOpen]    = useState(false);
+  const [, setMenuOpen] = useState(false);
   const pathname = usePathname();
   const isLanding = pathname === "/";
 

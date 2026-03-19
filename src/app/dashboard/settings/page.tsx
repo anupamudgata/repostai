@@ -7,6 +7,7 @@
 import { createClient }  from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redirect }      from "next/navigation";
+import { SUPPORT_EMAIL } from "@/config/constants";
 
 // Plan display config
 const PLAN_CONFIG = {
@@ -37,7 +38,7 @@ const PLAN_CONFIG = {
 } as const;
 
 export default async function SettingsPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
@@ -240,25 +241,24 @@ export default async function SettingsPage() {
 // ── Client components (inline to avoid extra files) ───────────────────────────
 
 function ManageBillingButton() {
-  // This needs "use client" — wrap in a separate file in practice
   return (
-    <form action="/api/stripe/portal" method="POST">
-      <button
-        type="submit"
-        style={{
-          padding:      "9px 20px",
-          borderRadius: "8px",
-          border:       "1px solid #E5E7EB",
-          background:   "transparent",
-          color:        "#374151",
-          fontSize:     "13px",
-          fontWeight:   600,
-          cursor:       "pointer",
-        }}
-      >
-        Manage billing
-      </button>
-    </form>
+    <a
+      href={`mailto:${SUPPORT_EMAIL}?subject=Billing%20request`}
+      style={{
+        display:        "inline-flex",
+        padding:        "9px 20px",
+        borderRadius:   "8px",
+        border:         "1px solid #E5E7EB",
+        background:     "transparent",
+        color:          "#374151",
+        fontSize:       "13px",
+        fontWeight:     600,
+        cursor:         "pointer",
+        textDecoration: "none",
+      }}
+    >
+      Manage billing
+    </a>
   );
 }
 

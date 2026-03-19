@@ -37,7 +37,7 @@ export default function ClipsPage() {
   const [pastedTranscript, setPastedTranscript] = useState("");
   const [loading, setLoading] = useState(false);
   const [clips, setClips] = useState<Clip[]>([]);
-  const [_videoUrl, setVideoUrl] = useState("");
+  const [, setVideoUrl] = useState("");
   const [videoId, setVideoId] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);

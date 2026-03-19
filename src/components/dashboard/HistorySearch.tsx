@@ -42,7 +42,7 @@ export function HistorySearch({ items, onFilter }: HistorySearchProps) {
     // Notify parent
     onFilter(result);
     return result;
-  }, [query, platform, items]);
+  }, [query, platform, items, onFilter]);
 
   return (
     <div style={{ marginBottom: "20px" }}>

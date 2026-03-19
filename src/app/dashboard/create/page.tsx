@@ -298,7 +298,7 @@ export default function CreatePage() {
               connectedAccountId: task.connectedAccountId,
             }),
           });
-          const _data = await res.json();
+          await res.json();
           if (!res.ok) {
             failures.push(task.label);
             continue;

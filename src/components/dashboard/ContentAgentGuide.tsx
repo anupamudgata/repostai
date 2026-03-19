@@ -105,7 +105,7 @@ export function ContentAgentGuide() {
             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#E5E7EB"; }}
           >
             <p style={{ fontSize: "13px", fontWeight: 500, color: "#111827", marginBottom: "4px" }}>
-              "{ex.topic}"
+              {'"'}{ex.topic}{'"'}
             </p>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               <span style={{ fontSize: "11px", color: "#2563EB", background: "#EFF6FF", padding: "1px 7px", borderRadius: "4px" }}>

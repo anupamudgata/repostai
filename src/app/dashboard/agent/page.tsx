@@ -39,8 +39,8 @@ export default function AgentPage() {
   const [step, setStep] = useState<"url" | "plan" | "generating" | "scheduling" | "done">("url");
   const [loading, setLoading] = useState(false);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
-  const [_contentPreview, setContentPreview] = useState("");
-  const [_jobId, setJobId] = useState<string | null>(null);
+  const [, setContentPreview] = useState("");
+  const [, setJobId] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<{ platform: string; content: string }[]>([]);
   const [scheduledCount, setScheduledCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
