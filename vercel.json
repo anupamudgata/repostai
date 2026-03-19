@@ -2,7 +2,18 @@
   "crons": [
     {
       "path": "/api/cron/scheduled-posts",
-      "schedule": "0 0 * * *"
+      "schedule": "0 * * * *"
     }
-  ]
+  ],
+  "functions": {
+    "src/app/api/repurpose/stream/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/repurpose/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/scheduled-posts/route.ts": {
+      "maxDuration": 300
+    }
+  }
 }

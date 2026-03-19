@@ -39,7 +39,7 @@ export default function PrivacyPage() {
               password when you sign up. We also store the content you paste or
               submit for repurposing, including URLs and text, to generate and save
               your outputs. Payment information is processed by our payment provider
-              (Stripe) and is not stored on our servers.
+              (Razorpay) and is not stored on our servers.
             </p>
           </section>
 

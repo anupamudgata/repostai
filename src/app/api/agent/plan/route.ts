@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { scrapeUrl } from "@/lib/scrapers/url-scraper";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { openai } from "@/lib/ai/client";
 
 /** Platform ID to provider for scheduling (only these can be scheduled via API) */
 const SCHEDULABLE: Record<string, string> = {

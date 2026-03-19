@@ -1,11 +1,6 @@
-import OpenAI from "openai";
+import { openai } from "./client";
 import type { Platform, OutputLanguage } from "@/types";
 import { buildRepurposePrompt, type AuthenticityTuning } from "./prompts";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 60_000, // allow time for 9-platform single call or parallel batches
-});
 
 export async function repurposeContent(
   content: string,

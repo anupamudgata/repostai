@@ -37,7 +37,7 @@ export default function SettingsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [marketRegion, setMarketRegion] = useState<string>("na");
   const [savingRegion, setSavingRegion] = useState(false);
-  const [paymentProvider, setPaymentProvider] = useState<"razorpay" | "stripe">("stripe");
+  const [paymentProvider, setPaymentProvider] = useState<"razorpay" | "none">("none");
   const supabase = createClient();
 
   useEffect(() => {
@@ -83,6 +83,9 @@ export default function SettingsPage() {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
+      } else if (data.message) {
+        toast.info(data.message);
+        window.location.href = `mailto:${SUPPORT_EMAIL}`;
       } else {
         toast.error("Could not open billing portal");
       }
@@ -196,19 +199,13 @@ export default function SettingsPage() {
               </p>
             </div>
             {plan !== "free" && (
-              paymentProvider === "stripe" ? (
-                <Button
-                  variant="outline"
-                  onClick={handleManageBilling}
-                  disabled={loading}
-                >
-                  {loading ? "Loading..." : "Manage Billing"}
-                </Button>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  To cancel or change plan, email {SUPPORT_EMAIL}
-                </p>
-              )
+              <Button
+                variant="outline"
+                onClick={handleManageBilling}
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Manage Billing"}
+              </Button>
             )}
           </div>
 
@@ -257,17 +254,7 @@ export default function SettingsPage() {
                       });
                       rzp.open();
                     } else {
-                      const res = await fetch("/api/billing/checkout", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ plan: "pro" }),
-                      });
-                      const data = await res.json();
-                      if (data.url) {
-                        window.location.href = data.url;
-                      } else {
-                        toast.error(data.error || "Could not start checkout");
-                      }
+                      toast.error("Payments not configured. Please contact support.");
                     }
                   } catch {
                     toast.error("Something went wrong");

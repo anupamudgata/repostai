@@ -7,6 +7,7 @@ import { repurposeSchema } from "@/lib/validators/repurpose";
 import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS, SUPPORTED_PLATFORMS, SUPERUSER_EMAIL } from "@/config/constants";
 import { addFreeTierWatermark } from "@/lib/watermark";
 import { notifyZapier } from "@/lib/zapier/notify";
+import { getCachedRepurposeOutputs, setCachedRepurposeOutputs } from "@/lib/redis";
 
 export async function POST(request: NextRequest) {
   try {
@@ -134,8 +135,51 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Deduplication: return existing job if same content was repurposed in last hour
     const contentToSave = resolvedContent.slice(0, 10000);
+
+    // Redis cache: skip OpenAI if we have cached outputs for this content+platforms+lang+voice
+    const cachedOutputs = await getCachedRepurposeOutputs(
+      contentToSave,
+      allowedPlatforms,
+      outputLanguage,
+      brandVoiceId || null
+    );
+    if (cachedOutputs && Object.keys(cachedOutputs).length > 0) {
+      const outputsToUse = isFreePlan ? addFreeTierWatermark(cachedOutputs) : cachedOutputs;
+      const { data: job } = await supabase
+        .from("repurpose_jobs")
+        .insert({
+          user_id: user.id,
+          input_type: inputType,
+          input_content: contentToSave,
+          input_url: url || null,
+          brand_voice_id: brandVoiceId || null,
+          output_language: outputLanguage,
+        })
+        .select("id")
+        .single();
+      if (job) {
+        const outputRows = Object.entries(outputsToUse).map(([platform, generatedContent]) => ({
+          job_id: job.id,
+          platform,
+          generated_content: generatedContent,
+        }));
+        await supabase.from("repurpose_outputs").insert(outputRows);
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
+        notifyZapier(profile?.zapier_webhook_url, {
+          jobId: job.id,
+          outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
+          createdAt: new Date().toISOString(),
+        });
+      }
+      return NextResponse.json({
+        jobId: job?.id,
+        outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
+      });
+    }
+
+    // Deduplication: return existing job if same content was repurposed in last hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentJobs } = await supabase
       .from("repurpose_jobs")
@@ -210,6 +254,15 @@ export async function POST(request: NextRequest) {
         authenticityTuning
       );
     }
+
+    // Cache raw outputs (before watermark) for future requests
+    await setCachedRepurposeOutputs(
+      contentToSave,
+      allowedPlatforms,
+      outputLanguage,
+      brandVoiceId || null,
+      outputs
+    );
 
     // Add watermark for free users (Pro removes it)
     if (isFreePlan) {

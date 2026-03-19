@@ -1,3 +1,5 @@
+import { getCachedTranscript, setCachedTranscript } from "@/lib/redis";
+
 export function extractYouTubeVideoId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
@@ -29,6 +31,9 @@ export async function getYouTubeTranscript(url: string): Promise<string> {
   if (!videoId) {
     throw new Error("Invalid YouTube URL. Please provide a valid YouTube video link.");
   }
+
+  const cached = await getCachedTranscript(videoId);
+  if (cached) return cached;
 
   const watchPageResponse = await fetchWithTimeout(
     `https://www.youtube.com/watch?v=${videoId}`,
@@ -91,6 +96,7 @@ export async function getYouTubeTranscript(url: string): Promise<string> {
       throw new Error("Transcript too short to repurpose");
     }
 
+    await setCachedTranscript(videoId, transcript);
     return transcript;
   } catch (e) {
     if (e instanceof Error && e.message.includes("Transcript")) throw e;
@@ -149,7 +155,7 @@ export async function getYouTubeTranscriptWithTimestamps(url: string): Promise<T
     while ((m = segmentRegex.exec(transcriptXml)) !== null) {
       const start = parseFloat(m[1]);
       const dur = m[2] ? parseFloat(m[2]) : 3;
-      let text = m[3]
+      const text = m[3]
         .replace(/&amp;/g, "&")
         .replace(/&lt;/g, "<")
         .replace(/&gt;/g, ">")

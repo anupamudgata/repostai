@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse }    from "next/server";
 import { createClient }                 from "@/lib/supabase/server";
 import { supabaseAdmin }                from "@/lib/supabase/admin";
-import { stripe }                       from "@/lib/stripe/config";
 import { captureError, captureMessage } from "@/lib/sentry";
 
 export async function DELETE(req: NextRequest) {
@@ -12,14 +11,6 @@ export async function DELETE(req: NextRequest) {
     const body = await req.json().catch(() => ({}));
     if (body.confirm !== "DELETE MY ACCOUNT") return NextResponse.json({ error: "Confirmation phrase required." }, { status: 400 });
     const userId = user.id;
-
-    // Cancel Stripe subscription
-    try {
-      const { data: sub } = await supabaseAdmin.from("subscriptions").select("stripe_subscription_id, status").eq("user_id", userId).single();
-      if (sub?.stripe_subscription_id && sub.status !== "canceled") {
-        await stripe.subscriptions.cancel(sub.stripe_subscription_id, { prorate: false });
-      }
-    } catch (stripeErr) { captureError(stripeErr, { userId, action: "delete_account_stripe_cancel" }); }
 
     // Delete all data in order (repurpose_outputs deleted via cascade from repurpose_jobs)
     const tables = ["scheduled_posts", "connected_accounts", "repurpose_jobs", "usage", "brand_voices", "subscriptions", "profiles"];

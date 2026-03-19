@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import OpenAI from "openai";
+import { openai } from "@/lib/ai/client";
 import { buildAnalyticsInsightsPrompt } from "@/lib/ai/prompts/analytics-insights";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function GET() {
   try {

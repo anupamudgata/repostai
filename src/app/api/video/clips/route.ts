@@ -5,9 +5,7 @@ import {
   extractYouTubeVideoId,
   formatTimestamp,
 } from "@/lib/scrapers/youtube-scraper";
-import OpenAI from "openai";
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { openai } from "@/lib/ai/client";
 
 export async function POST(request: NextRequest) {
   try {

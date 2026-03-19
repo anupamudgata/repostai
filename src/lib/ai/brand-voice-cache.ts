@@ -2,9 +2,7 @@ import crypto                            from "crypto";
 import { supabaseAdmin }                 from "@/lib/supabase/admin";
 import { buildBrandVoicePrompt }         from "@/lib/ai/prompts/brand-voice";
 import { captureError, captureMessage }  from "@/lib/sentry";
-import OpenAI                            from "openai";
-
-const openai         = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import { openai } from "@/lib/ai/client";
 const CACHE_TTL_DAYS = 30;
 
 function hashSamples(samples: string): string {

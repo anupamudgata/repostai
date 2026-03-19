@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import {
   Bot,
-  Link as LinkIcon,
   Loader2,
   Check,
   CalendarClock,
@@ -40,8 +39,8 @@ export default function AgentPage() {
   const [step, setStep] = useState<"url" | "plan" | "generating" | "scheduling" | "done">("url");
   const [loading, setLoading] = useState(false);
   const [schedule, setSchedule] = useState<ScheduleItem[]>([]);
-  const [contentPreview, setContentPreview] = useState("");
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [_contentPreview, setContentPreview] = useState("");
+  const [_jobId, setJobId] = useState<string | null>(null);
   const [outputs, setOutputs] = useState<{ platform: string; content: string }[]>([]);
   const [scheduledCount, setScheduledCount] = useState(0);
   const [error, setError] = useState<string | null>(null);

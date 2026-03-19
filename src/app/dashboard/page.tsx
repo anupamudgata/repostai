@@ -102,7 +102,7 @@ function CharacterCount({
           <span>Each tweet ≤280 chars</span>
           {tweetLines.length > 0 && (
             <span>
-              ({tweetLines.map((l, i) => Math.max(0, 280 - l.length)).join(", ")} chars left per tweet)
+              ({tweetLines.map((l, _i) => Math.max(0, 280 - l.length)).join(", ")} chars left per tweet)
             </span>
           )}
           {overTweets > 0 && (

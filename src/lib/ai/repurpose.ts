@@ -1,4 +1,4 @@
-import OpenAI from "openai";
+import { openai } from "./client";
 import { buildExtractorPrompt }    from "@/lib/ai/prompts/extractor";
 import { buildBrandVoicePrompt }   from "@/lib/ai/prompts/brand-voice";
 import {
@@ -10,15 +10,14 @@ import {
   buildRedditPrompt,
   buildEmailPrompt,
 } from "@/lib/ai/prompts/platforms";
-import { buildQualityCheckerPrompt } from "@/lib/ai/prompts/quality-checker";
+import { buildBatchQualityCheckerPrompt } from "@/lib/ai/prompts/quality-checker";
 import type {
   Platform, Language, ContentBrief, PlatformOutput,
   RepurposeRequest, RepurposeResult,
 } from "@/lib/ai/types";
 import { captureError } from "@/lib/sentry";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const MODEL  = "gpt-4o-mini";
+const MODEL = "gpt-4o-mini";
 
 export async function extractBrief(content: string): Promise<ContentBrief> {
   const response = await openai.chat.completions.create({
@@ -76,19 +75,32 @@ async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: 
   return { platform, content: raw, charCount: raw.length };
 }
 
-async function qualityCheck(platform: Platform, output: PlatformOutput): Promise<{ passed: boolean; fixInstruction: string }> {
-  const contentToCheck = platform === "twitter_thread" ? output.tweets?.join("\n---\n") ?? output.content : output.content;
+async function batchQualityCheck(
+  items: { platform: Platform; output: PlatformOutput }[]
+): Promise<Map<Platform, { passed: boolean; fixInstruction: string }>> {
+  if (items.length === 0) return new Map();
+  const promptItems = items.map(({ platform, output }) => ({
+    platform,
+    content: platform === "twitter_thread" ? output.tweets?.join("\n---\n") ?? output.content : output.content,
+  }));
   const response = await openai.chat.completions.create({
     model: MODEL, temperature: 0.1,
-    messages: [{ role: "user", content: buildQualityCheckerPrompt(platform, contentToCheck) }],
+    messages: [{ role: "user", content: buildBatchQualityCheckerPrompt(promptItems) }],
   });
   const raw = response.choices[0]?.message?.content ?? "{}";
+  const map = new Map<Platform, { passed: boolean; fixInstruction: string }>();
   try {
-    const result = JSON.parse(raw.replace(/```json|```/g, "").trim());
-    return { passed: result.passed ?? true, fixInstruction: result.fixInstruction ?? "" };
+    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    const results = parsed.results ?? [];
+    for (const r of results) {
+      if (r.platform) {
+        map.set(r.platform, { passed: r.passed ?? true, fixInstruction: r.fixInstruction ?? "" });
+      }
+    }
   } catch {
-    return { passed: true, fixInstruction: "" };
+    for (const { platform } of items) map.set(platform, { passed: true, fixInstruction: "" });
   }
+  return map;
 }
 
 export async function repurposeContent(req: RepurposeRequest): Promise<RepurposeResult> {
@@ -106,6 +118,7 @@ export async function repurposeContent(req: RepurposeRequest): Promise<Repurpose
   );
 
   const outputs: PlatformOutput[] = [];
+  const successfulOutputs: { platform: Platform; output: PlatformOutput }[] = [];
   for (let i = 0; i < agentResults.length; i++) {
     const result   = agentResults[i]!;
     const platform = req.platforms[i]!;
@@ -114,8 +127,16 @@ export async function repurposeContent(req: RepurposeRequest): Promise<Repurpose
       outputs.push({ platform, content: "", passed: false });
       continue;
     }
-    let output = result.value;
-    const qc   = await qualityCheck(platform, output);
+    successfulOutputs.push({ platform, output: result.value });
+  }
+
+  const qcMap = successfulOutputs.length > 0
+    ? await batchQualityCheck(successfulOutputs)
+    : new Map<Platform, { passed: boolean; fixInstruction: string }>();
+
+  for (const { platform, output: initialOutput } of successfulOutputs) {
+    const qc = qcMap.get(platform) ?? { passed: true, fixInstruction: "" };
+    let output = initialOutput;
     if (!qc.passed && qc.fixInstruction) {
       try {
         const retryBrief = { ...brief, coreMessage: `${brief.coreMessage}\n\nFIX REQUIRED: ${qc.fixInstruction}` };

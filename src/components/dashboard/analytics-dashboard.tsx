@@ -43,7 +43,6 @@ import {
 } from "@/components/ui/select";
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
 
 type PostRow = {
   id: string;
@@ -117,7 +116,7 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
     if (posts.filter((p) => p.hasEngagement || (p.likes + p.comments + p.shares) > 0).length >= 2) {
       fetchInsights();
     }
-  }, [posts.length]);
+  }, [posts]);
 
   const totals = useMemo(() => {
     let likes = 0, comments = 0, shares = 0, impressions = 0;

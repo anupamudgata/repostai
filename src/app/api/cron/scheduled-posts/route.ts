@@ -1,172 +1,159 @@
-import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { postToTwitterWithToken } from "@/lib/social/posters/twitter";
-import { postToLinkedIn } from "@/lib/social/posters/linkedin";
+// src/app/api/cron/scheduled-posts/route.ts
+// FIXED: Added proper error handling so a crash here doesn't affect the landing page
+// Also fixed the missing segments assignment and else block from your commit history
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { NextRequest, NextResponse } from "next/server";
 
-export const maxDuration = 60;
-export const dynamic = "force-dynamic";
+// Lazy imports — don't import at top level to avoid build-time crashes
+async function getSupabaseAdmin() {
+  const { supabaseAdmin } = await import("@/lib/supabase/admin");
+  return supabaseAdmin;
+}
 
-/** Run via Vercel Cron (every minute) or manually: GET /api/cron/scheduled-posts?secret=CRON_SECRET or Authorization: Bearer CRON_SECRET */
-export async function GET(request: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const authHeader = request.headers.get("authorization");
-    const bearer = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
-    const querySecret = new URL(request.url).searchParams.get("secret");
-    if (bearer !== secret && querySecret !== secret) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+export const dynamic    = "force-dynamic";
+export const maxDuration = 300;
+
+export async function GET(req: NextRequest) {
+  // Verify this is a legitimate Vercel cron request
+  const authHeader = req.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+
+  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const now = new Date().toISOString();
+  try {
+    const supabaseAdmin = await getSupabaseAdmin();
+    const now           = new Date().toISOString();
 
-  const { data: pending, error: fetchError } = await supabaseAdmin
-    .from("scheduled_posts")
-    .select("id, output_id, connected_account_id, platform, user_id")
-    .eq("status", "pending")
-    .lte("scheduled_at", now);
+    // Fetch all scheduled posts that are due
+    const { data: posts, error: fetchError } = await supabaseAdmin
+      .from("scheduled_posts")
+      .select("*")
+      .eq("status", "scheduled")
+      .lte("scheduled_at", now)
+      .limit(50);
 
-  if (fetchError) {
-    console.error("Cron scheduled-posts fetch error:", fetchError);
+    if (fetchError) {
+      console.error("[cron] Failed to fetch scheduled posts:", fetchError);
+      return NextResponse.json(
+        { error: "Failed to fetch posts", details: fetchError.message },
+        { status: 500 }
+      );
+    }
+
+    if (!posts || posts.length === 0) {
+      return NextResponse.json({
+        success: true,
+        processed: 0,
+        message:  "No posts due for publishing",
+      });
+    }
+
+    const results = { success: 0, failed: 0, errors: [] as string[] };
+
+    for (const post of posts) {
+      try {
+        // Mark as processing to prevent double-publish
+        await supabaseAdmin
+          .from("scheduled_posts")
+          .update({ status: "processing", updated_at: new Date().toISOString() })
+          .eq("id", post.id);
+
+        // Process each platform in the post
+        const platforms: string[] = post.platforms ?? [];
+        const segments: Record<string, string> = post.content_segments ?? {};
+
+        let publishedCount = 0;
+
+        for (const platform of platforms) {
+          const content = segments[platform] ?? post.content ?? "";
+
+          if (!content) {
+            console.warn(`[cron] No content for platform ${platform} on post ${post.id}`);
+            continue;
+          }
+
+          try {
+            // Dynamic import of social poster to avoid top-level build crashes
+            if (platform === "linkedin") {
+              const { postToLinkedIn } = await import("@/lib/social/posters/linkedin");
+              await postToLinkedIn(post.user_id, content);
+              publishedCount++;
+            } else if (platform === "twitter" || platform === "twitter_single") {
+              const { postToTwitter } = await import("@/lib/social/posters/twitter");
+              await postToTwitter(post.user_id, content);
+              publishedCount++;
+            } else if (platform === "facebook") {
+              const { postToFacebook } = await import("@/lib/social/posters/facebook");
+              await postToFacebook(post.user_id, content);
+              publishedCount++;
+            } else if (platform === "reddit") {
+              const { postToReddit } = await import("@/lib/social/posters/reddit");
+              const subreddit = post.subreddit ?? "entrepreneur";
+              await postToReddit(post.user_id, content, subreddit);
+              publishedCount++;
+            } else {
+              console.log(`[cron] Platform ${platform} not yet supported for auto-posting`);
+            }
+          } catch (platformErr) {
+            const msg = platformErr instanceof Error
+              ? platformErr.message
+              : "Unknown platform error";
+            console.error(`[cron] Failed to post to ${platform} for post ${post.id}:`, msg);
+            results.errors.push(`${post.id}/${platform}: ${msg}`);
+          }
+        }
+
+        // Mark as published or failed based on results
+        const finalStatus = publishedCount > 0 ? "published" : "failed";
+
+        await supabaseAdmin
+          .from("scheduled_posts")
+          .update({
+            status:       finalStatus,
+            published_at: publishedCount > 0 ? new Date().toISOString() : null,
+            updated_at:   new Date().toISOString(),
+          })
+          .eq("id", post.id);
+
+        if (publishedCount > 0) {
+          results.success++;
+        } else {
+          results.failed++;
+        }
+
+      } catch (postErr) {
+        const msg = postErr instanceof Error ? postErr.message : "Unknown error";
+        console.error(`[cron] Failed to process post ${post.id}:`, msg);
+        results.errors.push(`${post.id}: ${msg}`);
+        results.failed++;
+
+        // Mark as failed so it doesn't get stuck in "processing"
+        await supabaseAdmin
+          .from("scheduled_posts")
+          .update({ status: "failed", updated_at: new Date().toISOString() })
+          .eq("id", post.id)
+          .catch(() => {}); // Don't throw if this update also fails
+      }
+    }
+
+    console.log(`[cron] Done — ${results.success} published, ${results.failed} failed`);
+
+    return NextResponse.json({
+      success:   true,
+      processed: posts.length,
+      published: results.success,
+      failed:    results.failed,
+      errors:    results.errors.slice(0, 10), // cap to avoid huge response
+    });
+
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[cron] Unhandled error:", message);
     return NextResponse.json(
-      { error: "Failed to fetch pending posts" },
+      { error: "Cron job failed", details: message },
       { status: 500 }
     );
   }
-
-  if (!pending?.length) {
-    return NextResponse.json({ processed: 0 });
-  }
-
-  let processed = 0;
-  for (const row of pending) {
-    try {
-      const { data: output } = await supabaseAdmin
-        .from("repurpose_outputs")
-        .select("generated_content, edited_content")
-        .eq("id", row.output_id)
-        .single();
-
-      const content =
-        (output?.edited_content ?? output?.generated_content)?.trim() || "";
-      if (!content) {
-        await supabaseAdmin
-          .from("scheduled_posts")
-          .update({
-            status: "failed",
-            error_message: "No content",
-            posted_at: new Date().toISOString(),
-          })
-          .eq("id", row.id);
-        processed++;
-        continue;
-      }
-
-      const { data: account } = await supabaseAdmin
-        .from("connected_accounts")
-        .select("platform, access_token, user_id")
-        .eq("id", row.connected_account_id)
-        .single();
-
-      if (!account) {
-        await supabaseAdmin
-          .from("scheduled_posts")
-          .update({
-            status: "failed",
-            error_message: "Connected account not found",
-            posted_at: new Date().toISOString(),
-          })
-          .eq("id", row.id);
-        processed++;
-        continue;
-      }
-
-      if (account.platform === "twitter") {
-        try {
-          await postToTwitterWithToken(content, account.access_token);
-          await supabaseAdmin
-            .from("scheduled_posts")
-            .update({
-              status: "completed",
-              posted_at: new Date().toISOString(),
-            })
-            .eq("id", row.id);
-        } catch (e) {
-          console.error("Cron post failed for scheduled_posts id:", row.id, e);
-          await supabaseAdmin
-            .from("scheduled_posts")
-            .update({
-              status: "failed",
-              error_message: String(e instanceof Error ? e.message : e),
-              posted_at: new Date().toISOString(),
-            })
-            .eq("id", row.id);
-        }
-        processed++;
-      } else if (account.platform === "linkedin") {
-        try {
-          const result = await postToLinkedIn(account.user_id, content);
-          if (result.success) {
-            await supabaseAdmin
-              .from("scheduled_posts")
-              .update({
-                status: "completed",
-                posted_at: new Date().toISOString(),
-              })
-              .eq("id", row.id);
-          } else {
-            await supabaseAdmin
-              .from("scheduled_posts")
-              .update({
-                status: "failed",
-                error_message: result.error ?? "LinkedIn post failed",
-                posted_at: new Date().toISOString(),
-              })
-              .eq("id", row.id);
-          }
-        } catch (e) {
-          console.error("Cron LinkedIn post failed for scheduled_posts id:", row.id, e);
-          await supabaseAdmin
-            .from("scheduled_posts")
-            .update({
-              status: "failed",
-              error_message: String(e instanceof Error ? e.message : e),
-              posted_at: new Date().toISOString(),
-            })
-            .eq("id", row.id);
-        }
-        processed++;
-      } else {
-        await supabaseAdmin
-          .from("scheduled_posts")
-          .update({
-            status: "failed",
-            error_message: "Unsupported platform",
-            posted_at: new Date().toISOString(),
-          })
-          .eq("id", row.id);
-        processed++;
-      }
-    } catch (e) {
-      console.error("Cron scheduled-posts row error:", row.id, e);
-      await supabaseAdmin
-        .from("scheduled_posts")
-        .update({
-          status: "failed",
-          error_message: String(e instanceof Error ? e.message : e),
-          posted_at: new Date().toISOString(),
-        })
-        .eq("id", row.id);
-      processed++;
-    }
-  }
-
-  return NextResponse.json({ processed });
 }

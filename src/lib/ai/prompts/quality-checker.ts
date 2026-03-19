@@ -1,4 +1,4 @@
-import type { Platform, PlatformOutput } from "@/lib/ai/types";
+import type { Platform } from "@/lib/ai/types";
 
 const PLATFORM_RULES: Record<Platform, { maxChars?: number; rules: string[] }> = {
   linkedin:       { maxChars: 3000, rules: ["Must have a hook in first 2 lines","Must end with question or strong close","Must have 3-5 hashtags"] },
@@ -31,4 +31,38 @@ Respond with ONLY valid JSON:
 }
 
 Be strict but fair. A single minor issue should still pass. Multiple issues or a critical failure must fail.`;
+}
+
+/** Batch prompt: check multiple platform outputs in one call. Returns JSON with platform keys. */
+export function buildBatchQualityCheckerPrompt(
+  items: { platform: Platform; content: string }[]
+): string {
+  const sections = items
+    .map(
+      (item, idx) => {
+        const rules = PLATFORM_RULES[item.platform];
+        return `## ${idx + 1}. ${item.platform.toUpperCase()}
+Rules: ${rules.rules.join("; ")}${rules.maxChars ? ` | Max ${rules.maxChars} chars` : ""}
+
+Content:
+---
+${item.content}
+---`;
+      }
+    )
+    .join("\n\n");
+
+  return `You are a quality checker for social media content. Review each platform output below and determine if it passes.
+
+${sections}
+
+Respond with ONLY valid JSON (no markdown):
+{
+  "results": [
+    { "platform": "platform_id", "passed": true/false, "fixInstruction": "one sentence or empty" },
+    ...
+  ]
+}
+
+Match the order of platforms above. Be strict but fair.`;
 }

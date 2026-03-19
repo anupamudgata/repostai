@@ -6,14 +6,13 @@ import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import { SUPERUSER_EMAIL } from "@/config/constants";
 import { burstLimiter, freeTierLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
 import { captureError }                  from "@/lib/sentry";
-import OpenAI                            from "openai";
+import { openai } from "@/lib/ai/client";
 import {
   buildLinkedInPrompt, buildTwitterThreadPrompt, buildTwitterSinglePrompt,
   buildInstagramPrompt, buildFacebookPrompt, buildRedditPrompt, buildEmailPrompt,
 } from "@/lib/ai/prompts/platforms";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 type SSEEventType = "brief_ready" | "platform_start" | "platform_chunk" | "platform_done" | "platform_error" | "all_done" | "error";
 

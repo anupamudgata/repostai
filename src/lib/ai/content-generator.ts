@@ -1,10 +1,6 @@
-import OpenAI from "openai";
+import { openai } from "./client";
 import type { ContentTone, ContentLength, OutputLanguage } from "@/types";
 import { LENGTH_OPTIONS } from "@/config/constants";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 const TONE_INSTRUCTIONS: Record<ContentTone, string> = {
   professional:

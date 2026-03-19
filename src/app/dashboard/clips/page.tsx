@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import {
   Scissors,
   Youtube,
@@ -38,7 +37,7 @@ export default function ClipsPage() {
   const [pastedTranscript, setPastedTranscript] = useState("");
   const [loading, setLoading] = useState(false);
   const [clips, setClips] = useState<Clip[]>([]);
-  const [videoUrl, setVideoUrl] = useState("");
+  const [_videoUrl, setVideoUrl] = useState("");
   const [videoId, setVideoId] = useState("");
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);

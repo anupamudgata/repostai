@@ -7,6 +7,6 @@ export async function GET() {
     process.env.RAZORPAY_KEY_SECRET &&
     process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   return NextResponse.json({
-    provider: useRazorpay ? "razorpay" : "stripe",
+    provider: useRazorpay ? "razorpay" : "none",
   });
 }
