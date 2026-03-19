@@ -1,17 +1,15 @@
 "use client";
 // src/hooks/useUserPlan.ts
-// FIX #1: Single source of truth for the user's plan
-// The nav bar was reading plan from user metadata (stale) instead of the subscriptions table
-// Import this hook in your navbar/sidebar/profile dropdown instead of reading user.user_metadata.plan
+// FIX: renamed unused 'err' to '_err' to satisfy no-unused-vars rule
 
 import { useState, useEffect } from "react";
 
 export type Plan = "free" | "pro" | "agency";
 
 interface UserPlanState {
-  plan:      Plan;
-  loading:   boolean;
-  error:     string | null;
+  plan:    Plan;
+  loading: boolean;
+  error:   string | null;
 }
 
 export function useUserPlan(): UserPlanState {
@@ -27,16 +25,17 @@ export function useUserPlan(): UserPlanState {
     async function fetchPlan() {
       try {
         const res  = await fetch("/api/user/plan");
-        const data = await res.json();
+        const data = await res.json() as { plan?: Plan };
 
         if (!cancelled) {
           setState({
-            plan:    (data.plan as Plan) ?? "free",
+            plan:    data.plan ?? "free",
             loading: false,
             error:   null,
           });
         }
-      } catch (err) {
+      } catch (_err) {
+        // FIX: prefixed with _ to indicate intentionally unused
         if (!cancelled) {
           setState({ plan: "free", loading: false, error: "Failed to load plan" });
         }
