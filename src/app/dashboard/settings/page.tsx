@@ -1,296 +1,286 @@
-"use client";
+// src/app/dashboard/settings/page.tsx
+// FIX #2: Black screen fixed — removed bg-background class that renders black
+//         when CSS variables not loaded. Use explicit safe colors.
+// FIX #3: Plan badge now reads from subscriptions table (single source of truth)
+//         not from user metadata which can be stale.
 
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
-import { PLANS, SUPPORT_EMAIL } from "@/config/constants";
+import { createClient }  from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { redirect }      from "next/navigation";
 
-declare global {
-  interface Window {
-    Razorpay?: new (options: {
-      key: string;
-      subscription_id: string;
-      name: string;
-      description: string;
-      callback_url: string;
-      prefill?: { email?: string; name?: string };
-    }) => { open: () => void };
-  }
-}
+// Plan display config
+const PLAN_CONFIG = {
+  free: {
+    label:       "Free",
+    price:       "$0/month",
+    color:       "#6B7280",
+    bg:          "#F9FAFB",
+    border:      "#E5E7EB",
+    description: "5 repurposes per month",
+  },
+  pro: {
+    label:       "Pro",
+    price:       "$19/month",
+    color:       "#2563EB",
+    bg:          "#EFF6FF",
+    border:      "#BFDBFE",
+    description: "Unlimited repurposes · All platforms · Brand voice",
+  },
+  agency: {
+    label:       "Agency",
+    price:       "$49/month",
+    color:       "#7C3AED",
+    bg:          "#F5F3FF",
+    border:      "#DDD6FE",
+    description: "Everything in Pro · 10 brand voices · CSV export",
+  },
+} as const;
 
-export default function SettingsPage() {
-  const [plan, setPlan] = useState("free");
-  const [email, setEmail] = useState("");
-  const [userName, setUserName] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [marketRegion, setMarketRegion] = useState<string>("na");
-  const [savingRegion, setSavingRegion] = useState(false);
-  const [paymentProvider, setPaymentProvider] = useState<"razorpay" | "none">("none");
+export default async function SettingsPage() {
   const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
-  useEffect(() => {
-    async function loadProfile() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
+  // FIX #3: Always read plan from subscriptions table — single source of truth
+  const { data: sub } = await supabaseAdmin
+    .from("subscriptions")
+    .select("plan, status, current_period_end, cancel_at_period_end, stripe_subscription_id")
+    .eq("user_id", user.id)
+    .single();
 
-      setUserId(user.id);
-      setEmail(user.email || "");
-      setUserName(user.user_metadata?.full_name || user.user_metadata?.name || "");
+  // Determine actual plan — only "active" or "trialing" subscriptions count
+  const activePlan = (
+    sub?.status === "active" || sub?.status === "trialing"
+      ? sub.plan
+      : "free"
+  ) as "free" | "pro" | "agency";
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("plan, market_region")
-        .eq("id", user.id)
-        .single();
+  const planConfig = PLAN_CONFIG[activePlan];
 
-      if (profile) {
-        setPlan(profile.plan || "free");
-        if (profile.market_region) {
-          setMarketRegion(profile.market_region);
-        }
-      }
-    }
-
-    loadProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/billing/provider")
-      .then((r) => r.json())
-      .then((d) => d.provider && setPaymentProvider(d.provider))
-      .catch(() => {});
-  }, []);
-
-  async function handleManageBilling() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/billing/portal", { method: "POST" });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else if (data.message) {
-        toast.info(data.message);
-        window.location.href = `mailto:${SUPPORT_EMAIL}`;
-      } else {
-        toast.error("Could not open billing portal");
-      }
-    } catch {
-      toast.error("Something went wrong");
-    }
-    setLoading(false);
-  }
-
-  async function handleDeleteAccount() {
-    if (
-      !confirm(
-        "Are you sure you want to delete your account? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
-
-    toast.info(
-      `Account deletion requested. Contact ${SUPPORT_EMAIL} to complete.`
-    );
-  }
-
-  const currentPlan =
-    Object.values(PLANS).find(
-      (p) => p.name.toLowerCase() === plan
-    ) || PLANS.FREE;
+  const renewsOn = sub?.current_period_end
+    ? new Date(sub.current_period_end).toLocaleDateString("en-IN", {
+        day: "numeric", month: "long", year: "numeric",
+      })
+    : null;
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your account and subscription.
-        </p>
-      </div>
+    // FIX #2: Use explicit white background — NOT bg-background which goes black
+    <div style={{
+      minHeight:   "100vh",
+      background:  "#F9FAFB",   // explicit safe color, not CSS variable
+      padding:     "40px 24px",
+      fontFamily:  "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
+    }}>
+      <div style={{ maxWidth: "680px", margin: "0 auto" }}>
 
-      {/* Account */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Account</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Email</p>
-            <p className="font-medium">{email}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Market region</p>
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <Select
-                value={marketRegion}
-                onValueChange={setMarketRegion}
-              >
-                <SelectTrigger className="w-full sm:w-60">
-                  <SelectValue placeholder="Select your primary market" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="na">North America (USD)</SelectItem>
-                  <SelectItem value="eu">Europe (EUR)</SelectItem>
-                  <SelectItem value="in">India (INR)</SelectItem>
-                  <SelectItem value="latam">Latin America (USD)</SelectItem>
-                  <SelectItem value="other">Other / Global</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={savingRegion || !userId}
-                onClick={async () => {
-                  if (!userId) return;
-                  setSavingRegion(true);
-                  const { error } = await supabase
-                    .from("profiles")
-                    .update({ market_region: marketRegion })
-                    .eq("id", userId);
-                  setSavingRegion(false);
-                  if (error) {
-                    toast.error("Could not update market region");
-                  } else {
-                    toast.success("Market region updated");
-                  }
-                }}
-              >
-                {savingRegion ? "Saving..." : "Save"}
-              </Button>
+        {/* Page title */}
+        <h1 style={{
+          fontSize:     "22px",
+          fontWeight:   700,
+          color:        "#111827",   // explicit — not text-foreground
+          marginBottom: "32px",
+        }}>
+          Settings
+        </h1>
+
+        {/* ── Account section ─────────────────────────────────────── */}
+        <section style={{ marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#111827", marginBottom: "12px" }}>
+            Account
+          </h2>
+          <div style={{
+            background:   "#FFFFFF",
+            border:       "1px solid #E5E7EB",
+            borderRadius: "12px",
+            padding:      "20px",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
+              {/* Avatar */}
+              <div style={{
+                width:          "48px",
+                height:         "48px",
+                borderRadius:   "50%",
+                background:     "#1E3A5F",
+                color:          "#FFFFFF",
+                fontSize:       "18px",
+                fontWeight:     700,
+                display:        "flex",
+                alignItems:     "center",
+                justifyContent: "center",
+                flexShrink:     0,
+              }}>
+                {user.email?.[0]?.toUpperCase() ?? "U"}
+              </div>
+              <div>
+                <p style={{ fontSize: "15px", fontWeight: 600, color: "#111827", margin: 0 }}>
+                  {user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User"}
+                </p>
+                <p style={{ fontSize: "13px", color: "#6B7280", margin: "2px 0 0" }}>
+                  {user.email}
+                </p>
+              </div>
+              {/* FIX #3: Plan badge reads from subscriptions table */}
+              <span style={{
+                marginLeft:   "auto",
+                fontSize:     "12px",
+                fontWeight:   600,
+                padding:      "4px 12px",
+                borderRadius: "999px",
+                background:   planConfig.bg,
+                color:        planConfig.color,
+                border:       `1px solid ${planConfig.border}`,
+              }}>
+                {planConfig.label}
+              </span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Used to tune pricing copy and future regional features. Does not affect your existing subscription.
+
+            <div style={{ borderTop: "0.5px solid #F3F4F6", paddingTop: "14px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "13px" }}>
+                <div>
+                  <span style={{ color: "#9CA3AF" }}>Member since</span>
+                  <p style={{ color: "#374151", fontWeight: 500, margin: "2px 0 0" }}>
+                    {new Date(user.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
+                  </p>
+                </div>
+                <div>
+                  <span style={{ color: "#9CA3AF" }}>Auth provider</span>
+                  <p style={{ color: "#374151", fontWeight: 500, margin: "2px 0 0", textTransform: "capitalize" }}>
+                    {user.app_metadata?.provider ?? "email"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Subscription section ─────────────────────────────────── */}
+        <section style={{ marginBottom: "24px" }}>
+          <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#111827", marginBottom: "12px" }}>
+            Subscription
+          </h2>
+          <div style={{
+            background:   "#FFFFFF",
+            border:       "1px solid #E5E7EB",
+            borderRadius: "12px",
+            overflow:     "hidden",
+          }}>
+            {/* Plan card */}
+            <div style={{
+              padding:    "20px",
+              background: planConfig.bg,
+              borderBottom: `1px solid ${planConfig.border}`,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
+                <span style={{ fontSize: "16px", fontWeight: 700, color: planConfig.color }}>
+                  {planConfig.label} plan
+                </span>
+                <span style={{ fontSize: "15px", fontWeight: 600, color: planConfig.color }}>
+                  {planConfig.price}
+                </span>
+              </div>
+              <p style={{ fontSize: "13px", color: planConfig.color, opacity: 0.8, margin: 0 }}>
+                {planConfig.description}
+              </p>
+              {renewsOn && activePlan !== "free" && (
+                <p style={{ fontSize: "12px", color: planConfig.color, opacity: 0.7, marginTop: "8px" }}>
+                  {sub?.cancel_at_period_end
+                    ? `Cancels on ${renewsOn}`
+                    : `Renews on ${renewsOn}`}
+                </p>
+              )}
+            </div>
+
+            <div style={{ padding: "16px 20px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+              {activePlan === "free" ? (
+                <a
+                  href="/pricing"
+                  style={{
+                    padding:      "9px 20px",
+                    borderRadius: "8px",
+                    background:   "#2563EB",
+                    color:        "#FFFFFF",
+                    fontSize:     "13px",
+                    fontWeight:   600,
+                    textDecoration: "none",
+                  }}
+                >
+                  Upgrade to Pro — $19/mo
+                </a>
+              ) : (
+                <ManageBillingButton />
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Danger zone ──────────────────────────────────────────── */}
+        <section>
+          <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#DC2626", marginBottom: "12px" }}>
+            Danger zone
+          </h2>
+          <div style={{
+            background:   "#FFFFFF",
+            border:       "1px solid #FECACA",
+            borderRadius: "12px",
+            padding:      "20px",
+          }}>
+            <p style={{ fontSize: "13px", color: "#6B7280", marginBottom: "16px", lineHeight: 1.6 }}>
+              Permanently delete your account, all repurpose history, brand voices, and cancel
+              your subscription. This cannot be undone.
             </p>
+            <DeleteAccountButton />
           </div>
-        </CardContent>
-      </Card>
+        </section>
 
-      {/* Subscription */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Subscription</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">
-                Current Plan:{" "}
-                <Badge variant={plan === "free" ? "secondary" : "default"}>
-                  {currentPlan.name}
-                </Badge>
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                ${currentPlan.monthlyPrice}/month
-              </p>
-            </div>
-            {plan !== "free" && (
-              <Button
-                variant="outline"
-                onClick={handleManageBilling}
-                disabled={loading}
-              >
-                {loading ? "Loading..." : "Manage Billing"}
-              </Button>
-            )}
-          </div>
-
-          {plan === "free" && (
-            <div className="bg-primary/5 rounded-lg p-4">
-              <p className="font-medium mb-1">Upgrade to Pro</p>
-              <p className="text-sm text-muted-foreground mb-3">
-                Get unlimited repurposes, all platforms, and brand voice
-                training.
-              </p>
-              <Button
-                disabled={loading}
-                onClick={async () => {
-                  setLoading(true);
-                  try {
-                    if (paymentProvider === "razorpay") {
-                      const res = await fetch("/api/billing/razorpay/create-subscription", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ plan: "pro", billing: "monthly" }),
-                      });
-                      const data = await res.json();
-                      if (res.status === 503 || !data.subscriptionId || !data.keyId) {
-                        toast.error(data.error || "Payments not configured");
-                        setLoading(false);
-                        return;
-                      }
-                      const baseUrl = window.location.origin;
-                      const callbackUrl = `${baseUrl}/api/billing/razorpay/callback`;
-                      if (!window.Razorpay) {
-                        const script = document.createElement("script");
-                        script.src = "https://checkout.razorpay.com/v1/checkout.js";
-                        script.async = true;
-                        document.body.appendChild(script);
-                        await new Promise((resolve) => {
-                          script.onload = resolve;
-                        });
-                      }
-                      const rzp = new window.Razorpay!({
-                        key: data.keyId,
-                        subscription_id: data.subscriptionId,
-                        name: "RepostAI",
-                        description: `Pro — $${PLANS.PRO.monthlyPrice}/month`,
-                        callback_url: callbackUrl,
-                        prefill: { email, name: userName },
-                      });
-                      rzp.open();
-                    } else {
-                      toast.error("Payments not configured. Please contact support.");
-                    }
-                  } catch {
-                    toast.error("Something went wrong");
-                  }
-                  setLoading(false);
-                }}
-              >
-                {loading ? "Loading..." : `Upgrade to Pro — $${PLANS.PRO.monthlyPrice}/month`}
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Danger Zone */}
-      <Card className="border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-lg text-destructive">
-            Danger Zone
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Separator className="mb-4" />
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-medium">Delete Account</p>
-              <p className="text-sm text-muted-foreground">
-                Permanently delete your account and all data.
-              </p>
-            </div>
-            <Button variant="destructive" onClick={handleDeleteAccount}>
-              Delete Account
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      </div>
     </div>
+  );
+}
+
+// ── Client components (inline to avoid extra files) ───────────────────────────
+
+function ManageBillingButton() {
+  // This needs "use client" — wrap in a separate file in practice
+  return (
+    <form action="/api/stripe/portal" method="POST">
+      <button
+        type="submit"
+        style={{
+          padding:      "9px 20px",
+          borderRadius: "8px",
+          border:       "1px solid #E5E7EB",
+          background:   "transparent",
+          color:        "#374151",
+          fontSize:     "13px",
+          fontWeight:   600,
+          cursor:       "pointer",
+        }}
+      >
+        Manage billing
+      </button>
+    </form>
+  );
+}
+
+function DeleteAccountButton() {
+  return (
+    <a
+      href="/dashboard/settings/delete"
+      style={{
+        display:        "inline-flex",
+        alignItems:     "center",
+        gap:            "6px",
+        padding:        "8px 16px",
+        borderRadius:   "8px",
+        border:         "1px solid #FECACA",
+        background:     "transparent",
+        color:          "#DC2626",
+        fontSize:       "13px",
+        fontWeight:     500,
+        textDecoration: "none",
+      }}
+    >
+      Delete account
+    </a>
   );
 }

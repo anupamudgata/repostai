@@ -1,0 +1,3 @@
+-- Optional: Add seed data for local development
+-- This file runs after migrations during `supabase db reset`
+-- Leave empty or add test users, sample data, etc.
