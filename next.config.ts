@@ -29,6 +29,11 @@ const nextConfig: NextConfig = {
     // Type errors caught in CI — don't fail production build for them
     ignoreBuildErrors: false,
   },
+
+  eslint: {
+    // ESLint run separately in CI
+    ignoreDuringBuilds: false,
+  },
 };
 
 export default nextConfig;
