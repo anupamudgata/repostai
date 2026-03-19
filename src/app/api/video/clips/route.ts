@@ -98,6 +98,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+      segments = segs;
+    }
 
     const transcriptWithTime = segments
       .map((s) => `[${formatTimestamp(s.start)}] ${s.text}`)
