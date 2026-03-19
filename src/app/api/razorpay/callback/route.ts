@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     // Update user plan
     await supabaseAdmin
-      .from("users")
+      .from("profiles")
       .update({ plan, updated_at: new Date().toISOString() })
       .eq("id", user_id);
 

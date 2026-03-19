@@ -26,11 +26,11 @@ export async function GET(req: NextRequest) {
     const supabaseAdmin = await getSupabaseAdmin();
     const now           = new Date().toISOString();
 
-    // Fetch all scheduled posts that are due
+    // Fetch all scheduled posts that are due (status = pending; schedule API inserts pending)
     const { data: posts, error: fetchError } = await supabaseAdmin
       .from("scheduled_posts")
       .select("*")
-      .eq("status", "scheduled")
+      .eq("status", "pending")
       .lte("scheduled_at", now)
       .limit(50);
 
@@ -61,8 +61,22 @@ export async function GET(req: NextRequest) {
           .eq("id", post.id);
 
         // Process each platform in the post
-        const platforms: string[] = post.platforms ?? [];
-        const segments: Record<string, string> = post.content_segments ?? {};
+        // Schedule API inserts one row per platform with output_id; cron uses platforms[] + content_segments
+        // When empty, use single platform + fetch content from repurpose_outputs
+        let platforms: string[] = post.platforms ?? [];
+        let segments: Record<string, string> = post.content_segments ?? {};
+        if (platforms.length === 0 && post.platform) {
+          platforms = [post.platform];
+          if (post.output_id) {
+            const { data: out } = await supabaseAdmin
+              .from("repurpose_outputs")
+              .select("generated_content, edited_content")
+              .eq("id", post.output_id)
+              .single();
+            const text = out?.edited_content ?? out?.generated_content ?? "";
+            if (text) segments = { [post.platform]: text };
+          }
+        }
 
         let publishedCount = 0;
 
@@ -130,11 +144,14 @@ export async function GET(req: NextRequest) {
         results.failed++;
 
         // Mark as failed so it doesn't get stuck in "processing"
-        await supabaseAdmin
-          .from("scheduled_posts")
-          .update({ status: "failed", updated_at: new Date().toISOString() })
-          .eq("id", post.id)
-          .catch(() => {}); // Don't throw if this update also fails
+        try {
+          await supabaseAdmin
+            .from("scheduled_posts")
+            .update({ status: "failed", updated_at: new Date().toISOString() })
+            .eq("id", post.id);
+        } catch {
+          // Don't throw if this update also fails
+        }
       }
     }
 
