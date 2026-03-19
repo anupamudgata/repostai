@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateBlogPost } from "@/lib/ai/content-generator";
 import { repurposeContent } from "@/lib/ai/openai";
-import { addFreeTierWatermark } from "@/lib/watermark";
-import { FREE_PLATFORM_IDS, SUPPORTED_PLATFORMS } from "@/config/constants";
+import { FREE_PLATFORM_IDS, FREE_TIER_WATERMARK, SUPPORTED_PLATFORMS } from "@/config/constants";
 import type { Platform } from "@/types";
 
 function parseLength(length: string): "short" | "medium" | "long" {
@@ -66,7 +65,7 @@ export async function POST(request: NextRequest) {
       content,
     }));
 
-    const watermarked = isFree ? addFreeTierWatermark(draft) : draft;
+    const watermarked = isFree ? draft.trimEnd() + FREE_TIER_WATERMARK : draft;
 
     const { data: job, error: jobError } = await supabase
       .from("repurpose_jobs")

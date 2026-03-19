@@ -8,6 +8,8 @@ const LANGUAGE_INSTRUCTION: Record<Language, string> = {
   en: "Write in English.",
   hi: "Write entirely in Hindi (हिन्दी).",
   es: "Write entirely in Spanish.",
+  pt: "Write entirely in Portuguese (Português).",
+  fr: "Write entirely in French (Français).",
 };
 
 export function buildTwitterThreadPromptStrict(
