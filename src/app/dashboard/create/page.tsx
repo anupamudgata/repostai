@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { createClient } from "@/lib/supabase/client";
 import type {
   ContentTone,
@@ -56,6 +56,7 @@ function platformProvider(p: Platform): "twitter" | "linkedin" | null {
 type Step = "form" | "preview" | "repurpose";
 
 export default function CreatePage() {
+  const toastT = useAppToast();
   const [step, setStep] = useState<Step>("form");
 
   const [topic, setTopic] = useState("");
@@ -118,11 +119,11 @@ export default function CreatePage() {
 
   async function handleGenerate() {
     if (!topic.trim()) {
-      toast.error("Please enter a topic or idea");
+      toastT.error("toast.enterTopic");
       return;
     }
     if (!audience.trim()) {
-      toast.error("Please describe your target audience");
+      toastT.error("toast.describeAudience");
       return;
     }
 
@@ -149,7 +150,10 @@ export default function CreatePage() {
           setPlanError(true);
           return;
         }
-        toast.error(data.error || "Something went wrong");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.genericError"
+        );
         return;
       }
 
@@ -157,9 +161,9 @@ export default function CreatePage() {
       setEditedContent(data.content);
       setPostId(data.postId);
       setStep("preview");
-      toast.success("Blog post generated!");
+      toastT.success("toast.blogGenerated");
     } catch {
-      toast.error("Network error. Please try again.");
+      toastT.error("toast.networkError");
     } finally {
       setGenerating(false);
     }
@@ -181,15 +185,18 @@ export default function CreatePage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Something went wrong");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.genericError"
+        );
         return;
       }
       setGeneratedContent(data.content);
       setEditedContent(data.content);
       setPostId(data.postId);
-      toast.success("Regenerated!");
+      toastT.success("toast.regenerated");
     } catch {
-      toast.error("Network error. Please try again.");
+      toastT.error("toast.networkError");
     } finally {
       setGenerating(false);
     }
@@ -206,7 +213,7 @@ export default function CreatePage() {
 
   async function handleRepurpose() {
     if (selectedPlatforms.length === 0) {
-      toast.error("Select at least one platform");
+      toastT.error("toast.selectPlatform");
       return;
     }
 
@@ -227,18 +234,21 @@ export default function CreatePage() {
 
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Something went wrong");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.genericError"
+        );
         return;
       }
 
       setRepurposeOutputs(data.outputs);
       setLastJobId(data.jobId ?? null);
       setStep("repurpose");
-      toast.success(
-        `Repurposed to ${data.outputs.length} platforms!`
-      );
+      toastT.success("toast.repurposedToPlatforms", {
+        count: data.outputs.length,
+      });
     } catch {
-      toast.error("Network error. Please try again.");
+      toastT.error("toast.networkError");
     } finally {
       setRepurposing(false);
     }
@@ -253,12 +263,12 @@ export default function CreatePage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-    toast.success("Copied to clipboard!");
+    toastT.success("toast.copiedToClipboard");
   }
 
   async function handlePostAll() {
     if (!lastJobId) {
-      toast.error("Cannot post. Repurpose again first.");
+      toastT.error("toast.cannotPostRepurpose");
       return;
     }
 
@@ -278,7 +288,7 @@ export default function CreatePage() {
     }
 
     if (tasks.length === 0) {
-      toast.error("No connected accounts for these platforms. Connect LinkedIn or Twitter first.");
+      toastT.error("toast.noConnectedAccounts");
       return;
     }
 
@@ -313,10 +323,10 @@ export default function CreatePage() {
     }
 
     if (successes.length) {
-      toast.success(`Posted to: ${successes.join(", ")}`);
+      toastT.success("toast.postedTo", { list: successes.join(", ") });
     }
     if (failures.length) {
-      toast.error(`Failed on: ${failures.join(", ")}. Check connections and try again.`);
+      toastT.error("toast.failedOn", { list: failures.join(", ") });
     }
   }
 

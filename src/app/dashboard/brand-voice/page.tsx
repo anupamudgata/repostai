@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { Plus, Trash2, Mic, Lock, Settings2 } from "lucide-react";
+import { Plus, Trash2, Mic, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -17,6 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  BrandVoiceTrainingForm,
+  type BrandVoiceTrainingPayload,
+} from "@/components/dashboard/BrandVoiceTrainingForm";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -24,18 +25,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
+import { brandVoiceWritingFields } from "@/lib/brand-voice-db";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { PLANS, HUMANIZATION_LEVELS } from "@/config/constants";
 import type { BrandVoice, HumanizationLevel } from "@/types";
 
 export default function BrandVoicePage() {
+  const toastT = useAppToast();
   const [voices, setVoices] = useState<BrandVoice[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState("");
-  const [sampleText, setSampleText] = useState("");
-  const [humanizationLevel, setHumanizationLevel] = useState<HumanizationLevel>("professional");
-  const [imperfectionMode, setImperfectionMode] = useState(false);
-  const [personalStoryInjection, setPersonalStoryInjection] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingVoice, setEditingVoice] = useState<BrandVoice | null>(null);
   const [editHumanization, setEditHumanization] = useState<HumanizationLevel>("professional");
@@ -50,7 +48,7 @@ export default function BrandVoicePage() {
       ? PLANS.PRO
       : PLANS.FREE;
   const maxVoices = planConfig.brandVoices;
-  const canCreateVoice = maxVoices === 0 ? false : voices.length < maxVoices;
+  const canCreateVoice = voices.length < maxVoices;
 
   useEffect(() => {
     loadVoices();
@@ -76,51 +74,33 @@ export default function BrandVoicePage() {
     if (data) setVoices(data);
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-
+  async function handleVoiceTraining(payload: BrandVoiceTrainingPayload) {
     if (!canCreateVoice) {
-      if (maxVoices === 0) {
-        toast.error("Brand voices are available on Pro and Agency plans.");
-      } else {
-        toast.error(`You've reached the limit of ${maxVoices} brand voices for your plan.`);
-      }
+      toastT.error("toast.brandVoiceLimit", { max: maxVoices });
       return;
     }
-
-    setLoading(true);
 
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
 
     const { error } = await supabase.from("brand_voices").insert({
       user_id: user.id,
-      name,
-      samples: sampleText,
-      humanization_level: humanizationLevel,
-      imperfection_mode: imperfectionMode,
-      personal_story_injection: personalStoryInjection,
+      name: payload.name,
+      ...brandVoiceWritingFields(payload.samples),
+      humanization_level: payload.humanizationLevel,
+      imperfection_mode: payload.imperfectionMode,
+      personal_story_injection: payload.personalStoryInjection,
     });
 
     if (error) {
-      toast.error(error.message);
+      toastT.errorFromApi({ error: error.message });
     } else {
-      toast.success("Brand voice created!");
-      setName("");
-      setSampleText("");
-      setHumanizationLevel("professional");
-      setImperfectionMode(false);
-      setPersonalStoryInjection(false);
+      toastT.success("toast.brandVoiceCreatedExclaim");
       setShowForm(false);
       loadVoices();
     }
-
-    setLoading(false);
   }
 
   async function handleUpdateAuthenticity() {
@@ -136,9 +116,9 @@ export default function BrandVoicePage() {
       .eq("id", editingVoice.id);
     setLoading(false);
     if (error) {
-      toast.error(error.message);
+      toastT.errorFromApi({ error: error.message });
     } else {
-      toast.success("Authenticity settings updated");
+      toastT.success("toast.authenticityUpdated");
       setEditingVoice(null);
       loadVoices();
     }
@@ -158,9 +138,9 @@ export default function BrandVoicePage() {
       .eq("id", id);
 
     if (error) {
-      toast.error(error.message);
+      toastT.errorFromApi({ error: error.message });
     } else {
-      toast.success("Brand voice deleted");
+      toastT.success("toast.brandVoiceDeleted");
       setVoices((prev) => prev.filter((v) => v.id !== id));
     }
   }
@@ -174,112 +154,36 @@ export default function BrandVoicePage() {
             Train the AI to write in your unique style.
           </p>
         </div>
-        {maxVoices === 0 ? (
-          <Button asChild variant="outline" className="gap-2">
-            <Link href="/dashboard/settings">
-              <Lock className="h-4 w-4" />
-              Upgrade to Add Voices
-            </Link>
-          </Button>
-        ) : (
-          <Button
-            onClick={() => {
-              if (!canCreateVoice) {
-                toast.error(`Limit reached (${maxVoices} voices for your plan).`);
-                return;
-              }
-              setShowForm(!showForm);
-            }}
-            className="gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add Voice ({voices.length}/{maxVoices})
-          </Button>
-        )}
+        <Button
+          onClick={() => {
+            if (!canCreateVoice) {
+              toastT.error("toast.limitVoicesReached", { max: maxVoices });
+              return;
+            }
+            setShowForm(!showForm);
+          }}
+          className="gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Add Voice ({voices.length}/{maxVoices})
+        </Button>
       </div>
 
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Create Brand Voice</CardTitle>
+            <CardTitle className="text-lg">Create brand voice</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Paste real writing samples — the AI copies your tone, pacing, and vocabulary.
+            </p>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <Label htmlFor="voice-name">Voice Name</Label>
-                <Input
-                  id="voice-name"
-                  placeholder='e.g., "My LinkedIn Tone" or "Company Blog"'
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="sample">
-                  Writing Sample (paste 3-5 examples of your writing)
-                </Label>
-                <Textarea
-                  id="sample"
-                  placeholder="Paste examples of your writing here. The more examples you provide, the better the AI will match your voice..."
-                  className="min-h-[200px]"
-                  value={sampleText}
-                  onChange={(e) => setSampleText(e.target.value)}
-                  required
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Paste 3-5 examples of posts or articles you&apos;ve written.
-                  The AI will learn your tone, vocabulary, and style.
-                </p>
-              </div>
-
-              <div className="space-y-4 rounded-lg border p-4">
-                <h4 className="font-medium text-sm">Authenticity Tuning</h4>
-                <div>
-                  <Label className="text-xs">Humanization Level</Label>
-                  <Select value={humanizationLevel} onValueChange={(v) => setHumanizationLevel(v as HumanizationLevel)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HUMANIZATION_LEVELS.map((l) => (
-                        <SelectItem key={l.id} value={l.id} title={l.description}>
-                          {l.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">Casual ↔ Professional ↔ Raw/Unfiltered</p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Imperfection Mode</Label>
-                    <p className="text-xs text-muted-foreground">Add typos, fragments, lowercase for vibe</p>
-                  </div>
-                  <Switch checked={imperfectionMode} onCheckedChange={setImperfectionMode} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-sm">Personal Story Injection</Label>
-                    <p className="text-xs text-muted-foreground">AI adds relevant personal anecdotes</p>
-                  </div>
-                  <Switch checked={personalStoryInjection} onCheckedChange={setPersonalStoryInjection} />
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={loading}>
-                  {loading ? "Creating..." : "Create Voice"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </form>
+            <BrandVoiceTrainingForm
+              existingVoices={voices}
+              limit={maxVoices}
+              onSubmit={handleVoiceTraining}
+              onCancel={() => setShowForm(false)}
+            />
           </CardContent>
         </Card>
       )}

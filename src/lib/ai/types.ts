@@ -19,8 +19,12 @@ export interface ContentBrief {
 }
 
 export interface BrandVoice {
-  samples:  string;
+  samples: string;
   persona?: string;
+  /** When passed from DB, steers Claude/OpenAI persona extraction. */
+  humanization_level?: string | null;
+  imperfection_mode?: boolean | null;
+  personal_story_injection?: boolean | null;
 }
 
 export interface RepurposeRequest {

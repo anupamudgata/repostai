@@ -26,24 +26,28 @@ export const LANDING_TESTIMONIALS = [
   { quote: "From one YouTube video to 7 platform-ready posts in under a minute. Insane.", attribution: "Creator", beforeAfter: "1 video → 7 posts" },
 ] as const;
 
+/** Display pricing (INR). Enforcement lives in `lib/billing/plan-entitlements.ts`. */
 export const PLANS = {
   FREE: {
     name: "Free",
     monthlyPrice: 0,
-    repurposesPerMonth: -1, // unlimited with watermark
-    platforms: ["linkedin", "twitter_thread", "twitter_single", "email"],
-    brandVoices: 0,
+    /** @deprecated Use plan-entitlements getEntitlements("free").repurposesPerMonth */
+    repurposesPerMonth: 10,
+    platforms: ["linkedin", "twitter_thread", "twitter_single", "instagram"],
+    brandVoices: 1,
     features: [
-      "Unlimited repurposes",
-      "LinkedIn, Twitter/X, Email",
-      "Small 'RepostAI' watermark (remove with Pro)",
+      "10 repurposes / month",
+      "LinkedIn, Twitter/X, Instagram",
+      "GPT-4o-mini",
+      "1 brand voice",
+      'Watermark: "Generated with RepostAI - repostai.com"',
     ],
   },
   PRO: {
     name: "Pro",
-    monthlyPrice: 19,
-    annualPrice: 15,
-    repurposesPerMonth: -1, // unlimited
+    monthlyPrice: 499,
+    annualPrice: 4999,
+    repurposesPerMonth: 60,
     platforms: [
       "linkedin",
       "twitter_thread",
@@ -57,21 +61,19 @@ export const PLANS = {
     ],
     brandVoices: 3,
     features: [
-      "Unlimited repurposes",
-      "AI Content Starter (topic to post)",
-      "All 9+ platforms",
-      "5 languages (EN, HI, ES, PT, FR)",
-      "Brand voice training (3 voices)",
-      "One-click post to Twitter/X (LinkedIn coming soon)",
-      "Schedule posts (Twitter/X; LinkedIn coming soon)",
-      "Full history",
-      "Priority speed",
+      "60 repurposes / month",
+      "All 9 platforms",
+      "Claude Sonnet (premium AI)",
+      "No watermark",
+      "3 brand voices",
+      "AI Content Starter",
+      "Priority support & advanced analytics",
     ],
   },
   AGENCY: {
     name: "Agency",
-    monthlyPrice: 49,
-    annualPrice: 39,
+    monthlyPrice: 1499,
+    annualPrice: 14999,
     repurposesPerMonth: -1,
     platforms: [
       "linkedin",
@@ -84,16 +86,15 @@ export const PLANS = {
       "tiktok",
       "whatsapp_status",
     ],
-    brandVoices: 10,
+    brandVoices: 5,
     features: [
-      "Everything in Pro",
-      "AI Content Starter (unlimited)",
-      "10 brand voices",
-      "5 languages (EN, HI, ES, PT, FR)",
-      "One-click post & schedule (Twitter/X; LinkedIn coming soon)",
-      "CSV export",
-      "API access",
-      "Priority support",
+      "Unlimited repurposes",
+      "All 9 platforms",
+      "Claude Sonnet",
+      "5 brand voices",
+      "AI Content Starter",
+      "Team & API (roadmap)",
+      "Dedicated support",
     ],
   },
 } as const;
@@ -160,7 +161,7 @@ export const LENGTH_OPTIONS = [
   { id: "long", name: "Long", words: 1000, description: "~1000+ words, in-depth article" },
 ] as const;
 
-/** Free tier: unlimited repurposes with watermark. Set to Infinity to disable limit. */
+/** @deprecated Prefer getEntitlements() — kept for grep/docs; enforcement uses plan-entitlements. */
 /** Humanization level for brand voice authenticity tuning */
 export const HUMANIZATION_LEVELS = [
   { id: "casual", name: "Casual", description: "Friendly, conversational, approachable" },
@@ -168,16 +169,19 @@ export const HUMANIZATION_LEVELS = [
   { id: "raw", name: "Raw / Unfiltered", description: "Direct, unfiltered, authentic" },
 ] as const;
 
-export const FREE_TIER_MONTHLY_LIMIT = Infinity;
+/** Legacy export; real limits in `@/lib/billing/plan-entitlements`. */
+export const FREE_TIER_MONTHLY_LIMIT = 10;
 
-/** Watermark appended to free-tier outputs. Pro removes it. */
-export const FREE_TIER_WATERMARK = "\n\n— Repurposed with RepostAI";
-export const FREE_TIER_WATERMARK_SHORT = " RepostAI"; // For Twitter (280 char limit)
+/** Watermark appended to free-tier outputs. Pro/Agency remove it. */
+export const FREE_TIER_WATERMARK =
+  "\n\nGenerated with RepostAI - repostai.com";
+/** Short suffix for Twitter (280 char cap). */
+export const FREE_TIER_WATERMARK_SHORT = " repostai.com";
 
-/** Platform IDs allowed on Free plan. Pro/Agency get all platforms. */
+/** Platform IDs allowed on Free plan (3 product surfaces: LI, Twitter, IG). */
 export const FREE_PLATFORM_IDS = [
   "linkedin",
   "twitter_thread",
   "twitter_single",
-  "email",
+  "instagram",
 ] as const;

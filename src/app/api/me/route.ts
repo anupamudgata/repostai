@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { FREE_TIER_MONTHLY_LIMIT, SUPERUSER_EMAIL } from "@/config/constants";
+import {
+  daysUntilUsageReset,
+  getEffectivePlan,
+  getEntitlements,
+} from "@/lib/billing/plan-entitlements";
 
 export async function GET() {
   const supabase = await createClient();
@@ -12,33 +16,37 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const isSuperUser = user.email === SUPERUSER_EMAIL;
+  const { plan, isSuperUser } = await getEffectivePlan(
+    supabase,
+    user.id,
+    user.email
+  );
+  const entitlements = getEntitlements(plan);
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("plan, zapier_webhook_url")
+    .select("zapier_webhook_url")
     .eq("id", user.id)
     .single();
 
-  const plan = isSuperUser ? "pro" : profile?.plan || "free";
-  const isFree = !isSuperUser && plan === "free";
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  const { data: usage } = await supabase
+    .from("usage")
+    .select("repurpose_count")
+    .eq("user_id", user.id)
+    .eq("month", currentMonth)
+    .single();
+  const repurposeCount = usage?.repurpose_count ?? 0;
 
-  let repurposeCount = 0;
-  if (isFree) {
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    const { data: usage } = await supabase
-      .from("usage")
-      .select("repurpose_count")
-      .eq("user_id", user.id)
-      .eq("month", currentMonth)
-      .single();
-    repurposeCount = usage?.repurpose_count ?? 0;
-  }
+  const repurposeLimit = isSuperUser
+    ? null
+    : entitlements.repurposesPerMonth;
 
   return NextResponse.json({
     plan,
-    repurposeCount: isFree ? repurposeCount : null,
-    repurposeLimit: isFree && Number.isFinite(FREE_TIER_MONTHLY_LIMIT) ? FREE_TIER_MONTHLY_LIMIT : null,
+    repurposeCount,
+    repurposeLimit,
+    daysUntilUsageReset: daysUntilUsageReset(),
     isSuperUser,
     zapier_webhook_url: profile?.zapier_webhook_url ?? null,
   });

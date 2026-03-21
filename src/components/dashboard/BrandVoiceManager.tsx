@@ -1,8 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useAppToast } from "@/hooks/use-app-toast";
+import { PLANS } from "@/config/constants";
+import {
+  BrandVoiceTrainingForm,
+  type BrandVoiceTrainingPayload,
+} from "@/components/dashboard/BrandVoiceTrainingForm";
 
-interface BrandVoice {
+interface BrandVoiceRow {
   id: string;
   name: string;
   samplesLength: number;
@@ -12,86 +18,143 @@ interface BrandVoice {
 }
 
 export function BrandVoiceManager() {
-  const [voices, setVoices]     = useState<BrandVoice[]>([]);
-  const [loading, setLoading]   = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName]   = useState("");
-  const [newSamples, setNewSamples] = useState("");
+  const toastT = useAppToast();
+  const [voices, setVoices] = useState<BrandVoiceRow[]>([]);
+  const [userPlan, setUserPlan] = useState<string>("free");
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+
+  const limit = useMemo(() => {
+    if (userPlan === "agency") return PLANS.AGENCY.brandVoices;
+    if (userPlan === "pro") return PLANS.PRO.brandVoices;
+    return PLANS.FREE.brandVoices;
+  }, [userPlan]);
 
   async function loadVoices() {
     try {
       const res = await fetch("/api/brand-voice");
       const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load");
       setVoices(data.voices ?? []);
+    } catch (e) {
+      if (e instanceof Error && e.message) {
+        toastT.errorFromApi({ error: e.message });
+      } else {
+        toastT.error("toast.couldNotLoadBrandVoices");
+      }
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { loadVoices(); }, []);
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.plan) setUserPlan(d.plan);
+      })
+      .catch(() => {});
+    loadVoices();
+  }, []);
 
-  async function handleCreate() {
-    if (!newName.trim() || !newSamples.trim()) return;
-    setCreating(true);
-    try {
-      const res = await fetch("/api/brand-voice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), samples: newSamples.trim() }),
-      });
-      const data = await res.json();
-      if (res.ok && data.voice) {
-        setVoices((prev) => [{ ...data.voice, samplesLength: newSamples.trim().length, hasCachedPersona: false, updatedAt: data.voice.createdAt }, ...prev]);
-        setNewName(""); setNewSamples(""); setShowForm(false);
-      }
-    } finally {
-      setCreating(false);
+  async function handleVoiceTraining(payload: BrandVoiceTrainingPayload) {
+    const res = await fetch("/api/brand-voice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: payload.name,
+        samples: payload.samples,
+        humanization_level: payload.humanizationLevel,
+        imperfection_mode: payload.imperfectionMode,
+        personal_story_injection: payload.personalStoryInjection,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toastT.errorFromApi(
+        { error: data.error, code: data.code },
+        "toast.couldNotCreateBrandVoice"
+      );
+      throw new Error(data.error || "create failed");
     }
+    toastT.success("toast.brandVoiceCreated");
+    setShowForm(false);
+    await loadVoices();
   }
 
   async function handleDelete(id: string) {
-    await fetch(`/api/brand-voice?id=${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/brand-voice?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      toastT.error("toast.couldNotDelete");
+      return;
+    }
     setVoices((prev) => prev.filter((v) => v.id !== id));
+    toastT.success("toast.brandVoiceRemoved");
   }
 
-  if (loading) return <p style={{ fontSize: "13px", color: "#9CA3AF" }}>Loading brand voices...</p>;
+  if (loading) {
+    return <p className="text-sm text-muted-foreground">Loading brand voices…</p>;
+  }
+
+  const existingForForm = voices.map((v) => ({ id: v.id, name: v.name }));
 
   return (
-    <div>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-        <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#111827" }}>Brand Voices</h3>
-        <button onClick={() => setShowForm(!showForm)} style={{ fontSize: "12px", fontWeight: 600, color: "#2563EB", background: "transparent", border: "none", cursor: "pointer" }}>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-sm font-semibold text-foreground">Brand voices</h3>
+        <button
+          type="button"
+          onClick={() => setShowForm(!showForm)}
+          className="text-xs font-semibold text-primary hover:underline"
+        >
           {showForm ? "Cancel" : "+ New voice"}
         </button>
       </div>
 
       {showForm && (
-        <div style={{ padding: "16px", border: "1px solid #E5E7EB", borderRadius: "12px", marginBottom: "14px", background: "#FAFAFA" }}>
-          <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Voice name (e.g. 'My LinkedIn voice')" style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "13px", marginBottom: "10px", boxSizing: "border-box" }} />
-          <textarea value={newSamples} onChange={(e) => setNewSamples(e.target.value)} placeholder="Paste 3-5 examples of your writing (min 100 characters)..." rows={5} style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "13px", resize: "vertical", boxSizing: "border-box" }} />
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "10px" }}>
-            <button onClick={handleCreate} disabled={creating || !newName.trim() || newSamples.trim().length < 100} style={{ padding: "7px 18px", borderRadius: "8px", border: "none", background: newName.trim() && newSamples.trim().length >= 100 ? "#1E3A5F" : "#E2E8F0", color: "#fff", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-              {creating ? "Creating..." : "Create voice"}
-            </button>
-          </div>
+        <div className="rounded-lg border bg-muted/20 p-4">
+          <BrandVoiceTrainingForm
+            existingVoices={existingForForm}
+            limit={limit}
+            onSubmit={handleVoiceTraining}
+            onCancel={() => setShowForm(false)}
+          />
         </div>
       )}
 
-      {voices.length === 0 && !showForm && <p style={{ fontSize: "13px", color: "#9CA3AF" }}>No brand voices yet. Create one to match your writing style.</p>}
+      {voices.length === 0 && !showForm && (
+        <p className="text-sm text-muted-foreground">
+          No brand voices yet. Add samples so repurposed posts match how you write.
+        </p>
+      )}
 
-      {voices.map((voice) => (
-        <div key={voice.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", border: "1px solid #E5E7EB", borderRadius: "10px", marginBottom: "8px" }}>
-          <div>
-            <div style={{ fontSize: "13px", fontWeight: 600, color: "#111827" }}>{voice.name}</div>
-            <div style={{ fontSize: "11px", color: "#9CA3AF", marginTop: "2px" }}>
-              {voice.samplesLength.toLocaleString()} chars
-              {voice.hasCachedPersona && <span style={{ color: "#10B981", marginLeft: "8px" }}>✓ Persona cached</span>}
+      <ul className="space-y-2">
+        {voices.map((voice) => (
+          <li
+            key={voice.id}
+            className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5"
+          >
+            <div className="min-w-0">
+              <div className="truncate text-sm font-medium">{voice.name}</div>
+              <div className="text-xs text-muted-foreground">
+                {voice.samplesLength.toLocaleString()} chars
+                {voice.hasCachedPersona && (
+                  <span className="ml-2 text-emerald-600">Persona ready</span>
+                )}
+              </div>
             </div>
-          </div>
-          <button onClick={() => handleDelete(voice.id)} style={{ fontSize: "11px", color: "#EF4444", background: "transparent", border: "none", cursor: "pointer", fontWeight: 500 }}>Delete</button>
-        </div>
-      ))}
+            <button
+              type="button"
+              onClick={() => handleDelete(voice.id)}
+              className="shrink-0 text-xs font-medium text-destructive hover:underline"
+            >
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

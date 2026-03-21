@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
+import { useI18n } from "@/contexts/i18n-provider";
+import { useAppToast } from "@/hooks/use-app-toast";
 import {
   Select,
   SelectContent,
@@ -20,14 +21,16 @@ import {
 } from "@/components/ui/select";
 
 const MARKET_REGIONS = [
-  { id: "na", label: "North America (USD)" },
-  { id: "eu", label: "Europe (EUR)" },
-  { id: "in", label: "India (INR)" },
-  { id: "latam", label: "Latin America (USD)" },
-  { id: "other", label: "Other / Global" },
+  { id: "na" },
+  { id: "eu" },
+  { id: "in" },
+  { id: "latam" },
+  { id: "other" },
 ] as const;
 
 export default function SignupPage() {
+  const { t } = useI18n();
+  const toastT = useAppToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -50,12 +53,12 @@ export default function SignupPage() {
     });
 
     if (error) {
-      toast.error(error.message);
+      toastT.errorFromApi({ error: error.message });
       setLoading(false);
       return;
     }
 
-    toast.success("Check your email for the confirmation link!");
+    toastT.success("auth.checkEmailConfirm");
     router.push("/login");
   }
 
@@ -67,7 +70,7 @@ export default function SignupPage() {
       },
     });
 
-    if (error) toast.error(error.message);
+    if (error) toastT.errorFromApi({ error: error.message });
   }
 
   return (
@@ -79,11 +82,11 @@ export default function SignupPage() {
             className="flex items-center justify-center gap-2 mb-4"
           >
             <Zap className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">RepostAI</span>
+            <span className="text-xl font-bold">{t("brandName")}</span>
           </Link>
-          <CardTitle className="text-2xl">Create your account</CardTitle>
+          <CardTitle className="text-2xl">{t("auth.createAccount")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Start with 5 free repurposes. No credit card required.
+            {t("auth.signupSubtitle")}
           </p>
         </CardHeader>
         <CardContent>
@@ -110,45 +113,45 @@ export default function SignupPage() {
                 fill="#EA4335"
               />
             </svg>
-            Continue with Google
+            {t("auth.continueGoogle")}
           </Button>
 
           <div className="relative my-4">
             <Separator />
             <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-              or
+              {t("auth.or")}
             </span>
           </div>
 
           <form onSubmit={handleEmailSignup} className="space-y-4">
             <div>
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">{t("auth.fullName")}</Label>
               <Input
                 id="name"
                 type="text"
-                placeholder="John Doe"
+                placeholder={t("auth.placeholderName")}
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t("auth.placeholderEmail")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
             <div>
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t("auth.password")}</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Min 6 characters"
+                placeholder={t("auth.placeholderPasswordMin")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -156,32 +159,32 @@ export default function SignupPage() {
               />
             </div>
             <div>
-              <Label>Market region</Label>
+              <Label>{t("auth.marketRegion")}</Label>
               <Select
                 value={marketRegion}
                 onValueChange={setMarketRegion}
               >
                 <SelectTrigger className="w-full mt-1.5">
-                  <SelectValue placeholder="Select your primary market" />
+                  <SelectValue placeholder={t("auth.marketPlaceholder")} />
                 </SelectTrigger>
                 <SelectContent>
                   {MARKET_REGIONS.map((region) => (
                     <SelectItem key={region.id} value={region.id}>
-                      {region.label}
+                      {t(`auth.regions.${region.id}`)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Creating account..." : "Create Account"}
+              {loading ? t("auth.creatingAccount") : t("auth.createAccountBtn")}
             </Button>
           </form>
 
           <p className="text-sm text-center text-muted-foreground mt-6">
-            Already have an account?{" "}
+            {t("auth.haveAccount")}{" "}
             <Link href="/login" className="text-primary hover:underline">
-              Log in
+              {t("auth.logIn")}
             </Link>
           </p>
         </CardContent>

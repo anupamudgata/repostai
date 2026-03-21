@@ -37,89 +37,51 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PLANS, SUPPORT_EMAIL, LANDING_USER_COUNT, LANDING_VIDEO_URL, LANDING_TESTIMONIALS } from "@/config/constants";
+import { PLANS, SUPPORT_EMAIL, LANDING_USER_COUNT, LANDING_VIDEO_URL } from "@/config/constants";
 import { LandingNav } from "@/components/landing-nav";
+import { useI18n } from "@/contexts/i18n-provider";
+import { landingBulkEn } from "@/messages/landing-bulk.en";
+import { landingBulkHi } from "@/messages/landing-bulk.hi";
 
 const PRICING_REGIONS = [
-  { id: "global", label: "Global (USD $)", symbol: "$" },
-  { id: "eu", label: "Europe (EUR €)", symbol: "€" },
-  { id: "in", label: "India (INR ₹)", symbol: "₹" },
-  { id: "latam", label: "Latin America (USD $)", symbol: "$" },
+  { id: "global", symbol: "$" },
+  { id: "eu", symbol: "€" },
+  { id: "in", symbol: "₹" },
+  { id: "latam", symbol: "$" },
 ] as const;
 
-const PLATFORMS = [
-  { name: "LinkedIn", icon: Linkedin, color: "bg-blue-600" },
-  { name: "Twitter/X Thread", icon: Twitter, color: "bg-sky-500" },
-  { name: "Twitter/X Post", icon: Twitter, color: "bg-sky-500" },
-  { name: "Instagram", icon: Instagram, color: "bg-pink-500" },
-  { name: "Facebook", icon: Facebook, color: "bg-blue-500" },
-  { name: "Email", icon: Mail, color: "bg-emerald-500" },
-  { name: "Reddit", icon: MessageCircle, color: "bg-orange-500" },
-  { name: "TikTok", icon: PlayIcon, color: "bg-black" },
-  { name: "WhatsApp Status", icon: MessageCircle, color: "bg-green-500" },
-];
-
-const USE_CASES = [
-  {
-    title: "Content Creators",
-    description:
-      "Write one blog post and get LinkedIn, Twitter, Instagram, and email versions instantly. Save hours every week.",
-  },
-  {
-    title: "Marketing Teams",
-    description:
-      "Keep brand voice consistent across every channel with AI that learns your style. No more copy-paste formatting.",
-  },
-  {
-    title: "Freelancers & Agencies",
-    description:
-      "Manage multiple clients with separate brand voices. Repurpose each piece of content to all platforms in seconds.",
-  },
-];
-
-const FAQ_ITEMS = [
-  {
-    q: "Is the generated content really platform-specific?",
-    a: "Yes. LinkedIn posts get professional hooks and hashtags. Twitter threads are numbered and under 280 chars. Instagram captions include relevant hashtags. Each platform's output follows that platform's native conventions — it's not just the same text copy-pasted everywhere.",
-  },
-  {
-    q: "How is this different from ChatGPT?",
-    a: "ChatGPT gives you one output at a time with no structure. RepostAI generates all 7+ platforms simultaneously with platform-specific formatting, brand voice matching, and one-click copy. It's built specifically for content repurposing, not general chat.",
-  },
-  {
-    q: "What does 'brand voice training' mean?",
-    a: "Paste 3-5 examples of your previous writing (LinkedIn posts, tweets, etc.) and the AI learns your tone, vocabulary, and style. Every output will sound like YOU wrote it, not a robot.",
-  },
-  {
-    q: "Can I use it for my clients' content?",
-    a: "Absolutely. The Agency plan ($49/mo) supports up to 10 different brand voices — one per client. Switch between voices instantly.",
-  },
-  {
-    q: "What if I don't like the output?",
-    a: "Click 'Regenerate' on any individual platform to get a fresh version. You can also edit the output directly before copying.",
-  },
-  {
-    q: "Is there a free trial?",
-    a: "Better — there's a free plan. Unlimited repurposes with a small watermark, no credit card required. Upgrade to Pro to remove it.",
-  },
-  {
-    q: "What if it's not for me?",
-    a: "We offer a 14-day money-back guarantee on all paid plans. If you're not saving time, email us and we'll refund you — no questions asked.",
-  },
-  {
-    q: "What is AI Content Starter?",
-    a: "AI Content Starter lets you generate a full blog-quality draft from just a topic, tone, audience, and length — no writing required. Once the AI writes your post, you can review, edit, and then auto-repurpose it to every platform in one click. It's the complete content flywheel: idea to everywhere. Available on Pro and Agency plans.",
-  },
-  {
-    q: "Do you support multiple languages?",
-    a: "Yes! RepostAI supports 5 languages: English, Hindi (हिन्दी), Spanish (Español), Portuguese (Português), and French (Français). Select your output language before generating — the AI writes naturally in each language, not just translates.",
-  },
+const PLATFORM_ICONS = [
+  { icon: Linkedin, color: "bg-blue-600" },
+  { icon: Twitter, color: "bg-sky-500" },
+  { icon: Twitter, color: "bg-sky-500" },
+  { icon: Instagram, color: "bg-pink-500" },
+  { icon: Facebook, color: "bg-blue-500" },
+  { icon: Mail, color: "bg-emerald-500" },
+  { icon: MessageCircle, color: "bg-orange-500" },
+  { icon: PlayIcon, color: "bg-black" },
+  { icon: MessageCircle, color: "bg-green-500" },
 ];
 
 export default function LandingPage() {
-  const [pricingRegion, setPricingRegion] = useState<string>("global");
+  const { t, locale } = useI18n();
+  const L = locale === "hi" ? landingBulkHi : landingBulkEn;
+  const [pricingRegion, setPricingRegion] = useState<string>("in");
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
+    "monthly"
+  );
   const pricingSymbol =
     PRICING_REGIONS.find((r) => r.id === pricingRegion)?.symbol ?? "$";
+
+  function pf(
+    template: string,
+    vars: Record<string, string | number>
+  ): string {
+    let s = template;
+    for (const [k, v] of Object.entries(vars)) {
+      s = s.replaceAll(`{${k}}`, String(v));
+    }
+    return s;
+  }
 
   return (
     <div className="min-h-screen bg-background overflow-x-hidden">
@@ -136,55 +98,53 @@ export default function LandingPage() {
                 className="mb-4 sm:mb-6 animate-fade-up border border-primary/20 px-3 py-1 sm:px-4 sm:py-1.5 text-xs sm:text-sm"
               >
                 <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 text-primary" />
-                Save 5+ hours every week
+                {t("landing.heroBadge")}
               </Badge>
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-6 animate-fade-up animation-delay-200">
-                One post.{" "}
+                {t("landing.heroTitle1")}{" "}
                 <span className="bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
-                  Every platform.
+                  {t("landing.heroTitleHighlight")}
                 </span>
                 <br />
-                Under 60 seconds.
+                {t("landing.heroTitle2")}
               </h1>
               <p className="text-base sm:text-lg text-muted-foreground mb-6 sm:mb-8 max-w-lg mx-auto lg:mx-0 animate-fade-up animation-delay-400 px-1 sm:px-0">
-                Stop rewriting the same idea 7 different ways. Paste a blog post,
-                YouTube link, or any text — get perfectly formatted, platform-native
-                content for LinkedIn, Twitter/X, Instagram, Email & more in one click.
+                {t("landing.heroSubtitle")}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start animate-fade-up animation-delay-600">
                 <Link href="/signup" className="w-full sm:w-auto">
                   <Button size="lg" className="w-full sm:w-auto min-h-[48px] text-base px-6 sm:px-8 shadow-lg shadow-primary/25 touch-manipulation">
-                    Start Free — No Credit Card
+                    {t("landing.ctaPrimary")}
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
                 <a href="#demo" className="w-full sm:w-auto">
                   <Button size="lg" variant="outline" className="w-full sm:w-auto min-h-[48px] text-base px-6 sm:px-8 gap-2 touch-manipulation">
                     <Play className="h-4 w-4" />
-                    See how it works
+                    {t("landing.ctaSecondary")}
                   </Button>
                 </a>
               </div>
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-6 justify-center lg:justify-start text-sm text-muted-foreground animate-fade-up animation-delay-600">
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-primary" /> Free forever plan
+                  <Check className="h-4 w-4 text-primary" /> {t("landing.checkFreeForever")}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-primary" /> No credit card
+                  <Check className="h-4 w-4 text-primary" /> {t("landing.checkNoCard")}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-primary" /> 5 languages
+                  <Check className="h-4 w-4 text-primary" /> {t("landing.checkLanguages")}
                 </span>
                 <Link href="/integrations" className="flex items-center gap-1.5 text-primary hover:underline">
-                  <Check className="h-4 w-4" /> Publish to 1000+ apps
+                  <Check className="h-4 w-4" /> {t("landing.checkPublish")}
                 </Link>
                 <span className="flex items-center gap-1.5">
-                  <Check className="h-4 w-4 text-primary" /> Post now or schedule
+                  <Check className="h-4 w-4 text-primary" /> {t("landing.checkSchedule")}
                 </span>
               </div>
               {LANDING_USER_COUNT && (
                 <p className="mt-4 text-sm font-medium text-muted-foreground animate-fade-up animation-delay-600">
-                  Join <span className="text-foreground font-semibold">{LANDING_USER_COUNT} creators</span> saving 5+ hours every week
+                  {t("landing.joinCreators", { count: LANDING_USER_COUNT })}
                 </p>
               )}
             </div>
@@ -202,39 +162,37 @@ export default function LandingPage() {
                       <div className="w-3 h-3 rounded-full bg-green-400" />
                     </div>
                     <span className="text-xs text-muted-foreground ml-2">
-                      repostai.com/dashboard
+                      {t("landing.mockUrl")}
                     </span>
                   </div>
                   {/* Mock input */}
                   <div className="p-4 space-y-3">
                     <div className="flex gap-2">
                       {[
-                        { icon: Type, label: "Text" },
-                        { icon: LinkIcon, label: "URL" },
-                        { icon: Youtube, label: "YouTube" },
-                        { icon: FileText, label: "PDF" },
+                        { icon: Type, labelKey: "landing.mockTabText" },
+                        { icon: LinkIcon, labelKey: "landing.mockTabUrl" },
+                        { icon: Youtube, labelKey: "landing.mockTabYoutube" },
+                        { icon: FileText, labelKey: "landing.mockTabPdf" },
                       ].map((tab, i) => (
                         <div
-                          key={tab.label}
+                          key={tab.labelKey}
                           className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1 ${i === 0 ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}
                         >
                           <tab.icon className="h-3 w-3" />
-                          {tab.label}
+                          {t(tab.labelKey)}
                         </div>
                       ))}
                     </div>
                     <div className="bg-muted/50 border rounded-lg p-3 text-xs text-muted-foreground leading-relaxed">
-                      We just launched our new AI feature that helps teams
-                      collaborate 10x faster. Here&apos;s what we learned building
-                      it from scratch in 30 days...
+                      {t("landing.mockSample")}
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {PLATFORMS.slice(0, 5).map((p) => (
+                      {PLATFORM_ICONS.slice(0, 5).map((p, idx) => (
                         <span
-                          key={p.name}
+                          key={idx}
                           className="text-[10px] bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-full"
                         >
-                          {p.name.split("/")[0]}
+                          {L.platformsSection.names[idx]?.split("/")[0] ?? ""}
                         </span>
                       ))}
                     </div>
@@ -242,15 +200,15 @@ export default function LandingPage() {
                   {/* Mock output */}
                   <div className="border-t bg-muted/20 p-4 space-y-2">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-primary">Generated</span>
+                      <span className="text-xs font-medium text-primary">{t("landing.mockGenerated")}</span>
                       <span className="text-[10px] text-muted-foreground">
                         0.8s
                       </span>
                     </div>
                     {[
-                      { name: "LinkedIn", preview: "We just shipped something big. After 30 days of..." },
-                      { name: "Twitter/X", preview: "1/ We built an AI feature in 30 days. Here's the..." },
-                      { name: "Instagram", preview: "30 days. One AI feature. 10x faster collab..." },
+                      { name: L.platformsSection.names[0] ?? "LinkedIn", preview: "We just shipped something big. After 30 days of..." },
+                      { name: (L.platformsSection.names[1] ?? "Twitter/X").split("/")[0] ?? "Twitter", preview: "1/ We built an AI feature in 30 days. Here's the..." },
+                      { name: L.platformsSection.names[3] ?? "Instagram", preview: "30 days. One AI feature. 10x faster collab..." },
                     ].map((out) => (
                       <div
                         key={out.name}
@@ -283,35 +241,37 @@ export default function LandingPage() {
           <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-6 sm:gap-8 md:gap-12 text-center">
             {LANDING_USER_COUNT ? (
               <div>
-                <p className="text-2xl font-bold">Used by {LANDING_USER_COUNT} creators</p>
-                <p className="text-xs text-muted-foreground">Join them</p>
+                <p className="text-2xl font-bold">
+                  {t("landing.proofUsedBy", { count: LANDING_USER_COUNT })}
+                </p>
+                <p className="text-xs text-muted-foreground">{t("landing.proofJoinThem")}</p>
               </div>
             ) : (
               <div>
                 <Badge variant="secondary" className="mb-1">
-                  New
+                  {t("landing.proofNew")}
                 </Badge>
-                <p className="text-sm font-medium">Be one of the first</p>
+                <p className="text-sm font-medium">{t("landing.proofFirst")}</p>
               </div>
             )}
             <Separator orientation="vertical" className="h-6 w-px hidden sm:block" />
             <div>
               <p className="text-2xl font-bold">5+</p>
-              <p className="text-xs text-muted-foreground">Hours saved per week</p>
+              <p className="text-xs text-muted-foreground">{t("landing.proofHoursSaved")}</p>
             </div>
             <Separator orientation="vertical" className="h-6 w-px hidden sm:block" />
             <div>
               <p className="text-2xl font-bold">60s</p>
-              <p className="text-xs text-muted-foreground">To 9 platforms</p>
+              <p className="text-xs text-muted-foreground">{t("landing.proofToPlatforms")}</p>
             </div>
             <Separator orientation="vertical" className="h-6 w-px hidden sm:block" />
             <div>
               <p className="text-2xl font-bold">9</p>
-              <p className="text-xs text-muted-foreground">Platforms supported</p>
+              <p className="text-xs text-muted-foreground">{t("landing.proofPlatformsSupported")}</p>
             </div>
             <Separator orientation="vertical" className="h-6 w-px hidden sm:block" />
             <div>
-              <p className="text-sm font-medium">Free plan · No card required</p>
+              <p className="text-sm font-medium">{t("landing.proofFreeLine")}</p>
             </div>
           </div>
         </div>
@@ -322,25 +282,25 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-10">
             <Badge variant="secondary" className="mb-3">
-              Social proof
+              {L.testimonialSection.badge}
             </Badge>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
-              Creators are saving hours every week
+              {L.testimonialSection.title}
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground">
-              Real results from people who switched to RepostAI
+              {L.testimonialSection.subtitle}
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-            {LANDING_TESTIMONIALS.map((t, i) => (
+            {L.testimonials.map((item, i) => (
               <Card key={i} className="flex flex-col">
                 <CardContent className="pt-6 pb-4 flex flex-col flex-1">
                   <p className="text-sm text-muted-foreground leading-relaxed flex-1">
-                    &ldquo;{t.quote}&rdquo;
+                    &ldquo;{item.quote}&rdquo;
                   </p>
                   <div className="mt-4 pt-4 border-t">
-                    <p className="text-xs font-medium text-primary">{t.beforeAfter}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">— {t.attribution}</p>
+                    <p className="text-xs font-medium text-primary">{item.beforeAfter}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">— {item.attribution}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -353,16 +313,16 @@ export default function LandingPage() {
       <section className="py-12 overflow-hidden" aria-label="What creators say">
         <div className="max-w-6xl mx-auto px-4">
           <p className="text-center text-sm text-muted-foreground uppercase tracking-wider mb-6 font-medium">
-            What creators say
+            {L.carouselTitle}
           </p>
           <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted" style={{ scrollbarWidth: "thin" }}>
-            {LANDING_TESTIMONIALS.map((t, i) => (
+            {L.testimonials.map((item, i) => (
               <Card key={i} className="min-w-[280px] sm:min-w-[320px] snap-center shrink-0">
                 <CardContent className="pt-6 pb-5">
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    &ldquo;{t.quote}&rdquo;
+                    &ldquo;{item.quote}&rdquo;
                   </p>
-                  <p className="text-xs text-muted-foreground mt-3">— {t.attribution}</p>
+                  <p className="text-xs text-muted-foreground mt-3">— {item.attribution}</p>
                 </CardContent>
               </Card>
             ))}
@@ -374,25 +334,25 @@ export default function LandingPage() {
       <section className="py-6 overflow-hidden">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-4 font-medium">
-            Works with any content source
+            {L.sourcesLabel}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
             {[
-              { name: "Blog Posts", icon: FileText },
-              { name: "YouTube Videos", icon: Youtube },
-              { name: "Podcast Notes", icon: MessageCircle },
-              { name: "Articles", icon: FileText },
-              { name: "Newsletters", icon: Mail },
-              { name: "Twitter Threads", icon: Twitter },
-              { name: "Website URLs", icon: LinkIcon },
-              { name: "Plain Text", icon: Type },
+              { label: L.sourceChips[0], icon: FileText },
+              { label: L.sourceChips[1], icon: Youtube },
+              { label: L.sourceChips[2], icon: MessageCircle },
+              { label: L.sourceChips[3], icon: FileText },
+              { label: L.sourceChips[4], icon: Mail },
+              { label: L.sourceChips[5], icon: Twitter },
+              { label: L.sourceChips[6], icon: LinkIcon },
+              { label: L.sourceChips[7], icon: Type },
             ].map((item) => (
               <div
-                key={item.name}
+                key={item.label}
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border bg-card text-muted-foreground"
               >
                 <item.icon className="h-3 w-3" />
-                {item.name}
+                {item.label}
               </div>
             ))}
           </div>
@@ -404,13 +364,13 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-8 sm:mb-10">
             <Badge variant="secondary" className="mb-3">
-              See it in action
+              {L.demo.badge}
             </Badge>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-2">
-              Watch: One post to every platform in 60 seconds
+              {L.demo.title}
             </h2>
             <p className="text-muted-foreground">
-              No fluff — just paste, click, and copy.
+              {L.demo.subtitle}
             </p>
           </div>
           <div className="relative rounded-xl overflow-hidden border bg-card shadow-xl aspect-video max-h-[400px] flex items-center justify-center">
@@ -421,7 +381,7 @@ export default function LandingPage() {
                     ? LANDING_VIDEO_URL.replace("watch?v=", "embed/").split("&")[0]
                     : LANDING_VIDEO_URL
                 }
-                title="RepostAI 60-second demo"
+                title={L.demo.iframeTitle}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -432,11 +392,11 @@ export default function LandingPage() {
                   <Play className="h-10 w-10 text-primary" />
                 </div>
                 <div>
-                  <p className="font-semibold">Demo video coming soon</p>
-                  <p className="text-sm text-muted-foreground mt-1">See how it works below</p>
+                  <p className="font-semibold">{L.demo.placeholderTitle}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{L.demo.placeholderSubtitle}</p>
                 </div>
                 <Button variant="outline" size="sm">
-                  How it works <ArrowRight className="ml-1 h-4 w-4" />
+                  {L.demo.cta} <ArrowRight className="ml-1 h-4 w-4" />
                 </Button>
               </a>
             )}
@@ -449,35 +409,28 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <Badge variant="secondary" className="mb-4">
-              Case study
+              {L.caseStudy.badge}
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              The old way vs. the{" "}
-              <span className="text-primary">RepostAI</span> way
+              {L.caseStudy.titleBefore}{" "}
+              <span className="text-primary">{L.caseStudy.titleBrand}</span>{" "}
+              {L.caseStudy.titleAfter}
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Before & after: how much time creators save per piece of content
+              {L.caseStudy.subtitle}
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Before */}
             <Card className="border-destructive/30 bg-destructive/5">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="h-8 w-8 rounded-full bg-destructive/10 flex items-center justify-center">
                     <Clock className="h-4 w-4 text-destructive" />
                   </div>
-                  <h3 className="font-semibold text-lg">Without RepostAI</h3>
+                  <h3 className="font-semibold text-lg">{L.caseStudy.withoutTitle}</h3>
                 </div>
                 <ul className="space-y-3">
-                  {[
-                    "Write blog post (2 hours)",
-                    "Manually reformat for LinkedIn (30 min)",
-                    "Create Twitter thread from scratch (20 min)",
-                    "Write Instagram caption + hashtags (15 min)",
-                    "Draft email newsletter intro (15 min)",
-                    "Adapt for Facebook + Reddit (20 min)",
-                  ].map((item) => (
+                  {L.caseStudy.beforeList.map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm">
                       <span className="text-destructive mt-0.5">x</span>
                       <span className="text-muted-foreground">{item}</span>
@@ -486,32 +439,24 @@ export default function LandingPage() {
                 </ul>
                 <div className="mt-4 pt-4 border-t border-destructive/20">
                   <p className="text-sm font-medium">
-                    Total: <span className="text-destructive">3-4 hours</span>{" "}
-                    per piece of content
+                    {L.caseStudy.beforeTotal}{" "}
+                    <span className="text-destructive">{L.caseStudy.beforeHours}</span>{" "}
+                    {L.caseStudy.beforePer}
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            {/* After */}
             <Card className="border-primary/30 bg-primary/5 shadow-lg shadow-primary/5">
               <CardContent className="pt-6">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                     <Zap className="h-4 w-4 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-lg">With RepostAI</h3>
+                  <h3 className="font-semibold text-lg">{L.caseStudy.withTitle}</h3>
                 </div>
                 <ul className="space-y-3">
-                  {[
-                    "Generate blog with AI or paste existing (5–10 min)",
-                    "Paste into RepostAI (5 seconds)",
-                    "Select all platforms (3 seconds)",
-                    "Click 'Repurpose' (1 second)",
-                    "AI generates all 9 platforms (< 60 seconds)",
-                    "Post now with one click or schedule for later",
-                    "Copy & paste to each platform (2 min)",
-                  ].map((item) => (
+                  {L.caseStudy.afterList.map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm">
                       <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                       <span>{item}</span>
@@ -520,9 +465,9 @@ export default function LandingPage() {
                 </ul>
                 <div className="mt-4 pt-4 border-t border-primary/20">
                   <p className="text-sm font-medium">
-                    Total:{" "}
-                    <span className="text-primary font-bold">Under 3 minutes</span>{" "}
-                    for all platforms
+                    {L.caseStudy.afterTotal}{" "}
+                    <span className="text-primary font-bold">{L.caseStudy.afterHighlight}</span>{" "}
+                    {L.caseStudy.afterFor}
                   </p>
                 </div>
               </CardContent>
@@ -536,13 +481,13 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
             <Badge variant="secondary" className="mb-4">
-              Honest Comparison
+              {L.comparison.badge}
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              See how RepostAI stacks up
+              {L.comparison.title}
             </h2>
             <p className="text-muted-foreground text-lg">
-              We built what other tools should have been all along.
+              {L.comparison.subtitle}
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -550,37 +495,24 @@ export default function LandingPage() {
               <thead>
                 <tr>
                   <th className="text-left p-3 border-b font-medium text-muted-foreground">
-                    Feature
+                    {L.comparison.colFeature}
                   </th>
                   <th className="p-3 border-b font-bold bg-primary/5 border-x border-primary/20 text-primary">
-                    RepostAI
+                    {L.comparison.colUs}
                   </th>
                   <th className="p-3 border-b font-medium text-muted-foreground">
-                    Repurpose.io
+                    {L.comparison.colRep}
                   </th>
                   <th className="p-3 border-b font-medium text-muted-foreground">
-                    Lately AI
+                    {L.comparison.colLately}
                   </th>
                   <th className="p-3 border-b font-medium text-muted-foreground hidden sm:table-cell">
-                    Positiv
+                    {L.comparison.colPostiv}
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { feature: "AI Content Generation", us: true, rep: false, lately: true, postiv: true },
-                  { feature: "Post now (one-click publish)", us: true, rep: false, lately: true, postiv: true },
-                  { feature: "Scheduled posting", us: true, rep: false, lately: true, postiv: true },
-                  { feature: "Topic-to-Everywhere Flywheel", us: true, rep: false, lately: false, postiv: false },
-                  { feature: "Brand Voice Training", us: true, rep: false, lately: true, postiv: false },
-                  { feature: "9+ Text Platforms", us: true, rep: false, lately: true, postiv: false },
-                  { feature: "URL Auto-Scraping", us: true, rep: false, lately: false, postiv: true },
-                  { feature: "YouTube Transcription", us: true, rep: false, lately: false, postiv: false },
-                  { feature: "One-Click All Platforms", us: true, rep: false, lately: false, postiv: false },
-                  { feature: "Multi-Language (EN/HI/ES/PT/FR)", us: true, rep: false, lately: false, postiv: false },
-                  { feature: "Free Plan Available", us: true, rep: false, lately: false, postiv: false },
-                  { feature: "Starting Price", us: "$19/mo", rep: "$35/mo", lately: "$49/mo", postiv: "$99/mo" },
-                ].map((row) => (
+                {L.comparison.rows.map((row) => (
                   <tr key={row.feature} className="border-b last:border-0">
                     <td className="p-3 font-medium">{row.feature}</td>
                     <td className="p-3 text-center bg-primary/5 border-x border-primary/20">
@@ -640,35 +572,17 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <Badge variant="secondary" className="mb-4">
-              Dead Simple
+              {L.howItWorks.badge}
             </Badge>
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Three steps. 60 seconds. Done.
+              {L.howItWorks.title}
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             {[
-              {
-                step: "01",
-                icon: MousePointerClick,
-                title: "Paste Your Content",
-                description:
-                  "Drop in a blog URL, YouTube link, or paste any text. We handle the extraction automatically.",
-              },
-              {
-                step: "02",
-                icon: Sparkles,
-                title: "AI Repurposes It",
-                description:
-                  "Our AI generates platform-specific content for all 7+ platforms simultaneously. Brand voice included.",
-              },
-              {
-                step: "03",
-                icon: Copy,
-                title: "Copy, post now, or schedule",
-                description:
-                  "One-click copy, post directly to Twitter/LinkedIn, or schedule for later. We post for you automatically.",
-              },
+              { ...L.howItWorks.steps[0], icon: MousePointerClick },
+              { ...L.howItWorks.steps[1], icon: Sparkles },
+              { ...L.howItWorks.steps[2], icon: Copy },
             ].map((step, i) => (
               <div key={step.step} className="relative text-center">
                 {i < 2 && (
@@ -695,93 +609,41 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-16">
             <Badge variant="secondary" className="mb-4">
-              Built for Speed
+              {L.featuresSection.badge}
             </Badge>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
-              Everything you need. Nothing you don&apos;t.
+              {L.featuresSection.title}
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              No bloated feature lists. Just the tools that actually save you
-              time.
+              {L.featuresSection.subtitle}
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Zap,
-                title: "60-Second Generation",
-                description:
-                  "All platforms generated simultaneously. No waiting in queues.",
-              },
-              {
-                icon: Globe,
-                title: "9+ Platforms",
-                description:
-                  "LinkedIn, Twitter/X threads, Instagram, Facebook, Email, Reddit, TikTok, and WhatsApp Status — all at once.",
-              },
-              {
-                icon: Sparkles,
-                title: "Brand Voice Training",
-                description:
-                  "Feed it your writing samples. Output sounds like you, not ChatGPT.",
-              },
-              {
-                icon: LinkIcon,
-                title: "URL Auto-Scraping",
-                description:
-                  "Paste a blog URL. We extract the content automatically.",
-              },
-              {
-                icon: Youtube,
-                title: "YouTube Transcription",
-                description:
-                  "Paste a YouTube link. We grab the transcript and repurpose it.",
-              },
-              {
-                icon: Copy,
-                title: "One-Click Copy",
-                description:
-                  "Copy any output instantly. Edit inline if needed. Regenerate per platform.",
-              },
-              {
-                icon: Send,
-                title: "Post now",
-                description:
-                  "Connect Twitter or LinkedIn and publish directly from RepostAI. One click to post — no copy-paste.",
-              },
-              {
-                icon: CalendarClock,
-                title: "Schedule posts",
-                description:
-                  "Set a date and time; we post for you automatically. Perfect for queues and consistent publishing.",
-              },
-              {
-                icon: Wand2,
-                title: "AI Content Starter",
-                description:
-                  "Don't have a blog post? Tell us your topic, tone, and audience — AI writes a full draft, then auto-repurposes it everywhere.",
-              },
-              {
-                icon: Globe,
-                title: "Multi-Language Output",
-                description:
-                  "Generate content in English, Hindi, or Spanish. Reach global audiences competitors can't.",
-              },
-              {
-                icon: Plug,
-                title: "Publish to 1000+ apps",
-                description:
-                  "Connect via Zapier: 1-click publish to LinkedIn, Twitter, Instagram, schedule posts, and auto-post with API to your whole stack.",
-              },
-            ].map((feature) => {
-              const isIntegrations = feature.title.startsWith("Publish to 1000+");
+            {(
+              [
+                ["speed", Zap],
+                ["platforms", Globe],
+                ["brandVoice", Sparkles],
+                ["url", LinkIcon],
+                ["youtube", Youtube],
+                ["copy", Copy],
+                ["postNow", Send],
+                ["schedule", CalendarClock],
+                ["starter", Wand2],
+                ["multilang", Globe],
+                ["integrations", Plug],
+              ] as const
+            ).map(([id, Icon]) => {
+              const feature = L.featuresSection.items.find((f) => f.id === id);
+              if (!feature) return null;
+              const isIntegrations = id === "integrations";
               const card = (
                 <Card
                   className={`group hover:shadow-md hover:border-primary/30 transition-all duration-300 ${isIntegrations ? "cursor-pointer" : ""}`}
                 >
                   <CardContent className="pt-6">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/15 transition-colors">
-                      <feature.icon className="h-5 w-5 text-primary" />
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
                     <h3 className="font-semibold mb-1.5">{feature.title}</h3>
                     <p className="text-sm text-muted-foreground">
@@ -789,18 +651,19 @@ export default function LandingPage() {
                     </p>
                     {isIntegrations && (
                       <span className="inline-flex items-center gap-1 text-sm text-primary font-medium mt-3 hover:underline">
-                        Integrations <ArrowRight className="h-3.5 w-3.5" />
+                        {L.featuresSection.integrationsLink}{" "}
+                        <ArrowRight className="h-3.5 w-3.5" />
                       </span>
                     )}
                   </CardContent>
                 </Card>
               );
               return isIntegrations ? (
-                <Link href="/integrations" key={feature.title}>
+                <Link href="/integrations" key={id}>
                   {card}
                 </Link>
               ) : (
-                <div key={feature.title}>{card}</div>
+                <div key={id}>{card}</div>
               );
             })}
           </div>
@@ -811,16 +674,15 @@ export default function LandingPage() {
       <section className="py-20 bg-muted/30">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            One input. Nine platforms. Zero effort.
+            {L.platformsSection.title}
           </h2>
           <p className="text-muted-foreground text-lg mb-12">
-            Each output is crafted for that specific platform&apos;s audience and
-            format.
+            {L.platformsSection.subtitle}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {PLATFORMS.map((platform) => (
+            {PLATFORM_ICONS.map((platform, idx) => (
               <Card
-                key={platform.name}
+                key={idx}
                 className="group hover:shadow-md hover:border-primary/30 transition-all"
               >
                 <CardContent className="py-5 text-center">
@@ -829,7 +691,9 @@ export default function LandingPage() {
                   >
                     <platform.icon className="h-5 w-5 text-white" />
                   </div>
-                  <p className="font-medium text-sm">{platform.name}</p>
+                  <p className="font-medium text-sm">
+                    {L.platformsSection.names[idx]}
+                  </p>
                 </CardContent>
               </Card>
             ))}
@@ -842,11 +706,11 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Built for people who create content
+              {L.useCasesSection.title}
             </h2>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {USE_CASES.map((uc) => (
+            {L.useCasesSection.items.map((uc) => (
               <Card key={uc.title} className="hover:shadow-md transition-shadow">
                 <CardContent className="pt-6">
                   <h3 className="text-base font-semibold mb-2">{uc.title}</h3>
@@ -866,18 +730,18 @@ export default function LandingPage() {
           <div className="mb-16">
             <div className="text-center mb-4">
               <Badge variant="secondary" className="mb-4">
-                Transparent, regional-friendly pricing
+                {L.pricingSection.badge}
               </Badge>
               <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-                Start free. Scale when ready.
+                {L.pricingSection.title}
               </h2>
               <p className="text-muted-foreground text-lg">
-                No hidden fees. No surprises. Cancel anytime.
+                {L.pricingSection.subtitle}
               </p>
             </div>
-            <div className="flex justify-center">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                Market region:
+                {L.pricingMarketLabel}
                 <select
                   value={pricingRegion}
                   onChange={(e) => setPricingRegion(e.target.value)}
@@ -885,58 +749,100 @@ export default function LandingPage() {
                 >
                   {PRICING_REGIONS.map((r) => (
                     <option key={r.id} value={r.id}>
-                      {r.label}
+                      {L.pricingRegions[r.id]}
                     </option>
                   ))}
                 </select>
               </label>
+              <div className="inline-flex rounded-lg border p-1 bg-muted/40">
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle("monthly")}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    billingCycle === "monthly"
+                      ? "bg-background shadow text-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {L.pricingSection.billingMonthly}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setBillingCycle("yearly")}
+                  className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                    billingCycle === "yearly"
+                      ? "bg-background shadow text-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {L.pricingSection.billingYearly}
+                </button>
+              </div>
             </div>
           </div>
           <div className="grid md:grid-cols-3 gap-6 items-start">
-            {Object.values(PLANS).map((plan) => (
+            {Object.values(PLANS).map((plan) => {
+              const hasAnnual = "annualPrice" in plan && plan.monthlyPrice > 0;
+              const displayPrice =
+                plan.monthlyPrice === 0
+                  ? 0
+                  : billingCycle === "yearly" && hasAnnual
+                    ? Math.round(plan.annualPrice / 12)
+                    : plan.monthlyPrice;
+              const perDay =
+                displayPrice > 0 ? (displayPrice / 30).toFixed(2) : "0";
+              return (
               <Card
                 key={plan.name}
-                className={`relative transition-all ${plan.name === "Pro" ? "border-primary shadow-xl shadow-primary/10 scale-[1.03] z-10" : "hover:shadow-md"}`}
+                className={`relative transition-all ${plan.name === "Pro" ? "border-primary shadow-xl shadow-primary/10 bg-gradient-to-b from-primary/5 to-transparent md:scale-[1.03] z-10" : "hover:shadow-md"}`}
               >
                 {plan.name === "Pro" && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 shadow-sm">
-                    Most Popular
+                    {L.pricingSection.mostPopular}
                   </Badge>
                 )}
                 <CardContent className="pt-8 pb-6">
                   <h3 className="text-lg font-bold mb-1">{plan.name}</h3>
                   <p className="text-xs text-muted-foreground mb-4">
-                    {plan.name === "Free"
-                      ? "For trying it out"
-                      : plan.name === "Pro"
-                        ? "For serious creators"
-                        : "For agencies & teams"}
+                    {L.plans[plan.name as keyof typeof L.plans].subtitle}
                   </p>
                   <div className="mb-6">
                     <span className="text-4xl font-bold">
                       {pricingSymbol}
-                      {plan.monthlyPrice}
+                      {displayPrice}
                     </span>
                     {plan.monthlyPrice > 0 && (
                       <span className="text-muted-foreground text-sm">
-                        /month
+                        {L.pricingSection.perMonth}
                       </span>
                     )}
                     {plan.monthlyPrice > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
-                        That&apos;s just {pricingSymbol}
-                        {(plan.monthlyPrice / 30).toFixed(2)}/day
+                        {L.pricingSection.perDayPrefix} {pricingSymbol}
+                        {perDay}
+                        {L.pricingSection.perDaySuffix}
                       </p>
                     )}
-                    {"annualPrice" in plan && (
+                    {hasAnnual && billingCycle === "yearly" && (
                       <p className="text-xs text-primary mt-0.5">
-                        or {pricingSymbol}
-                        {plan.annualPrice}/mo billed annually (save 20%)
+                        {pf(L.pricingSection.billedYearlyTotal, {
+                          symbol: pricingSymbol,
+                          total: plan.annualPrice,
+                        })}
+                      </p>
+                    )}
+                    {hasAnnual && billingCycle === "monthly" && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {pf(L.pricingSection.saveVsMonthly, {
+                          symbol: pricingSymbol,
+                          save: plan.monthlyPrice * 12 - plan.annualPrice,
+                        })}
                       </p>
                     )}
                   </div>
                   <ul className="space-y-2.5 mb-8">
-                    {plan.features.map((feature) => (
+                    {L.plans[plan.name as keyof typeof L.plans].features.map(
+                      (feature) => (
                       <li key={feature} className="flex items-start gap-2">
                         <Check className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         <span className="text-sm">{feature}</span>
@@ -950,10 +856,24 @@ export default function LandingPage() {
                       size="lg"
                     >
                       {plan.monthlyPrice === 0
-                        ? "Start Free"
-                        : `Get ${plan.name}`}
+                        ? L.pricingSection.ctaFree
+                        : pf(L.pricingSection.ctaPaid, { plan: plan.name })}
                     </Button>
                   </Link>
+                </CardContent>
+              </Card>
+            );
+            })}
+          </div>
+          <div className="mt-16 grid sm:grid-cols-3 gap-6">
+            {L.testimonials.slice(0, 3).map((item, i) => (
+              <Card key={i} className="border-muted-foreground/15 bg-background/60">
+                <CardContent className="pt-6">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    &ldquo;{item.quote}&rdquo;
+                  </p>
+                  <p className="text-xs font-medium mt-3">{item.attribution}</p>
+                  <p className="text-xs text-primary mt-0.5">{item.beforeAfter}</p>
                 </CardContent>
               </Card>
             ))}
@@ -970,9 +890,9 @@ export default function LandingPage() {
                 <Shield className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-sm">14-Day Money Back</p>
+                <p className="font-semibold text-sm">{L.trust.moneyTitle}</p>
                 <p className="text-xs text-muted-foreground">
-                  Not happy? Full refund, no questions asked.
+                  {L.trust.moneySub}
                 </p>
               </div>
             </div>
@@ -982,9 +902,9 @@ export default function LandingPage() {
                 <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-sm">Free Forever Plan</p>
+                <p className="font-semibold text-sm">{L.trust.freeTitle}</p>
                 <p className="text-xs text-muted-foreground">
-                  No credit card required to start.
+                  {L.trust.freeSub}
                 </p>
               </div>
             </div>
@@ -994,9 +914,9 @@ export default function LandingPage() {
                 <TrendingUp className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="text-left">
-                <p className="font-semibold text-sm">5 Languages</p>
+                <p className="font-semibold text-sm">{L.trust.langTitle}</p>
                 <p className="text-xs text-muted-foreground">
-                  English, Hindi, Spanish, Portuguese, and French.
+                  {L.trust.langSub}
                 </p>
               </div>
             </div>
@@ -1012,45 +932,25 @@ export default function LandingPage() {
             <div className="relative">
               <div className="flex items-center gap-4 mb-6">
                 <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center text-white text-xl font-bold">
-                  A
+                  {L.founder.avatarLetter}
                 </div>
                 <div>
-                  <p className="font-bold text-lg">Hey, I&apos;m the founder</p>
+                  <p className="font-bold text-lg">{L.founder.title}</p>
                   <p className="text-sm text-muted-foreground">
-                    Solo builder, content creator
+                    {L.founder.role}
                   </p>
                 </div>
               </div>
               <div className="space-y-4 text-sm leading-relaxed text-muted-foreground">
-                <p>
-                  I built RepostAI because I was tired of the same problem every
-                  creator faces: you spend hours writing one great blog post, then
-                  spend MORE hours reformatting it for LinkedIn, Twitter, Instagram,
-                  and email. It&apos;s exhausting.
-                </p>
-                <p>
-                  I tried every tool out there. Repurpose.io only does video
-                  distribution — no AI, no text creation. Lately AI costs $49+/month
-                  and is built for enterprises. Most &quot;AI tools&quot; just wrap
-                  ChatGPT and produce generic slop that sounds nothing like you.
-                </p>
-                <p>
-                  So I built what I actually wanted:{" "}
-                  <span className="text-foreground font-medium">
-                    paste your content, pick your platforms, get platform-native posts
-                    that sound like YOU — in 60 seconds, for $19/month.
-                  </span>
-                </p>
-                <p>
-                  No VC funding. No bloated team. Just one developer building the
-                  tool I wish existed. Every feature request goes straight to me, and
-                  I ship weekly.
-                </p>
+                <p>{L.founder.p1}</p>
+                <p>{L.founder.p2}</p>
+                <p className="text-foreground font-medium">{L.founder.p3}</p>
+                <p>{L.founder.p4}</p>
               </div>
               <div className="flex items-center gap-2 mt-6 pt-6 border-t">
                 <Heart className="h-4 w-4 text-primary" />
                 <p className="text-sm text-muted-foreground">
-                  Built with care. Shipped with speed.
+                  {L.founder.footer}
                 </p>
               </div>
             </div>
@@ -1063,11 +963,11 @@ export default function LandingPage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Frequently asked questions
+              {L.faqTitle}
             </h2>
           </div>
           <div className="space-y-4">
-            {FAQ_ITEMS.map((item) => (
+            {L.faq.map((item) => (
               <details key={item.q} className="group">
                 <summary className="flex items-center justify-between cursor-pointer list-none p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
                   <span className="font-medium text-sm pr-4">{item.q}</span>
@@ -1090,19 +990,18 @@ export default function LandingPage() {
         <div className="absolute inset-0 grid-pattern opacity-10" />
         <div className="relative max-w-3xl mx-auto px-4 text-center text-primary-foreground">
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Ready to repurpose smarter?
+            {L.finalCta.title}
           </h2>
           <p className="text-lg opacity-90 mb-8 max-w-xl mx-auto">
-            Join creators who save 5+ hours every week. Start with 5 free
-            repurposes today.
+            {L.finalCta.subtitle}
           </p>
           <Link href="/signup">
             <Button size="lg" variant="secondary" className="text-base px-8 shadow-lg">
-              Get Started Free <ArrowRight className="ml-2 h-5 w-5" />
+              {L.finalCta.button} <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
           <p className="text-sm opacity-70 mt-4">
-            No credit card required. Upgrade anytime.
+            {L.finalCta.footnote}
           </p>
         </div>
       </section>
@@ -1116,48 +1015,47 @@ export default function LandingPage() {
                 <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
                   <Zap className="h-3.5 w-3.5 text-primary-foreground" />
                 </div>
-                <span className="font-bold">RepostAI</span>
+                <span className="font-bold">{t("brandName")}</span>
               </div>
               <p className="text-sm text-muted-foreground max-w-xs">
-                AI-powered content repurposing. One post, every platform, under
-                60 seconds.
+                {L.footer.tagline}
               </p>
             </div>
             <div>
-              <p className="font-medium text-sm mb-3">Product</p>
+              <p className="font-medium text-sm mb-3">{L.footer.product}</p>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <a href="#features" className="block hover:text-foreground transition-colors">
-                  Features
+                  {L.footer.features}
                 </a>
                 <Link href="/integrations" className="block hover:text-foreground transition-colors">
-                  Integrations
+                  {L.footer.integrations}
                 </Link>
                 <a href="#pricing" className="block hover:text-foreground transition-colors">
-                  Pricing
+                  {L.footer.pricing}
                 </a>
                 <a href="#faq" className="block hover:text-foreground transition-colors">
-                  FAQ
+                  {L.footer.faq}
                 </a>
               </div>
             </div>
             <div>
-              <p className="font-medium text-sm mb-3">Legal</p>
+              <p className="font-medium text-sm mb-3">{L.footer.legal}</p>
               <div className="space-y-2 text-sm text-muted-foreground">
                 <a href="/privacy" className="block hover:text-foreground transition-colors">
-                  Privacy Policy
+                  {L.footer.privacy}
                 </a>
                 <a href="/terms" className="block hover:text-foreground transition-colors">
-                  Terms of Service
+                  {L.footer.terms}
                 </a>
                 <a href={`mailto:${SUPPORT_EMAIL}`} className="block hover:text-foreground transition-colors">
-                  Contact
+                  {L.footer.contact}
                 </a>
               </div>
             </div>
           </div>
           <Separator className="mb-6" />
           <p className="text-xs text-muted-foreground text-center">
-            &copy; {new Date().getFullYear()} RepostAI. All rights reserved.
+            &copy; {new Date().getFullYear()} {L.footer.copyright}
           </p>
         </div>
       </footer>

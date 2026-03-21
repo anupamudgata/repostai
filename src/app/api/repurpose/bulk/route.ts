@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { repurposeContent } from "@/lib/ai/openai";
+import { repurposeContentForTier } from "@/lib/ai/openai";
 import { scrapeUrl } from "@/lib/scrapers/url-scraper";
-import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS, SUPERUSER_EMAIL } from "@/config/constants";
 import { addFreeTierWatermark } from "@/lib/watermark";
 import { notifyZapier } from "@/lib/zapier/notify";
 import type { Platform } from "@/types";
+import {
+  getEffectivePlan,
+  getEntitlements,
+} from "@/lib/billing/plan-entitlements";
 
 const MAX_BULK_URLS = 5;
 const MIN_BULK_URLS = 2;
@@ -37,8 +40,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const isSuperUser = user.email === SUPERUSER_EMAIL;
-
     const body = await request.json();
     const urlsRaw = body.urls as string | string[] | undefined;
     const platforms = body.platforms as Platform[] | undefined;
@@ -67,27 +68,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Select at least one platform" }, { status: 400 });
     }
 
+    const { plan: effectivePlan, isSuperUser } = await getEffectivePlan(
+      supabase,
+      user.id,
+      user.email
+    );
+    const entitlements = getEntitlements(effectivePlan);
+    const isFreePlan = effectivePlan === "free" && !isSuperUser;
+
     const { data: profile } = await supabase
       .from("profiles")
-      .select("plan, zapier_webhook_url")
+      .select("zapier_webhook_url")
       .eq("id", user.id)
       .single();
 
-    const isFreePlan = !isSuperUser && (profile?.plan === "free" || !profile?.plan);
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const { data: usage } = await supabase
+      .from("usage")
+      .select("repurpose_count")
+      .eq("user_id", user.id)
+      .eq("month", currentMonth)
+      .single();
 
-    if (isFreePlan) {
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const { data: usage } = await supabase
-        .from("usage")
-        .select("repurpose_count")
-        .eq("user_id", user.id)
-        .eq("month", currentMonth)
-        .single();
-
-      if (Number.isFinite(FREE_TIER_MONTHLY_LIMIT) && usage && usage.repurpose_count >= FREE_TIER_MONTHLY_LIMIT) {
+    const used = usage?.repurpose_count ?? 0;
+    const jobsCount = validUrls.length;
+    if (!isSuperUser && entitlements.repurposesPerMonth != null) {
+      if (used + jobsCount > entitlements.repurposesPerMonth) {
         return NextResponse.json(
           {
-            error: `Free plan limit reached (${FREE_TIER_MONTHLY_LIMIT}/month). Upgrade to Pro for unlimited.`,
+            error: `Not enough monthly repurposes left (${entitlements.repurposesPerMonth - used} remaining, ${jobsCount} URLs requested). Upgrade for more.`,
             code: "LIMIT_REACHED",
           },
           { status: 403 }
@@ -96,13 +105,16 @@ export async function POST(request: NextRequest) {
     }
 
     let allowedPlatforms = platforms;
-    if (isFreePlan) {
-      allowedPlatforms = platforms.filter((p) =>
-        (FREE_PLATFORM_IDS as readonly string[]).includes(p)
-      );
+    if (entitlements.allowedPlatformIds) {
+      const allow = entitlements.allowedPlatformIds as readonly string[];
+      allowedPlatforms = platforms.filter((p) => allow.includes(p));
       if (allowedPlatforms.length === 0) {
         return NextResponse.json(
-          { error: "Free plan: LinkedIn, Twitter/X, Email only. Upgrade for more." },
+          {
+            error:
+              "Your plan includes LinkedIn, Twitter/X, and Instagram only. Upgrade for more platforms.",
+            code: "PLAN_LIMIT",
+          },
           { status: 403 }
         );
       }
@@ -148,12 +160,33 @@ export async function POST(request: NextRequest) {
       if (allowedPlatforms.length >= BATCH_THRESHOLD) {
         const mid = Math.ceil(allowedPlatforms.length / 2);
         const [r1, r2] = await Promise.all([
-          repurposeContent(resolvedContent, allowedPlatforms.slice(0, mid) as Platform[], brandVoiceSample, outputLanguage as "en", userIntent, contentAngle, hookMode, authenticityTuning),
-          repurposeContent(resolvedContent, allowedPlatforms.slice(mid) as Platform[], brandVoiceSample, outputLanguage as "en", userIntent, contentAngle, hookMode, authenticityTuning),
+          repurposeContentForTier(
+            entitlements.aiTier,
+            resolvedContent,
+            allowedPlatforms.slice(0, mid) as Platform[],
+            brandVoiceSample,
+            outputLanguage as "en",
+            userIntent,
+            contentAngle,
+            hookMode,
+            authenticityTuning
+          ),
+          repurposeContentForTier(
+            entitlements.aiTier,
+            resolvedContent,
+            allowedPlatforms.slice(mid) as Platform[],
+            brandVoiceSample,
+            outputLanguage as "en",
+            userIntent,
+            contentAngle,
+            hookMode,
+            authenticityTuning
+          ),
         ]);
         outputs = { ...r1, ...r2 };
       } else {
-        outputs = await repurposeContent(
+        outputs = await repurposeContentForTier(
+          entitlements.aiTier,
           resolvedContent,
           allowedPlatforms as Platform[],
           brandVoiceSample,
@@ -191,6 +224,11 @@ export async function POST(request: NextRequest) {
         }));
         await supabase.from("repurpose_outputs").insert(outputRows);
 
+        await supabase.rpc("increment_usage", {
+          p_user_id: user.id,
+          p_month: currentMonth,
+        });
+
         notifyZapier(profile?.zapier_webhook_url, {
           jobId: job.id,
           sourceUrl,
@@ -208,12 +246,6 @@ export async function POST(request: NextRequest) {
         });
       }
     }
-
-    const currentMonth = new Date().toISOString().slice(0, 7);
-    await supabase.rpc("increment_usage", {
-      p_user_id: user.id,
-      p_month: currentMonth,
-    });
 
     const totalOutputs = sources.reduce((sum, s) => sum + s.outputs.length, 0);
 

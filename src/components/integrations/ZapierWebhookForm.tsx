@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Zap } from "lucide-react";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 
 export function ZapierWebhookForm() {
+  const toastT = useAppToast();
   const [url, setUrl] = useState("");
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +38,7 @@ export function ZapierWebhookForm() {
   async function handleSave() {
     const trimmed = url.trim();
     if (trimmed && (!trimmed.startsWith("https://") || trimmed.length > 500)) {
-      toast.error("Please enter a valid HTTPS URL (max 500 characters).");
+      toastT.error("toast.invalidWebhookUrl");
       return;
     }
     setSaving(true);
@@ -51,13 +52,18 @@ export function ZapierWebhookForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Could not save");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.couldNotSave"
+        );
         return;
       }
       setSavedUrl(trimmed || null);
-      toast.success(trimmed ? "Webhook URL saved. New repurposes will be sent to Zapier." : "Webhook URL cleared.");
+      toastT.success(
+        trimmed ? "toast.webhookSaved" : "toast.webhookCleared"
+      );
     } catch {
-      toast.error("Something went wrong");
+      toastT.error("toast.genericError");
     } finally {
       setSaving(false);
     }

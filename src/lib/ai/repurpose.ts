@@ -1,6 +1,6 @@
 import { openai } from "./client";
 import { buildExtractorPrompt }    from "@/lib/ai/prompts/extractor";
-import { buildBrandVoicePrompt }   from "@/lib/ai/prompts/brand-voice";
+import { generateBrandVoicePersona } from "@/lib/ai/brand-voice-persona";
 import {
   buildLinkedInPrompt,
   buildTwitterThreadPrompt,
@@ -12,8 +12,13 @@ import {
 } from "@/lib/ai/prompts/platforms";
 import { buildBatchQualityCheckerPrompt } from "@/lib/ai/prompts/quality-checker";
 import type {
-  Platform, Language, ContentBrief, PlatformOutput,
-  RepurposeRequest, RepurposeResult,
+  Platform,
+  Language,
+  ContentBrief,
+  PlatformOutput,
+  RepurposeRequest,
+  RepurposeResult,
+  BrandVoice,
 } from "@/lib/ai/types";
 import { captureError } from "@/lib/sentry";
 
@@ -32,12 +37,15 @@ export async function extractBrief(content: string): Promise<ContentBrief> {
   }
 }
 
-export async function extractBrandVoicePersona(samples: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: MODEL, temperature: 0.4,
-    messages: [{ role: "user", content: buildBrandVoicePrompt(samples) }],
-  });
-  return response.choices[0]?.message?.content ?? "";
+export async function extractBrandVoicePersona(
+  samples: string,
+  voice?: Pick<
+    BrandVoice,
+    "humanization_level" | "imperfection_mode" | "personal_story_injection"
+  >
+): Promise<string> {
+  const { text } = await generateBrandVoicePersona(samples, voice);
+  return text;
 }
 
 async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
@@ -110,7 +118,9 @@ export async function repurposeContent(req: RepurposeRequest): Promise<Repurpose
 
   let voicePersona: string | null = null;
   if (req.brandVoice?.samples) {
-    voicePersona = req.brandVoice.persona ?? await extractBrandVoicePersona(req.brandVoice.samples);
+    voicePersona =
+      req.brandVoice.persona ??
+      (await extractBrandVoicePersona(req.brandVoice.samples, req.brandVoice));
   }
 
   const agentResults = await Promise.allSettled(

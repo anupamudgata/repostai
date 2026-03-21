@@ -1,6 +1,15 @@
-import { redirect } from "next/navigation";
+"use client";
 
-/** Redirect /pricing to landing page pricing section */
+import { useEffect } from "react";
+
+/** Client redirect so hash #pricing works (server redirect() drops fragments). */
 export default function PricingPage() {
-  redirect("/#pricing");
+  useEffect(() => {
+    window.location.replace("/#pricing");
+  }, []);
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+      Taking you to pricing…
+    </div>
+  );
 }

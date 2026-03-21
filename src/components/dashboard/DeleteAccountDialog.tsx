@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 interface DeleteAccountDialogProps {
   open: boolean;
@@ -39,7 +40,14 @@ export function DeleteAccountDialog({ open, onClose }: DeleteAccountDialogProps)
     <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.5)" }}>
       <div style={{ background: "#fff", borderRadius: "16px", padding: "28px", maxWidth: "440px", width: "100%", boxShadow: "0 10px 40px rgba(0,0,0,.15)" }}>
         <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#DC2626", marginBottom: "8px" }}>Delete your account</h2>
-        <p style={{ fontSize: "13px", color: "#6B7280", lineHeight: 1.6, marginBottom: "16px" }}>This will permanently delete your account, all data, and cancel any active subscriptions. This action cannot be undone.</p>
+        <p style={{ fontSize: "13px", color: "#6B7280", lineHeight: 1.6, marginBottom: "10px" }}>This will permanently delete your account, all data, and cancel any active subscriptions. This action cannot be undone.</p>
+        <p style={{ fontSize: "12px", color: "#6B7280", lineHeight: 1.5, marginBottom: "16px" }}>
+          Prefer a confirmation email first?{" "}
+          <Link href="/dashboard/settings/delete" style={{ color: "#2563EB", fontWeight: 600 }} onClick={onClose}>
+            Use the full delete page
+          </Link>
+          .
+        </p>
         <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "6px" }}>Type <strong>DELETE MY ACCOUNT</strong> to confirm:</label>
         <input
           type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} disabled={status === "deleting"}

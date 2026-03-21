@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { repurposeContent } from "@/lib/ai/openai";
+import { repurposeContentForTier } from "@/lib/ai/openai";
 import { scrapeUrl } from "@/lib/scrapers/url-scraper";
 import { getYouTubeTranscript } from "@/lib/scrapers/youtube-scraper";
 import { repurposeSchema } from "@/lib/validators/repurpose";
-import { FREE_TIER_MONTHLY_LIMIT, FREE_PLATFORM_IDS, SUPPORTED_PLATFORMS, SUPERUSER_EMAIL } from "@/config/constants";
+import { SUPPORTED_PLATFORMS } from "@/config/constants";
 import { addFreeTierWatermark } from "@/lib/watermark";
 import { notifyZapier } from "@/lib/zapier/notify";
 import { getCachedRepurposeOutputs, setCachedRepurposeOutputs } from "@/lib/redis";
+import {
+  getEffectivePlan,
+  getEntitlements,
+} from "@/lib/billing/plan-entitlements";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,8 +23,6 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    const isSuperUser = user.email === SUPERUSER_EMAIL;
 
     const body = await request.json();
     const parsed = repurposeSchema.safeParse(body);
@@ -34,29 +36,34 @@ export async function POST(request: NextRequest) {
 
     const { inputType, content, url, platforms, brandVoiceId, outputLanguage, userIntent, contentAngle, hookMode } = parsed.data;
 
-    // Check usage limits for free users (and Zapier webhook for post-completion notify)
+    const { plan: effectivePlan, isSuperUser } = await getEffectivePlan(
+      supabase,
+      user.id,
+      user.email
+    );
+    const entitlements = getEntitlements(effectivePlan);
+    const isFreePlan = effectivePlan === "free" && !isSuperUser;
+
     const { data: profile } = await supabase
       .from("profiles")
-      .select("plan, zapier_webhook_url")
+      .select("zapier_webhook_url")
       .eq("id", user.id)
       .single();
 
-    const isFreePlan =
-      !isSuperUser && (profile?.plan === "free" || !profile?.plan);
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const { data: usage } = await supabase
+      .from("usage")
+      .select("repurpose_count")
+      .eq("user_id", user.id)
+      .eq("month", currentMonth)
+      .single();
 
-    if (isFreePlan) {
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const { data: usage } = await supabase
-        .from("usage")
-        .select("repurpose_count")
-        .eq("user_id", user.id)
-        .eq("month", currentMonth)
-        .single();
-
-      if (Number.isFinite(FREE_TIER_MONTHLY_LIMIT) && usage && usage.repurpose_count >= FREE_TIER_MONTHLY_LIMIT) {
+    const used = usage?.repurpose_count ?? 0;
+    if (!isSuperUser && entitlements.repurposesPerMonth != null) {
+      if (used >= entitlements.repurposesPerMonth) {
         return NextResponse.json(
           {
-            error: `Free plan limit reached (${FREE_TIER_MONTHLY_LIMIT}/month). Upgrade to Pro for unlimited repurposes.`,
+            error: `Monthly repurpose limit reached (${entitlements.repurposesPerMonth}). Upgrade for more.`,
             code: "LIMIT_REACHED",
           },
           { status: 403 }
@@ -64,23 +71,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Enforce platform limits for free users
     let allowedPlatforms = platforms;
-    if (isFreePlan) {
-      allowedPlatforms = platforms.filter((p) =>
-        (FREE_PLATFORM_IDS as readonly string[]).includes(p)
-      );
+    if (entitlements.allowedPlatformIds) {
+      const allow = entitlements.allowedPlatformIds as readonly string[];
+      allowedPlatforms = platforms.filter((p) => allow.includes(p));
       if (allowedPlatforms.length === 0) {
         return NextResponse.json(
           {
             error:
-              "Free plan includes LinkedIn, Twitter/X, and Email only. Upgrade to Pro for Instagram, Facebook, and Reddit.",
+              "Your plan includes LinkedIn, Twitter/X, and Instagram only. Upgrade to Pro for all platforms.",
             code: "PLAN_LIMIT",
           },
           { status: 403 }
         );
       }
     }
+
+    const cacheTierKey = entitlements.aiTier === "premium" ? "prem" : "std";
 
     // Resolve content from different input types
     let resolvedContent = content;
@@ -142,7 +149,8 @@ export async function POST(request: NextRequest) {
       contentToSave,
       allowedPlatforms,
       outputLanguage,
-      brandVoiceId || null
+      brandVoiceId || null,
+      cacheTierKey
     );
     if (cachedOutputs && Object.keys(cachedOutputs).length > 0) {
       const outputsToUse = isFreePlan ? addFreeTierWatermark(cachedOutputs) : cachedOutputs;
@@ -165,7 +173,6 @@ export async function POST(request: NextRequest) {
           generated_content: generatedContent,
         }));
         await supabase.from("repurpose_outputs").insert(outputRows);
-        const currentMonth = new Date().toISOString().slice(0, 7);
         await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
         notifyZapier(profile?.zapier_webhook_url, {
           jobId: job.id,
@@ -238,12 +245,33 @@ export async function POST(request: NextRequest) {
       const batch1 = allowedPlatforms.slice(0, mid);
       const batch2 = allowedPlatforms.slice(mid);
       const [result1, result2] = await Promise.all([
-        repurposeContent(resolvedContent, batch1, brandVoiceSample, outputLanguage, userIntent, contentAngle, hookMode, authenticityTuning),
-        repurposeContent(resolvedContent, batch2, brandVoiceSample, outputLanguage, userIntent, contentAngle, hookMode, authenticityTuning),
+        repurposeContentForTier(
+          entitlements.aiTier,
+          resolvedContent,
+          batch1,
+          brandVoiceSample,
+          outputLanguage,
+          userIntent,
+          contentAngle,
+          hookMode,
+          authenticityTuning
+        ),
+        repurposeContentForTier(
+          entitlements.aiTier,
+          resolvedContent,
+          batch2,
+          brandVoiceSample,
+          outputLanguage,
+          userIntent,
+          contentAngle,
+          hookMode,
+          authenticityTuning
+        ),
       ]);
       outputs = { ...result1, ...result2 };
     } else {
-      outputs = await repurposeContent(
+      outputs = await repurposeContentForTier(
+        entitlements.aiTier,
         resolvedContent,
         allowedPlatforms,
         brandVoiceSample,
@@ -261,7 +289,8 @@ export async function POST(request: NextRequest) {
       allowedPlatforms,
       outputLanguage,
       brandVoiceId || null,
-      outputs
+      outputs,
+      cacheTierKey
     );
 
     // Add watermark for free users (Pro removes it)
@@ -328,7 +357,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const currentMonth = new Date().toISOString().slice(0, 7);
     await supabase.rpc("increment_usage", {
       p_user_id: user.id,
       p_month: currentMonth,

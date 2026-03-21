@@ -17,7 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 import type { Platform } from "@/types";
 
 type ScheduleItem = {
@@ -35,6 +35,7 @@ const ENGAGEMENT_PROMPTS = [
 ];
 
 export default function AgentPage() {
+  const toastT = useAppToast();
   const [url, setUrl] = useState("");
   const [step, setStep] = useState<"url" | "plan" | "generating" | "scheduling" | "done">("url");
   const [loading, setLoading] = useState(false);
@@ -47,7 +48,7 @@ export default function AgentPage() {
 
   async function handleAnalyze() {
     if (!url.trim()) {
-      toast.error("Enter a blog URL");
+      toastT.error("toast.enterBlogUrl");
       return;
     }
     setLoading(true);
@@ -58,24 +59,29 @@ export default function AgentPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim() }),
       });
-      let data: { error?: string; schedule?: ScheduleItem[]; contentPreview?: string };
+      let data: {
+        error?: string;
+        code?: string;
+        schedule?: ScheduleItem[];
+        contentPreview?: string;
+      };
       try {
         data = await res.json();
       } catch {
         setError("Invalid response from server. Please try again.");
-        toast.error("Could not read server response");
+        toastT.error("toast.couldNotReadResponse");
         return;
       }
       if (!res.ok) {
         const errMsg = data.error || "Could not analyze this URL";
         setError(errMsg);
-        toast.error(errMsg);
+        toastT.errorFromApi({ error: errMsg, code: data.code });
         return;
       }
       const scheduleData = data.schedule ?? [];
       if (scheduleData.length === 0) {
         setError("No platforms suggested. The URL may be inaccessible, behind a paywall, or the content couldn't be extracted. Try a publicly accessible blog URL.");
-        toast.error("No content plan generated");
+        toastT.error("toast.noContentPlan");
         return;
       }
       setSchedule(scheduleData);
@@ -84,7 +90,7 @@ export default function AgentPage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Network error. Please check your connection and try again.";
       setError(msg);
-      toast.error(msg);
+      toastT.errorFromApi({ error: msg });
     } finally {
       setLoading(false);
     }
@@ -109,7 +115,10 @@ export default function AgentPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Failed to generate");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.failedGenerate"
+        );
         setStep("plan");
         return;
       }
@@ -142,7 +151,7 @@ export default function AgentPage() {
       setScheduledCount(count);
       setStep("done");
     } catch {
-      toast.error("Something went wrong");
+      toastT.error("toast.genericError");
       setStep("plan");
     } finally {
       setLoading(false);

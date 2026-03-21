@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { SUPPORT_EMAIL } from "@/config/constants";
 
 export function BillingPortalButton() {
+  const toastT = useAppToast();
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
@@ -18,10 +20,10 @@ export function BillingPortalButton() {
         toast.info(data.message);
         window.location.href = `mailto:${SUPPORT_EMAIL}`;
       } else {
-        toast.error("Could not open billing portal");
+        toastT.error("toast.couldNotOpenBilling");
       }
     } catch {
-      toast.error("Something went wrong");
+      toastT.error("toast.genericError");
     }
     setLoading(false);
   }

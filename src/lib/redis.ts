@@ -47,11 +47,12 @@ export async function getCachedRepurposeOutputs(
   content: string,
   platforms: string[],
   language: string,
-  brandVoiceId: string | null
+  brandVoiceId: string | null,
+  aiTierKey: "std" | "prem" = "std"
 ): Promise<Record<string, string> | null> {
   const r = getRedis();
   if (!r) return null;
-  const key = `${REPURPOSE_CACHE_PREFIX}${hashContent(content)}:${platforms.sort().join(",")}:${language}:${brandVoiceId ?? "none"}`;
+  const key = `${REPURPOSE_CACHE_PREFIX}${hashContent(content)}:${platforms.sort().join(",")}:${language}:${brandVoiceId ?? "none"}:${aiTierKey}`;
   try {
     const cached = await r.get<Record<string, string>>(key);
     return cached;
@@ -65,11 +66,12 @@ export async function setCachedRepurposeOutputs(
   platforms: string[],
   language: string,
   brandVoiceId: string | null,
-  outputs: Record<string, string>
+  outputs: Record<string, string>,
+  aiTierKey: "std" | "prem" = "std"
 ): Promise<void> {
   const r = getRedis();
   if (!r) return;
-  const key = `${REPURPOSE_CACHE_PREFIX}${hashContent(content)}:${platforms.sort().join(",")}:${language}:${brandVoiceId ?? "none"}`;
+  const key = `${REPURPOSE_CACHE_PREFIX}${hashContent(content)}:${platforms.sort().join(",")}:${language}:${brandVoiceId ?? "none"}:${aiTierKey}`;
   try {
     await r.setex(key, REPURPOSE_CACHE_TTL, outputs);
   } catch {

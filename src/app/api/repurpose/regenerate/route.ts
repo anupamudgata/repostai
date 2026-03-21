@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { repurposeContent } from "@/lib/ai/openai";
+import { repurposeContentForTier } from "@/lib/ai/openai";
 import type { Platform } from "@/types";
+import {
+  getEffectivePlan,
+  getEntitlements,
+} from "@/lib/billing/plan-entitlements";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,12 +36,54 @@ export async function POST(request: NextRequest) {
       "facebook",
       "email",
       "reddit",
+      "tiktok",
+      "whatsapp_status",
     ];
     if (!validPlatforms.includes(platform as Platform)) {
       return NextResponse.json(
         { error: "Invalid platform" },
         { status: 400 }
       );
+    }
+
+    const { plan: effectivePlan, isSuperUser } = await getEffectivePlan(
+      supabase,
+      user.id,
+      user.email
+    );
+    const entitlements = getEntitlements(effectivePlan);
+    if (entitlements.allowedPlatformIds) {
+      const allow = entitlements.allowedPlatformIds as readonly string[];
+      if (!allow.includes(platform)) {
+        return NextResponse.json(
+          {
+            error:
+              "This platform is not on your plan. Upgrade to Pro for all platforms.",
+            code: "PLAN_LIMIT",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    const { data: usage } = await supabase
+      .from("usage")
+      .select("repurpose_count")
+      .eq("user_id", user.id)
+      .eq("month", currentMonth)
+      .single();
+    const used = usage?.repurpose_count ?? 0;
+    if (!isSuperUser && entitlements.repurposesPerMonth != null) {
+      if (used >= entitlements.repurposesPerMonth) {
+        return NextResponse.json(
+          {
+            error: "Monthly repurpose limit reached. Upgrade to continue.",
+            code: "LIMIT_REACHED",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     let originalContent: string;
@@ -101,7 +147,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const results = await repurposeContent(
+    const results = await repurposeContentForTier(
+      entitlements.aiTier,
       originalContent,
       [platform as Platform],
       brandVoiceSample,
@@ -112,6 +159,13 @@ export async function POST(request: NextRequest) {
       authenticityTuning
     );
     const newContent = results[platform as Platform] ?? "";
+
+    if (!isSuperUser) {
+      await supabase.rpc("increment_usage", {
+        p_user_id: user.id,
+        p_month: currentMonth,
+      });
+    }
 
     if (jobId) {
       const { data: existing } = await supabase

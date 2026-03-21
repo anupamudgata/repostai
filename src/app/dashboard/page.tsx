@@ -42,7 +42,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
+import { useI18n } from "@/contexts/i18n-provider";
+import { dashboardBulkEn } from "@/messages/dashboard-bulk.en";
+import { dashboardBulkHi } from "@/messages/dashboard-bulk.hi";
 import { createClient } from "@/lib/supabase/client";
 import type { InputType, Platform, OutputLanguage } from "@/types";
 import {
@@ -54,13 +57,24 @@ import {
 } from "@/config/constants";
 
 const INPUT_TABS = [
-  { id: "text" as InputType, label: "Paste Text", icon: Type },
-  { id: "url" as InputType, label: "Blog URL", icon: LinkIcon },
-  { id: "youtube" as InputType, label: "YouTube", icon: Youtube },
-  { id: "pdf" as InputType, label: "PDF", icon: FileText },
+  { id: "text" as InputType, icon: Type },
+  { id: "url" as InputType, icon: LinkIcon },
+  { id: "youtube" as InputType, icon: Youtube },
+  { id: "pdf" as InputType, icon: FileText },
 ];
 
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
+
+function charDf(
+  template: string,
+  vars: Record<string, string | number>
+): string {
+  let s = template;
+  for (const [k, v] of Object.entries(vars)) {
+    s = s.replaceAll(`{${k}}`, String(v));
+  }
+  return s;
+}
 
 function CharacterCount({
   content,
@@ -73,6 +87,9 @@ function CharacterCount({
   maxLength: number | null;
   platformName: string;
 }) {
+  const { locale } = useI18n();
+  const d = locale === "hi" ? dashboardBulkHi : dashboardBulkEn;
+  const c = d.charCount;
   const len = content.length;
   const isThread = platformId === "twitter_thread";
   const tweetLines = isThread
@@ -97,17 +114,21 @@ function CharacterCount({
     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
       {isThread ? (
         <>
-          <span>{len} characters total</span>
+          <span>{charDf(c.threadTotal, { count: len })}</span>
           <span>·</span>
-          <span>Each tweet ≤280 chars</span>
+          <span>{c.threadEach280}</span>
           {tweetLines.length > 0 && (
             <span>
-              ({tweetLines.map((l, _i) => Math.max(0, 280 - l.length)).join(", ")} chars left per tweet)
+              (
+              {tweetLines.map((l, _i) => Math.max(0, 280 - l.length)).join(", ")}{" "}
+              {c.threadLeftSuffix})
             </span>
           )}
           {overTweets > 0 && (
             <span className="text-amber-600 dark:text-amber-500 font-medium">
-              {overTweets} tweet{overTweets > 1 ? "s" : ""} over limit
+              {overTweets === 1
+                ? c.tweetOverLimitOne
+                : charDf(c.tweetOverLimitMany, { count: overTweets })}
             </span>
           )}
         </>
@@ -117,36 +138,58 @@ function CharacterCount({
             {len} / {maxLength}
           </span>
           <span>
-            ({remaining != null && remaining >= 0 ? remaining : 0} left)
+            {charDf(c.leftParen, {
+              count: remaining != null && remaining >= 0 ? remaining : 0,
+            })}
           </span>
           {overLimit && (
-            <span className="text-amber-600 dark:text-amber-500 font-medium">Over limit</span>
+            <span className="text-amber-600 dark:text-amber-500 font-medium">{c.overLimit}</span>
           )}
         </>
       ) : maxLength != null ? (
         <>
           <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
-            {len} / {maxLength} characters
+            {charDf(c.slashChars, { current: len, max: maxLength })}
           </span>
           {isInstagram && (
-            <span title="First line visible before '...more'">
-              · First line: {firstLineLen}/125
+            <span title={c.firstLineTooltip}>
+              {charDf(c.firstLineBadge, { current: firstLineLen })}
             </span>
           )}
           {overLimit && (
             <span className="text-amber-600 dark:text-amber-500 font-medium">
-              Over limit — trim for {platformName}
+              {charDf(c.overLimitTrim, { platform: platformName })}
             </span>
           )}
         </>
       ) : (
-        <span>{len} characters</span>
+        <span>{charDf(c.plainChars, { count: len })}</span>
       )}
     </div>
   );
 }
 
 export default function DashboardPage() {
+  const { locale } = useI18n();
+  const d = locale === "hi" ? dashboardBulkHi : dashboardBulkEn;
+  const toastT = useAppToast();
+
+  function providerLabel(p: string) {
+    if (p === "twitter") return d.labelTwitter;
+    if (p === "linkedin") return d.labelLinkedIn;
+    return p;
+  }
+
+  function df(
+    template: string,
+    vars: Record<string, string | number>
+  ): string {
+    let s = template;
+    for (const [k, v] of Object.entries(vars)) {
+      s = s.replaceAll(`{${k}}`, String(v));
+    }
+    return s;
+  }
   const [inputType, setInputType] = useState<InputType>("text");
   const [content, setContent] = useState("");
   const [url, setUrl] = useState("");
@@ -154,7 +197,7 @@ export default function DashboardPage() {
     "linkedin",
     "twitter_thread",
     "twitter_single",
-    "email",
+    "instagram",
   ]);
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("en");
   const [contentAngle, setContentAngle] = useState<string>("default");
@@ -175,8 +218,13 @@ export default function DashboardPage() {
   const [plan, setPlan] = useState<string>("free");
   const [usage, setUsage] = useState<{
     count: number;
-    limit: number;
+    limit: number | null;
+    daysUntilReset: number;
   } | null>(null);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [limitModalCode, setLimitModalCode] = useState<
+    "LIMIT_REACHED" | "PLAN_LIMIT" | null
+  >(null);
   const [connectedAccounts, setConnectedAccounts] = useState<
     { id: string; platform: string }[]
   >([]);
@@ -220,18 +268,22 @@ export default function DashboardPage() {
     fetchConnections();
   }, []);
 
-  useEffect(() => {
-    async function fetchMe() {
-      const res = await fetch("/api/me");
-      const data = await res.json();
-      if (res.ok) {
-        setPlan(data.plan);
-        if (data.repurposeCount !== null && data.repurposeLimit !== null) {
-          setUsage({ count: data.repurposeCount, limit: data.repurposeLimit });
-        }
-      }
+  async function refreshMe() {
+    const res = await fetch("/api/me");
+    const data = await res.json();
+    if (res.ok) {
+      setPlan(data.plan);
+      setUsage({
+        count: data.repurposeCount ?? 0,
+        limit:
+          data.repurposeLimit === undefined ? null : data.repurposeLimit,
+        daysUntilReset: data.daysUntilUsageReset ?? 0,
+      });
     }
-    fetchMe();
+  }
+
+  useEffect(() => {
+    refreshMe();
   }, []);
 
   useEffect(() => {
@@ -243,23 +295,21 @@ export default function DashboardPage() {
   }, [isFreePlan]);
 
   useEffect(() => {
-    if (!isFreePlan) {
-      async function fetchVoices() {
-        const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return;
-        const { data } = await supabase
-          .from("brand_voices")
-          .select("id, name")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-        if (data) setBrandVoices(data);
-      }
-      fetchVoices();
+    async function fetchVoices() {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("brand_voices")
+        .select("id, name")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (data) setBrandVoices(data);
     }
-  }, [isFreePlan]);
+    fetchVoices();
+  }, []);
 
   function togglePlatform(platform: Platform) {
     if (isFreePlan && !FREE_PLATFORMS_SET.has(platform)) return;
@@ -289,15 +339,15 @@ export default function DashboardPage() {
   async function handleRepurpose() {
     if (inputType === "pdf") {
       if (!pdfExtractedText.trim()) {
-        toast.error("Please upload a PDF first");
+        toastT.error("toast.uploadPdfFirst");
         return;
       }
     } else if (inputType === "text" && !content.trim()) {
-      toast.error("Please paste some content first");
+      toastT.error("toast.pasteContentFirst");
       return;
     }
     if (inputType === "youtube" && !url.trim()) {
-      toast.error("Please enter a URL");
+      toastT.error("toast.enterUrl");
       return;
     }
     if (inputType === "url") {
@@ -305,16 +355,16 @@ export default function DashboardPage() {
         const parsed = parseBulkUrls(bulkUrls);
         const valid = parsed.filter(isValidUrl);
         if (valid.length < 2 || valid.length > 5) {
-          toast.error("Enter 2–5 valid blog URLs (one per line or comma-separated)");
+          toastT.error("toast.enterBlogUrls");
           return;
         }
       } else if (!url.trim()) {
-        toast.error("Please enter a URL");
+        toastT.error("toast.enterUrl");
         return;
       }
     }
     if (selectedPlatforms.length === 0) {
-      toast.error("Select at least one platform");
+      toastT.error("toast.selectPlatform");
       return;
     }
 
@@ -343,9 +393,17 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Something went wrong");
+        if (data.code === "LIMIT_REACHED" || data.code === "PLAN_LIMIT") {
+          setLimitModalCode(data.code);
+          setLimitModalOpen(true);
+        }
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.genericError"
+        );
         return;
       }
+        await refreshMe();
         setBulkSources(
           data.sources.map((s: { sourceUrl: string; jobId: string; outputs: { platform: string; content: string }[] }) => ({
             sourceUrl: s.sourceUrl,
@@ -357,7 +415,10 @@ export default function DashboardPage() {
           }))
         );
         setLastJobId(data.sources?.[data.sources.length - 1]?.jobId ?? null);
-        toast.success(`Generated ${data.totalOutputs} posts from ${data.sources.length} sources!`);
+        toastT.success("toast.generatedFromSources", {
+          total: data.totalOutputs,
+          sources: data.sources.length,
+        });
       } else {
         const res = await fetch("/api/repurpose", {
           method: "POST",
@@ -369,7 +430,7 @@ export default function DashboardPage() {
                 ? content
                 : inputType === "pdf"
                   ? pdfExtractedText
-                  : "Fetching from URL...",
+                  : d.fetchingFromUrl,
             url: inputType !== "text" && inputType !== "pdf" ? url : undefined,
             platforms: selectedPlatforms,
           outputLanguage,
@@ -381,12 +442,22 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Something went wrong");
+        if (data.code === "LIMIT_REACHED" || data.code === "PLAN_LIMIT") {
+          setLimitModalCode(data.code);
+          setLimitModalOpen(true);
+        }
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.genericError"
+        );
         return;
       }
+        await refreshMe();
         setOutputs(data.outputs);
         setLastJobId(data.jobId ?? null);
-        toast.success(`Generated content for ${data.outputs.length} platforms!`);
+        toastT.success("toast.generatedForPlatforms", {
+          count: data.outputs.length,
+        });
         // Fetch platform fit analysis for single repurpose
         const outputsMap = (data.outputs as { platform: string; content: string }[]).reduce(
           (acc: Record<string, string>, o: { platform: string; content: string }) => {
@@ -414,7 +485,7 @@ export default function DashboardPage() {
         setUsage((u) => (u ? { ...u, count: u.count + 1 } : null));
       }
     } catch {
-      toast.error("Network error. Please try again.");
+      toastT.error("toast.networkError");
     } finally {
       setLoading(false);
     }
@@ -423,13 +494,13 @@ export default function DashboardPage() {
   async function handleCopy(platform: string, text: string, copyKey?: string) {
     await navigator.clipboard.writeText(text);
     setCopiedPlatform(copyKey ?? platform);
-    toast.success("Copied to clipboard!");
+    toastT.success("toast.copiedToClipboard");
     setTimeout(() => setCopiedPlatform(null), 2000);
   }
 
   async function handleRegenerate(platform: Platform) {
     if (!lastJobId) {
-      toast.error("Cannot regenerate. Repurpose again first.");
+      toastT.error("toast.regenerateFirst");
       return;
     }
     setRegeneratingPlatform(platform);
@@ -441,7 +512,10 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Regeneration failed");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.regenerationFailed"
+        );
         return;
       }
       setOutputs((prev) =>
@@ -449,9 +523,9 @@ export default function DashboardPage() {
           o.platform === platform ? { ...o, content: data.content } : o
         )
       );
-      toast.success("Regenerated!");
+      toastT.success("toast.regenerated");
     } catch {
-      toast.error("Network error");
+      toastT.error("toast.networkErrorShort");
     } finally {
       setRegeneratingPlatform(null);
     }
@@ -464,11 +538,13 @@ export default function DashboardPage() {
       : null;
     const jid = jobId ?? lastJobId;
     if (!acc) {
-      toast.error(`Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to schedule posts`);
+      toastT.error("toast.connectToSchedule", {
+        provider: provider === "twitter" ? "Twitter/X" : "LinkedIn",
+      });
       return;
     }
     if (!jid) {
-      toast.error("Cannot schedule. Generate content again first.");
+      toastT.error("toast.cannotSchedule");
       return;
     }
     setSchedulePlatform(platform);
@@ -498,14 +574,17 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Failed to schedule");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.failedSchedule"
+        );
         return;
       }
-      toast.success("Post scheduled!");
+      toastT.success("toast.postScheduled");
       setScheduleOpen(false);
       setScheduleJobId(null);
     } catch {
-      toast.error("Network error");
+      toastT.error("toast.networkErrorShort");
     } finally {
       setScheduleSubmitting(false);
     }
@@ -518,7 +597,7 @@ export default function DashboardPage() {
   ) {
     const jid = jobId ?? lastJobId;
     if (!jid) {
-      toast.error("Cannot post. Repurpose again first.");
+      toastT.error("toast.cannotPostRepurpose");
       return;
     }
     setPostingPlatform(platform);
@@ -534,12 +613,17 @@ export default function DashboardPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Post failed");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.postFailed"
+        );
         return;
       }
-      toast.success("Posted to " + (platform.includes("twitter") ? "X" : platform) + "!");
+      toastT.success("toast.postedToPlatform", {
+        platform: platform.includes("twitter") ? "X" : platform,
+      });
     } catch {
-      toast.error("Network error");
+      toastT.error("toast.networkErrorShort");
     } finally {
       setPostingPlatform(null);
     }
@@ -547,11 +631,11 @@ export default function DashboardPage() {
 
   async function handlePostAllConnected() {
     if (isFreePlan) {
-      toast.error("Bulk posting is available on Pro and Agency plans.");
+      toastT.error("toast.bulkPostProOnly");
       return;
     }
     if (!lastJobId) {
-      toast.error("Cannot post. Repurpose again first.");
+      toastT.error("toast.cannotPostRepurpose");
       return;
     }
 
@@ -571,7 +655,7 @@ export default function DashboardPage() {
     }
 
     if (tasks.length === 0) {
-      toast.error("No connected accounts for the selected platforms.");
+      toastT.error("toast.noConnectedBulk");
       return;
     }
 
@@ -608,10 +692,10 @@ export default function DashboardPage() {
     }
 
     if (successes.length) {
-      toast.success(`Posted to: ${successes.join(", ")}`);
+      toastT.success("toast.postedTo", { list: successes.join(", ") });
     }
     if (failures.length) {
-      toast.error(`Failed on: ${failures.join(", ")}. Check connections and try again.`);
+      toastT.error("toast.failedOn", { list: failures.join(", ") });
     }
   }
 
@@ -619,23 +703,39 @@ export default function DashboardPage() {
     <div className="space-y-6 sm:space-y-8 pb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Repurpose Content</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">{d.title}</h1>
             <p className="text-sm sm:text-base text-muted-foreground mt-1">
-              Paste your content and generate platform-ready posts in seconds — now including TikTok and WhatsApp Status.
+              {d.subtitle}
             </p>
         </div>
         {usage && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">
-              {usage.count} of {usage.limit} repurposes this month
+          <div className="flex flex-col items-end gap-2 min-w-[200px] max-w-sm">
+            <span className="text-sm text-muted-foreground text-right">
+              {usage.limit != null
+                ? df(d.usageLine, { count: usage.count, limit: usage.limit })
+                : df(d.usageLineUnlimited, { count: usage.count })}
             </span>
-            {usage.count >= usage.limit - 1 && (
-              <Link href="/dashboard/settings">
-                <Button size="sm" variant="outline">
-                  Upgrade
-                </Button>
-              </Link>
+            {usage.limit != null && (
+              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{
+                    width: `${Math.min(100, (usage.count / usage.limit) * 100)}%`,
+                  }}
+                />
+              </div>
             )}
+            <span className="text-xs text-muted-foreground">
+              {df(d.resetsInDays, { days: usage.daysUntilReset })}
+            </span>
+            {usage.limit != null &&
+              usage.count >= Math.max(0, usage.limit - 2) && (
+                <Link href="/#pricing">
+                  <Button size="sm" variant="outline">
+                    {d.upgrade}
+                  </Button>
+                </Link>
+              )}
           </div>
         )}
       </div>
@@ -646,9 +746,9 @@ export default function DashboardPage() {
           <CardContent className="py-4 flex items-center gap-4">
             <Bot className="h-10 w-10 text-primary shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="font-semibold">Content Agent — Plan your entire content week</p>
+              <p className="font-semibold">{d.contentAgentTitle}</p>
               <p className="text-sm text-muted-foreground">
-                Paste a blog URL → AI suggests platforms, optimal times, generates all variations, and schedules them.
+                {d.contentAgentSubtitle}
               </p>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
@@ -659,7 +759,7 @@ export default function DashboardPage() {
       {/* Input Section */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Your Content</CardTitle>
+          <CardTitle className="text-lg">{d.yourContent}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Tabs
@@ -674,14 +774,16 @@ export default function DashboardPage() {
                   className="gap-1.5 text-xs sm:text-sm min-h-[44px] touch-manipulation"
                 >
                   <tab.icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="hidden sm:inline">
+                    {d.inputTabs[tab.id as keyof typeof d.inputTabs]}
+                  </span>
                 </TabsTrigger>
               ))}
             </TabsList>
 
             <TabsContent value="text" className="mt-4">
               <Textarea
-                placeholder="Paste your blog post, article, or any text content here..."
+                placeholder={d.placeholderText}
                 className="min-h-[200px] resize-y"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
@@ -700,7 +802,7 @@ export default function DashboardPage() {
                     !bulkMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
-                  Single URL
+                  {d.singleUrl}
                 </button>
                 <button
                   type="button"
@@ -712,12 +814,12 @@ export default function DashboardPage() {
                     bulkMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
                   }`}
                 >
-                  Bulk (2–5 URLs)
+                  {d.bulkUrls}
                 </button>
               </div>
               {bulkMode ? (
                 <div>
-                  <Label htmlFor="bulk-urls">Blog URLs (one per line or comma-separated)</Label>
+                  <Label htmlFor="bulk-urls">{d.bulkUrlsLabel}</Label>
                   <Textarea
                     id="bulk-urls"
                     placeholder={"https://example.com/post-1\nhttps://example.com/post-2\nhttps://example.com/post-3"}
@@ -726,12 +828,15 @@ export default function DashboardPage() {
                     onChange={(e) => setBulkUrls(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    Paste 2–5 blog URLs. We&apos;ll extract each article and generate {selectedPlatforms.length} platforms × your URLs = up to {selectedPlatforms.length * 5} posts in one queue.
+                    {df(d.bulkUrlsHint, {
+                      platforms: selectedPlatforms.length,
+                      max: selectedPlatforms.length * 5,
+                    })}
                   </p>
                 </div>
               ) : (
                 <div>
-                  <Label htmlFor="blog-url">Blog Post URL</Label>
+                  <Label htmlFor="blog-url">{d.blogUrlLabel}</Label>
                   <Input
                     id="blog-url"
                     type="url"
@@ -740,7 +845,7 @@ export default function DashboardPage() {
                     onChange={(e) => setUrl(e.target.value)}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
-                    We&apos;ll automatically extract the article content.
+                    {d.blogUrlHint}
                   </p>
                 </div>
               )}
@@ -748,7 +853,7 @@ export default function DashboardPage() {
 
             <TabsContent value="youtube" className="mt-4 space-y-3">
               <div>
-                <Label htmlFor="yt-url">YouTube Video URL</Label>
+                <Label htmlFor="yt-url">{d.youtubeLabel}</Label>
                 <Input
                   id="yt-url"
                   type="url"
@@ -757,14 +862,13 @@ export default function DashboardPage() {
                   onChange={(e) => setUrl(e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  We&apos;ll extract the transcript automatically. The video
-                  must have captions enabled.
+                  {d.youtubeHint}
                 </p>
               </div>
               <Link href="/dashboard/clips" className="block">
                 <p className="text-sm text-primary hover:underline flex items-center gap-1.5">
                   <Scissors className="h-4 w-4" />
-                  Extract viral clips from long videos →
+                  {d.clipsLink}
                 </p>
               </Link>
             </TabsContent>
@@ -775,10 +879,10 @@ export default function DashboardPage() {
                   <div className="text-center py-4">
                     <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
                     <p className="text-sm font-medium text-foreground">
-                      {pdfFileName ? pdfFileName : "Click to upload PDF"}
+                      {pdfFileName ? pdfFileName : d.pdfUpload}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Max 10MB. Text will be extracted automatically.
+                      {d.pdfHint}
                     </p>
                     {pdfExtracting && (
                       <Loader2 className="h-5 w-5 mx-auto mt-2 animate-spin text-muted-foreground" />
@@ -804,22 +908,29 @@ export default function DashboardPage() {
                         method: "POST",
                         body: formData,
                       });
-                      let data: { error?: string; text?: string };
+                      let data: { error?: string; code?: string; text?: string };
                       try {
                         data = await res.json();
                       } catch {
-                        toast.error("Invalid response from server");
+                        toastT.error("toast.invalidServerResponse");
                         return;
                       }
                       if (!res.ok) {
-                        toast.error(data.error || "Failed to extract text");
+                        toastT.errorFromApi(
+                          { error: data.error, code: data.code },
+                          "toast.failedExtractPdf"
+                        );
                         return;
                       }
                       setPdfFileName(file.name);
                       setPdfExtractedText(data.text ?? "");
-                      toast.success("PDF text extracted!");
+                      toastT.success("toast.pdfExtracted");
                     } catch (err) {
-                      toast.error(err instanceof Error ? err.message : "Failed to process PDF");
+                      if (err instanceof Error && err.message) {
+                        toastT.errorFromApi({ error: err.message });
+                      } else {
+                        toastT.error("toast.failedProcessPdf");
+                      }
                     } finally {
                       setPdfExtracting(false);
                       e.target.value = "";
@@ -828,7 +939,7 @@ export default function DashboardPage() {
                 />
                 {pdfExtractedText && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    {pdfExtractedText.length} characters extracted
+                    {df(d.pdfChars, { count: pdfExtractedText.length })}
                   </p>
                 )}
               </div>
@@ -838,12 +949,11 @@ export default function DashboardPage() {
       </Card>
 
       {/* Brand Voice (Pro/Agency only) */}
-      {!isFreePlan && (
-        <Card>
+      <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Brand Voice</CardTitle>
+            <CardTitle className="text-lg">{d.brandVoiceCardTitle}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Match your writing style (optional)
+              {d.brandVoiceCardSubtitle}
             </p>
           </CardHeader>
           <CardContent>
@@ -852,10 +962,10 @@ export default function DashboardPage() {
               onValueChange={(v) => setBrandVoiceId(v === "none" ? "" : v)}
             >
               <SelectTrigger className="w-full max-w-sm">
-                <SelectValue placeholder="No brand voice" />
+                <SelectValue placeholder={d.noBrandVoice} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">No brand voice</SelectItem>
+                <SelectItem value="none">{d.noBrandVoice}</SelectItem>
                 {brandVoices.map((v) => (
                   <SelectItem key={v.id} value={v.id}>
                     {v.name}
@@ -863,21 +973,30 @@ export default function DashboardPage() {
                 ))}
               </SelectContent>
             </Select>
+            <p className="mt-3 text-xs text-muted-foreground">
+              <Link
+                href="/dashboard/brand-voice"
+                className="font-medium text-primary hover:underline"
+              >
+                {d.addVoiceLink}
+              </Link>
+              {" "}
+              {d.addVoiceSuffix}
+            </p>
           </CardContent>
         </Card>
-      )}
 
       {/* Platform Selection — touch-optimized (min 44px tap targets) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base sm:text-lg">Output Platforms</CardTitle>
+          <CardTitle className="text-base sm:text-lg">{d.outputPlatformsTitle}</CardTitle>
           {isFreePlan && (
             <p className="text-xs sm:text-sm text-muted-foreground">
-              Free plan: LinkedIn, Twitter/X, Email.{" "}
-              <Link href="/dashboard/settings" className="text-primary hover:underline">
-                Upgrade
+              {d.freePlanPlatformsBefore}{" "}
+              <Link href="/#pricing" className="text-primary hover:underline">
+                {d.freePlanPlatformsLink}
               </Link>{" "}
-              for all 7 platforms.
+              {d.freePlanPlatformsAfter}
             </p>
           )}
         </CardHeader>
@@ -892,11 +1011,7 @@ export default function DashboardPage() {
                   type="button"
                   disabled={isLocked}
                   onClick={() => !isLocked && togglePlatform(platform.id as Platform)}
-                  title={
-                    isLocked
-                      ? "Upgrade to Pro for Instagram, Facebook, Reddit"
-                      : undefined
-                  }
+                  title={isLocked ? d.platformLockTitle : undefined}
                   className={`
                     inline-flex items-center gap-2 rounded-md border text-sm font-medium transition-colors
                     min-h-[44px] px-4 py-3 touch-manipulation select-none
@@ -921,18 +1036,18 @@ export default function DashboardPage() {
       {/* Content Angle + Hook Mode */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Generate as</CardTitle>
+          <CardTitle className="text-lg">{d.generateAsTitle}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Choose the angle and hook style — the first line drives 80% of engagement
+            {d.generateAsSubtitle}
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Content angle</Label>
+              <Label className="text-xs text-muted-foreground">{d.contentAngleLabel}</Label>
               <Select value={contentAngle} onValueChange={setContentAngle}>
                 <SelectTrigger className="w-full min-h-[44px] mt-1">
-                  <SelectValue placeholder="Select angle" />
+                  <SelectValue placeholder={d.selectAngle} />
                 </SelectTrigger>
                 <SelectContent>
                   {CONTENT_ANGLES.map((angle) => (
@@ -944,10 +1059,10 @@ export default function DashboardPage() {
               </Select>
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">Hook mode — first line drives 80% of engagement</Label>
+              <Label className="text-xs text-muted-foreground">{d.hookModeLabel}</Label>
               <Select value={hookMode} onValueChange={setHookMode}>
                 <SelectTrigger className="w-full min-h-[44px] mt-1">
-                  <SelectValue placeholder="Select hook" />
+                  <SelectValue placeholder={d.selectHook} />
                 </SelectTrigger>
                 <SelectContent>
                   {HOOK_MODES.map((mode) => (
@@ -965,7 +1080,7 @@ export default function DashboardPage() {
       {/* Language Selection */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Output Language</CardTitle>
+          <CardTitle className="text-lg">{d.outputLanguageTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
@@ -974,7 +1089,7 @@ export default function DashboardPage() {
               onValueChange={(v) => setOutputLanguage(v as OutputLanguage)}
             >
               <SelectTrigger className="w-full sm:w-[220px] min-h-[44px]">
-                <SelectValue placeholder="Select language" />
+                <SelectValue placeholder={d.selectLanguage} />
               </SelectTrigger>
               <SelectContent>
                 {SUPPORTED_LANGUAGES.map((lang) => (
@@ -991,11 +1106,11 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
-              {outputLanguage === "en" && "Content will be generated in English"}
-              {outputLanguage === "hi" && "कंटेंट हिन्दी में जनरेट होगा"}
-              {outputLanguage === "es" && "El contenido se generará en español"}
-              {outputLanguage === "pt" && "O conteúdo será gerado em português"}
-              {outputLanguage === "fr" && "Le contenu sera généré en français"}
+              {
+                d.outputLangHint[
+                  outputLanguage as keyof typeof d.outputLangHint
+                ]
+              }
             </p>
           </div>
         </CardContent>
@@ -1004,14 +1119,14 @@ export default function DashboardPage() {
       {/* What you want — optional intent */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">What do you want from this piece? (optional)</CardTitle>
+          <CardTitle className="text-base">{d.intentTitle}</CardTitle>
           <p className="text-sm text-muted-foreground font-normal">
-            We&apos;ll prioritize your goal when generating — e.g. more engagement, more casual, or emphasize a specific angle.
+            {d.intentSubtitle}
           </p>
         </CardHeader>
         <CardContent>
           <Input
-            placeholder="e.g. More engagement, more casual, emphasize the launch date..."
+            placeholder={d.intentPlaceholder}
             value={userIntent}
             onChange={(e) => setUserIntent(e.target.value)}
             className="max-w-xl"
@@ -1025,7 +1140,7 @@ export default function DashboardPage() {
 
       <p className="flex items-center gap-2 text-xs text-muted-foreground">
         <Info className="h-3.5 w-3.5 shrink-0" />
-        For serious or sensitive topics, we match tone to the subject.
+        {d.infoSerious}
       </p>
 
       {/* Generate Button — touch-friendly */}
@@ -1039,15 +1154,22 @@ export default function DashboardPage() {
           <>
             <Loader2 className="h-5 w-5 mr-2 animate-spin" />
             {inputType === "url" && bulkMode
-              ? `Generating (${parseBulkUrls(bulkUrls).filter(isValidUrl).length} sources × ${selectedPlatforms.length} platforms)...`
-              : `Generating (${selectedPlatforms.length} platforms)...`}
+              ? df(d.generatingBulk, {
+                  sources: parseBulkUrls(bulkUrls).filter(isValidUrl).length,
+                  platforms: selectedPlatforms.length,
+                })
+              : df(d.generatingSingle, {
+                  platforms: selectedPlatforms.length,
+                })}
           </>
         ) : (
           <>
             <RefreshCw className="h-5 w-5 mr-2" />
             {inputType === "url" && bulkMode
-              ? `Bulk Repurpose (${selectedPlatforms.length} platforms × your URLs)`
-              : `Repurpose to ${selectedPlatforms.length} Platforms`}
+              ? df(d.repurposeBulk, { platforms: selectedPlatforms.length })
+              : df(d.repurposeSingle, {
+                  platforms: selectedPlatforms.length,
+                })}
           </>
         )}
       </Button>
@@ -1056,15 +1178,19 @@ export default function DashboardPage() {
       {(outputs.length > 0 || bulkSources.length > 0) && (
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Get the output you want — edit or regenerate until it&apos;s right, then post when you&apos;re ready.
+            {d.generatedIntro}
             {isFreePlan && (
               <span className="block mt-1 text-xs">
-                Free posts include a small &quot;Repurposed with RepostAI&quot; watermark. <Link href="/pricing" className="text-primary hover:underline">Upgrade to Pro</Link> to remove it.
+                {d.watermarkNote}{" "}
+                <Link href="/pricing" className="text-primary hover:underline">
+                  {d.upgradeLink}
+                </Link>{" "}
+                {d.watermarkNoteAfter}
               </span>
             )}
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold">Generated Content</h2>
+            <h2 className="text-xl sm:text-2xl font-bold">{d.generatedHeading}</h2>
             {!isFreePlan && bulkSources.length === 0 && (
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Button
@@ -1076,18 +1202,16 @@ export default function DashboardPage() {
                   {bulkPosting ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      Posting to all connected...
+                      {d.postingAll}
                     </>
                   ) : (
                     <>
                       <Send className="h-3.5 w-3.5 mr-1" />
-                      Post to all connected
+                      {d.postAllConnected}
                     </>
                   )}
                 </Button>
-                <p className="text-xs text-muted-foreground">
-                  Posts to every platform with a connected account.
-                </p>
+                <p className="text-xs text-muted-foreground">{d.postAllHint}</p>
               </div>
             )}
           </div>
@@ -1097,17 +1221,17 @@ export default function DashboardPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <BarChart3 className="h-4 w-4 text-primary" />
-                  Where to Post
+                  {d.platformFitTitle}
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  AI analysis of which platforms will perform best for this content
+                  {d.platformFitSubtitle}
                 </p>
               </CardHeader>
               <CardContent>
                 {platformFitLoading ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground py-4">
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Analyzing platform fit...
+                    {d.analyzingFit}
                   </div>
                 ) : platformFitScores.length > 0 ? (
                   <div className="space-y-3">
@@ -1134,7 +1258,11 @@ export default function DashboardPage() {
                               {isPost && <ThumbsUp className="h-3 w-3 text-green-600" />}
                               {isSkip && <ThumbsDown className="h-3 w-3 text-muted-foreground" />}
                               <span className={`text-xs font-medium ${isPost ? "text-green-600" : isSkip ? "text-muted-foreground" : "text-amber-600"}`}>
-                                {isPost ? "Post" : isSkip ? "Consider skipping" : "Consider"}
+                                {isPost
+                                  ? d.platformFitRecPost
+                                  : isSkip
+                                    ? d.platformFitRecSkip
+                                    : d.platformFitRecConsider}
                               </span>
                             </div>
                           </div>
@@ -1143,12 +1271,12 @@ export default function DashboardPage() {
                     </div>
                     {platformFitScores.some((s) => s.recommendation === "skip") && (
                       <p className="text-xs text-muted-foreground">
-                        Focus on high-scoring platforms. Skip the weak ones to save time.
+                        {d.platformFitTip}
                       </p>
                     )}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground py-2">Platform analysis unavailable</p>
+                  <p className="text-xs text-muted-foreground py-2">{d.platformFitUnavailable}</p>
                 )}
               </CardContent>
             </Card>
@@ -1159,7 +1287,9 @@ export default function DashboardPage() {
               bulkSources.map((source, idx) => (
                 <div key={source.jobId} className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-muted-foreground">Source {idx + 1}</span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {df(d.sourceBanner, { index: idx + 1 })}
+                    </span>
                     <a
                       href={source.sourceUrl}
                       target="_blank"
@@ -1196,12 +1326,20 @@ export default function DashboardPage() {
                             }
                           }
                           setBulkPosting(false);
-                          if (successes.length) toast.success(`Posted to: ${successes.join(", ")}`);
-                          if (failures.length) toast.error(`Failed: ${failures.join(", ")}`);
+                          if (successes.length) {
+                            toastT.success("toast.postedTo", {
+                              list: successes.join(", "),
+                            });
+                          }
+                          if (failures.length) {
+                            toastT.error("toast.failedPartial", {
+                              list: failures.join(", "),
+                            });
+                          }
                         }}
                         disabled={bulkPosting}
                       >
-                        Post this source
+                        {d.postThisSource}
                       </Button>
                     )}
                   </div>
@@ -1224,9 +1362,21 @@ export default function DashboardPage() {
                                       className="min-h-[40px] touch-manipulation"
                                       onClick={() => account && handlePostNow(output.platform, account.id, source.jobId)}
                                       disabled={postingPlatform !== null || !account || bulkPosting}
-                                      title={!account ? `Connect ${provider}` : undefined}
+                                      title={
+                                        !account
+                                          ? df(d.connectProvider, {
+                                              provider: providerLabel(provider),
+                                            })
+                                          : undefined
+                                      }
                                     >
-                                      {postingPlatform === output.platform ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <><Send className="h-3.5 w-3.5 mr-1" /> Post now</>}
+                                      {postingPlatform === output.platform ? (
+                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      ) : (
+                                        <>
+                                          <Send className="h-3.5 w-3.5 mr-1" /> {d.postNow}
+                                        </>
+                                      )}
                                     </Button>
                                     <Button
                                       size="sm"
@@ -1234,10 +1384,16 @@ export default function DashboardPage() {
                                       className="min-h-[40px] touch-manipulation"
                                       onClick={() => openScheduleModal(output.platform, source.jobId)}
                                       disabled={scheduleSubmitting}
-                                      title={!account ? `Connect ${provider} to schedule` : undefined}
+                                      title={
+                                        !account
+                                          ? df(d.connectToScheduleTitle, {
+                                              provider: providerLabel(provider),
+                                            })
+                                          : undefined
+                                      }
                                     >
                                       <CalendarClock className="h-3.5 w-3.5 mr-1" />
-                                      Schedule
+                                      {d.schedule}
                                     </Button>
                                   </>
                                 )}
@@ -1247,7 +1403,15 @@ export default function DashboardPage() {
                                   className="min-h-[40px] touch-manipulation"
                                   onClick={() => handleCopy(output.platform, output.content, `${source.jobId}-${output.platform}`)}
                                 >
-                                  {copiedPlatform === `${source.jobId}-${output.platform}` ? <><Check className="h-3.5 w-3.5 mr-1" /> Copied</> : <><Copy className="h-3.5 w-3.5 mr-1" /> Copy</>}
+                                  {copiedPlatform === `${source.jobId}-${output.platform}` ? (
+                                    <>
+                                      <Check className="h-3.5 w-3.5 mr-1" /> {d.copied}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy className="h-3.5 w-3.5 mr-1" /> {d.copy}
+                                    </>
+                                  )}
                                 </Button>
                               </div>
                             </div>
@@ -1294,14 +1458,20 @@ export default function DashboardPage() {
                                   : undefined
                               }
                               disabled={postingPlatform !== null || !account || bulkPosting}
-                              title={!account ? `Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to post` : undefined}
+                              title={
+                                !account && provider
+                                  ? df(d.connectToPostTitle, {
+                                      provider: providerLabel(provider),
+                                    })
+                                  : undefined
+                              }
                             >
                               {postingPlatform === output.platform ? (
                                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                               ) : (
                                 <>
                                   <Send className="h-3.5 w-3.5 mr-1" />
-                                  Post now
+                                  {d.postNow}
                                 </>
                               )}
                             </Button>
@@ -1311,17 +1481,25 @@ export default function DashboardPage() {
                               className="min-h-[40px] touch-manipulation"
                               onClick={() => openScheduleModal(output.platform)}
                               disabled={scheduleSubmitting}
-                              title={!account ? `Connect ${provider === "twitter" ? "Twitter" : "LinkedIn"} to schedule` : undefined}
+                              title={
+                                !account && provider
+                                  ? df(d.connectToScheduleTitle, {
+                                      provider: providerLabel(provider),
+                                    })
+                                  : undefined
+                              }
                             >
                               <CalendarClock className="h-3.5 w-3.5 mr-1" />
-                              Schedule
+                              {d.schedule}
                             </Button>
-                            {!account && (
+                            {!account && provider && (
                               <Link
                                 href="/dashboard/connections"
                                 className="text-xs text-primary hover:underline font-medium"
                               >
-                                Connect {provider === "twitter" ? "Twitter" : "LinkedIn"}
+                                {df(d.connectProvider, {
+                                  provider: providerLabel(provider),
+                                })}
                               </Link>
                             )}
                           </>
@@ -1338,7 +1516,7 @@ export default function DashboardPage() {
                           ) : (
                             <>
                               <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                              Regenerate
+                              {d.regenerate}
                             </>
                           )}
                         </Button>
@@ -1353,12 +1531,12 @@ export default function DashboardPage() {
                           {copiedPlatform === output.platform ? (
                             <>
                               <Check className="h-3.5 w-3.5 mr-1" />
-                              Copied
+                              {d.copied}
                             </>
                           ) : (
                             <>
                               <Copy className="h-3.5 w-3.5 mr-1" />
-                              Copy
+                              {d.copy}
                             </>
                           )}
                         </Button>
@@ -1390,11 +1568,11 @@ export default function DashboardPage() {
       <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Schedule post</DialogTitle>
+            <DialogTitle>{d.scheduleDialogTitle}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label className="text-sm font-medium">Date & time</label>
+              <label className="text-sm font-medium">{d.scheduleDateTime}</label>
               <input
                 type="datetime-local"
                 className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
@@ -1409,7 +1587,7 @@ export default function DashboardPage() {
               variant="outline"
               onClick={() => setScheduleOpen(false)}
             >
-              Cancel
+              {d.dialogCancel}
             </Button>
             <Button
               onClick={handleScheduleSubmit}
@@ -1418,8 +1596,34 @@ export default function DashboardPage() {
               {scheduleSubmitting ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                "Schedule"
+                d.schedule
               )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={limitModalOpen} onOpenChange={setLimitModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {limitModalCode === "PLAN_LIMIT"
+                ? d.limitModalTitlePlatform
+                : d.limitModalTitleLimit}
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {limitModalCode === "PLAN_LIMIT"
+              ? d.limitModalBodyPlatform
+              : d.limitModalBodyLimit}
+          </p>
+          <p className="text-sm">{d.limitModalCompare}</p>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setLimitModalOpen(false)}>
+              {d.dialogCancel}
+            </Button>
+            <Button asChild>
+              <Link href="/#pricing">{d.limitModalCta}</Link>
             </Button>
           </DialogFooter>
         </DialogContent>

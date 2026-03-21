@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { Loader2, Trash2 } from "lucide-react";
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
 
@@ -25,6 +25,7 @@ export function ScheduledList({
   items: Item[];
   showStatus?: boolean;
 }) {
+  const toastT = useAppToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const supabase = createClient();
 
@@ -36,10 +37,10 @@ export function ScheduledList({
       .eq("id", id);
     setDeletingId(null);
     if (error) {
-      toast.error("Could not delete");
+      toastT.error("toast.couldNotDelete");
       return;
     }
-    toast.success("Scheduled post removed");
+    toastT.success("toast.scheduledRemoved");
     window.location.reload();
   }
 

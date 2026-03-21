@@ -2,23 +2,42 @@
 
 This doc lists environment variables used by RepostAI, with a focus on **post, schedule, and cron**. Use it to configure local (`.env.local`) and production (e.g. Vercel).
 
+**Also see:** [docs/ENV_VARS_CHECKLIST.md](ENV_VARS_CHECKLIST.md) for the full table (Stripe, Sentry, PostHog, Razorpay, etc.)  
+**Supabase CLI migrations:** optional `SUPABASE_DB_PASSWORD` (database password from the dashboard, not the anon key) — see [docs/SUPABASE_MIGRATIONS.md](SUPABASE_MIGRATIONS.md) and `npm run db:push:remote`..
+
+**Check what’s still empty locally (names only, no secrets):**
+
+```bash
+node scripts/check-env-keys.mjs
+```
+
 ---
 
 ## Step-by-step: How to document and set env vars
 
 ### Step 1: List what you need
 
-For **post now** and **scheduled posts** to work in production you need:
+**Core app** (login + repurpose):
+
+| Variable | Used for |
+|----------|----------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Auth + browser Supabase client |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server/admin DB access |
+| `OPENAI_API_KEY` | Repurpose, extracts, AI Content Starter |
+| `NEXT_PUBLIC_APP_URL` | OAuth redirects, absolute links |
+
+**Post / schedule / cron** (plus Twitter connect):
 
 | Variable | Used for | Required for post/schedule? |
 |----------|----------|-----------------------------|
-| `CRON_SECRET` | Securing the cron endpoint that runs scheduled posts | Yes (if you want cron protected) |
-| `ENCRYPTION_SECRET` | Encrypting OAuth tokens in DB | Yes |
+| `CRON_SECRET` | Securing `/api/cron/scheduled-posts` | Yes (if you want cron protected) |
+| `ENCRYPTION_SECRET` | Encrypting OAuth tokens in DB | Yes (for Connect / post) |
 | `TWITTER_CLIENT_ID` | Twitter/X OAuth (Connect) | Yes for Twitter post |
 | `TWITTER_CLIENT_SECRET` | Twitter/X OAuth callback | Yes for Twitter post |
-| `NEXT_PUBLIC_APP_URL` | Redirect URIs for OAuth and links | Yes |
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project | Yes |
-| `SUPABASE_SERVICE_ROLE_KEY` | Cron job reads/updates DB | Yes for scheduled posts |
+| `NEXT_PUBLIC_APP_URL` | Redirect URIs | Yes |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase | Yes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Cron reads/writes `scheduled_posts`, etc. | Yes for scheduled posts |
 
 ### Step 2: Set locally (development)
 
@@ -37,9 +56,11 @@ TWITTER_CLIENT_ID=your-twitter-oauth-client-id
 TWITTER_CLIENT_SECRET=your-twitter-oauth-client-secret
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 
-# Supabase (you likely have these already)
+# Supabase + OpenAI (core)
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+OPENAI_API_KEY=sk-...
 ```
 
 ### Step 3: Set in production (e.g. Vercel)
@@ -66,14 +87,20 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 - **CRON_SECRET:** Any long random string (e.g. `openssl rand -hex 32`). Used to protect `/api/cron/scheduled-posts`; if set, requests must send `Authorization: Bearer <CRON_SECRET>` or `?secret=<CRON_SECRET>`.
 - **ENCRYPTION_SECRET:** At least 16 characters; used to encrypt OAuth tokens in the DB. Use a different value from CRON_SECRET (e.g. another `openssl rand -hex 32`).
 
-### Step 6: (Later) LinkedIn env vars
+### Cron on Vercel Hobby vs Pro
 
-When LinkedIn OAuth and post are implemented you will add:
+- **Hobby:** Vercel allows **only one cron invocation per day**. This project’s `vercel.json` uses **`0 9 * * *`** (daily ~09:00 UTC) so deployment succeeds on Hobby. Hourly schedules will **fail**.
+- **Pro:** You can use hourly or more frequent crons in `vercel.json`.
+- Set **`CRON_SECRET`** in Vercel env; Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`. For extra runs without Pro, use an external cron hitting the same URL with that header. See **`docs/PRE_LAUNCH_CHECKLIST.md` §5**.
+
+### Step 6: LinkedIn env vars (Connect / post)
+
+Add:
 
 - `LINKEDIN_CLIENT_ID`
 - `LINKEDIN_CLIENT_SECRET`
 
-Callback will be: `https://your-domain.com/api/connect/linkedin/callback`.
+Callback (example): `https://your-domain.com/api/connect/linkedin/callback` — must match **LinkedIn Developer Portal → Auth → Redirect URLs** and the URL users actually open.
 
 ---
 
@@ -95,9 +122,11 @@ Callback will be: `https://your-domain.com/api/connect/linkedin/callback`.
 
 The app also uses:
 
-- **Supabase:** `NEXT_PUBLIC_SUPABASE_ANON_KEY` (auth, client).
-- **OpenAI:** `OPENAI_API_KEY` (repurpose, AI Content Starter).
-- **Billing:** Stripe (`STRIPE_*`), Razorpay (`RAZORPAY_*`) — see billing routes if you enable payments.
+- **Rate limits:** `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`.
+- **Billing:** Stripe (`STRIPE_*`), Razorpay (`RAZORPAY_*`) — see billing routes if you enable payments. Razorpay subscription IDs are stored in `subscriptions.stripe_subscription_id` (legacy column name; value is the Razorpay subscription id). Thin aliases: `POST /api/checkout/create` → Razorpay create subscription, `GET /api/checkout/verify` → payment callback (same as `/api/billing/razorpay/callback`).
 - **Landing:** `NEXT_PUBLIC_DEMO_VIDEO_URL`, `NEXT_PUBLIC_ZAPIER_APP_URL` (optional).
+- **GDPR account deletion (email link):** `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `NEXT_PUBLIC_APP_URL` (link in email). Optional `ACCOUNT_DELETION_TOKEN_SECRET` (min 16 chars); if unset, signing falls back to `CRON_SECRET` then `ENCRYPTION_SECRET`. Endpoints: `POST /api/user/delete/request` (signed-in), `POST /api/user/delete/complete` (token + phrase), `DELETE /api/user/delete` (signed-in + phrase).
+- **Brand voice (Claude 3.5 Haiku):** `ANTHROPIC_API_KEY` — used to generate the cached persona from writing samples. Optional `ANTHROPIC_BRAND_VOICE_MODEL` (default `claude-3-5-haiku-20241022`). If `ANTHROPIC_API_KEY` is unset, persona generation falls back to OpenAI `gpt-4o-mini`. Run migration `20250320140000_brand_voices_persona_model.sql` so `persona_model` is stored in Supabase.
+- **Repurpose (Pro/Agency — Claude with GPT‑4o‑mini fallback):** same `ANTHROPIC_API_KEY`. Optional `ANTHROPIC_REPURPOSE_MODEL` (default `claude-sonnet-4-20250514`). Free tier uses GPT‑4o‑mini only.
 
 For a minimal production deploy focused on **post + schedule**, the table in “Full reference” above is the set you must have.

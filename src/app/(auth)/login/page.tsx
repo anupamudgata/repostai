@@ -10,9 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
+import { useI18n } from "@/contexts/i18n-provider";
+import { useAppToast } from "@/hooks/use-app-toast";
 
 function LoginForm() {
+  const { t } = useI18n();
+  const toastT = useAppToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,10 +25,10 @@ function LoginForm() {
 
   useEffect(() => {
     if (searchParams.get("reset") === "success") {
-      toast.success("Password reset. Sign in with your new password.");
+      toastT.success("auth.passwordResetSuccess");
       router.replace("/login", { scroll: false });
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, toastT]);
 
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -37,7 +40,7 @@ function LoginForm() {
     });
 
     if (error) {
-      toast.error(error.message);
+      toastT.errorFromApi({ error: error.message });
       setLoading(false);
       return;
     }
@@ -53,7 +56,7 @@ function LoginForm() {
       },
     });
 
-    if (error) toast.error(error.message);
+    if (error) toastT.errorFromApi({ error: error.message });
   }
 
   return (
@@ -65,11 +68,11 @@ function LoginForm() {
             className="flex items-center justify-center gap-2 mb-4"
           >
             <Zap className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">RepostAI</span>
+            <span className="text-xl font-bold">{t("brandName")}</span>
           </Link>
-          <CardTitle className="text-2xl">Welcome back</CardTitle>
+          <CardTitle className="text-2xl">{t("auth.welcomeBack")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Log in to your account to continue
+            {t("auth.loginSubtitle")}
           </p>
         </CardHeader>
         <CardContent>
@@ -96,23 +99,23 @@ function LoginForm() {
                 fill="#EA4335"
               />
             </svg>
-            Continue with Google
+            {t("auth.continueGoogle")}
           </Button>
 
           <div className="relative my-4">
             <Separator />
             <span className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-              or
+              {t("auth.or")}
             </span>
           </div>
 
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t("auth.email")}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="you@example.com"
+                placeholder={t("auth.placeholderEmail")}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -120,32 +123,32 @@ function LoginForm() {
             </div>
             <div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password">{t("auth.password")}</Label>
                 <Link
                   href="/forgot-password"
                   className="text-xs text-primary hover:underline"
                 >
-                  Forgot password?
+                  {t("auth.forgotPassword")}
                 </Link>
               </div>
               <Input
                 id="password"
                 type="password"
-                placeholder="Your password"
+                placeholder={t("auth.placeholderPassword")}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t("auth.signingIn") : t("auth.signIn")}
             </Button>
           </form>
 
           <p className="text-sm text-center text-muted-foreground mt-6">
-            Don&apos;t have an account?{" "}
+            {t("auth.noAccount")}{" "}
             <Link href="/signup" className="text-primary hover:underline">
-              Sign up free
+              {t("auth.signUpFree")}
             </Link>
           </p>
         </CardContent>

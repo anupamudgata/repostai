@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { SUPERUSER_EMAIL } from "@/config/constants";
 import { generateBlogPost } from "@/lib/ai/content-generator";
 import { createContentSchema } from "@/lib/validators/create-content";
+import { getEffectivePlan } from "@/lib/billing/plan-entitlements";
 
 export async function POST(request: NextRequest) {
   try {
@@ -28,24 +28,20 @@ export async function POST(request: NextRequest) {
     const { topic, tone, length, audience, outputLanguage, brandVoiceId } =
       parsed.data;
 
-    const isSuperUser = user.email === SUPERUSER_EMAIL;
-    if (!isSuperUser) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("plan")
-        .eq("id", user.id)
-        .single();
-
-      if (!profile?.plan || profile.plan === "free") {
-        return NextResponse.json(
-          {
-            error:
-              "AI Content Starter is available on Pro and Agency plans. Upgrade to unlock this feature.",
-            code: "PLAN_REQUIRED",
-          },
-          { status: 403 }
-        );
-      }
+    const { plan, isSuperUser } = await getEffectivePlan(
+      supabase,
+      user.id,
+      user.email
+    );
+    if (!isSuperUser && plan === "free") {
+      return NextResponse.json(
+        {
+          error:
+            "AI Content Starter is available on Pro and Agency plans. Upgrade to unlock this feature.",
+          code: "PLAN_REQUIRED",
+        },
+        { status: 403 }
+      );
     }
 
     let brandVoiceSample: string | undefined;

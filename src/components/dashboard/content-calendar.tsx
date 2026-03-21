@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, GripVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { cn } from "@/lib/utils";
 
 export type ScheduledPostData = {
@@ -108,6 +108,7 @@ interface ContentCalendarProps {
 }
 
 export function ContentCalendar({ posts: initialPosts, onRefresh }: ContentCalendarProps) {
+  const toastT = useAppToast();
   const today = new Date();
   const [viewDate, setViewDate] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const [posts, setPosts] = useState(initialPosts);
@@ -155,10 +156,13 @@ export function ContentCalendar({ posts: initialPosts, onRefresh }: ContentCalen
     });
     const data = await res.json();
     if (!res.ok) {
-      toast.error(data.error || "Failed to reschedule");
+      toastT.errorFromApi(
+        { error: data.error, code: data.code },
+        "toast.failedReschedule"
+      );
       return;
     }
-    toast.success("Post rescheduled");
+    toastT.success("toast.postRescheduled");
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId ? { ...p, scheduled_at: newDate.toISOString() } : p
@@ -173,10 +177,13 @@ export function ContentCalendar({ posts: initialPosts, onRefresh }: ContentCalen
     const data = await res.json();
     setDeletingId(null);
     if (!res.ok) {
-      toast.error(data.error || "Failed to delete");
+      toastT.errorFromApi(
+        { error: data.error, code: data.code },
+        "toast.failedDelete"
+      );
       return;
     }
-    toast.success("Post removed");
+    toastT.success("toast.postRemoved");
     setPosts((prev) => prev.filter((p) => p.id !== postId));
     onRefresh();
   };

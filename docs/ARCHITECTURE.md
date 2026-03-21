@@ -156,7 +156,7 @@ All tables have RLS enabled. Users can only read/write their own data:
 2. Selects target platforms
 3. Clicks "Repurpose"
 4. Frontend sends POST to /api/repurpose
-5. Server validates input + checks usage limits
+5. Server validates input + checks ¯usage limits
 6. If URL/YouTube: scrapes/transcribes content
 7. Builds prompt with platform instructions + optional brand voice
 8. Calls OpenAI GPT-4o-mini with JSON response format

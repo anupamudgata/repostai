@@ -1,9 +1,11 @@
 import { NextRequest }                   from "next/server";
 import { createClient }                  from "@/lib/supabase/server";
-import { supabaseAdmin }                 from "@/lib/supabase/admin";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
-import { SUPERUSER_EMAIL } from "@/config/constants";
+import {
+  getEffectivePlan,
+  getEntitlements,
+} from "@/lib/billing/plan-entitlements";
 import { burstLimiter, freeTierLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
 import { captureError }                  from "@/lib/sentry";
 import { openai } from "@/lib/ai/client";
@@ -90,19 +92,68 @@ export async function POST(req: NextRequest) {
         const burst = await burstLimiter.limit(user.id);
         if (!burst.success) { send({ type: "error", error: "Too many requests. Please slow down." }); close(); return; }
 
-        const isSuperUser = user.email === SUPERUSER_EMAIL;
-        const { data: sub } = await supabaseAdmin.from("subscriptions").select("plan, status").eq("user_id", user.id).single();
-        const plan    = isSuperUser ? "pro" : (sub?.status === "active" ? sub.plan : "free");
-        const limiter = plan === "agency" ? agencyTierLimiter : plan === "pro" ? proTierLimiter : freeTierLimiter;
+        const { plan: effectivePlan, isSuperUser } = await getEffectivePlan(
+          supabase,
+          user.id,
+          user.email
+        );
+        const entitlements = getEntitlements(effectivePlan);
+
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        const { data: usageRow } = await supabase
+          .from("usage")
+          .select("repurpose_count")
+          .eq("user_id", user.id)
+          .eq("month", currentMonth)
+          .single();
+        const used = usageRow?.repurpose_count ?? 0;
+        if (!isSuperUser && entitlements.repurposesPerMonth != null) {
+          if (used >= entitlements.repurposesPerMonth) {
+            send({
+              type: "error",
+              error: `Monthly repurpose limit reached (${entitlements.repurposesPerMonth}). Upgrade for more.`,
+            });
+            close();
+            return;
+          }
+        }
+
+        const limiter =
+          effectivePlan === "agency"
+            ? agencyTierLimiter
+            : effectivePlan === "pro"
+              ? proTierLimiter
+              : freeTierLimiter;
         const tierResult = await limiter.limit(user.id);
         if (!tierResult.success) {
-          send({ type: "error", error: plan === "free" ? "Free tier limit reached. Upgrade to Pro for unlimited." : "Daily limit reached. Resets at midnight UTC." });
-          close(); return;
+          send({
+            type: "error",
+            error:
+              effectivePlan === "free"
+                ? "Too many streaming requests. Please wait or upgrade to Pro."
+                : "Daily streaming limit reached. Resets at midnight UTC.",
+          });
+          close();
+          return;
         }
 
         const body = await req.json();
         const { content, platforms, language = "en", brandVoiceId } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string };
         if (!content?.trim() || !platforms?.length) { send({ type: "error", error: "Content and platforms are required." }); close(); return; }
+
+        if (entitlements.allowedPlatformIds) {
+          const allow = entitlements.allowedPlatformIds as readonly string[];
+          const ok = platforms.every((p) => allow.includes(p));
+          if (!ok) {
+            send({
+              type: "error",
+              error:
+                "Your plan includes LinkedIn, Twitter/X, and Instagram only. Upgrade for all platforms.",
+            });
+            close();
+            return;
+          }
+        }
 
         const brief = await extractBrief(content);
         brief.rawContent = content;
@@ -130,6 +181,13 @@ export async function POST(req: NextRequest) {
             send({ type: "platform_error", platform, error: "Generation failed. Click regenerate to try again." });
           }
         }));
+
+        if (!isSuperUser) {
+          await supabase.rpc("increment_usage", {
+            p_user_id: user.id,
+            p_month: currentMonth,
+          });
+        }
 
         send({ type: "all_done", durationMs: Date.now() - startTime, remaining: tierResult.remaining });
       } catch (err) {

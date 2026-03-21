@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { HistoryCard } from "./history-card";
 import { Trash2, Loader2, CheckSquare, Square } from "lucide-react";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 
 type Job = {
   id: string;
@@ -15,6 +15,7 @@ type Job = {
 };
 
 export function HistoryList({ initialJobs }: { initialJobs: Job[] }) {
+  const toastT = useAppToast();
   const [jobs, setJobs] = useState(initialJobs);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
@@ -48,7 +49,7 @@ export function HistoryList({ initialJobs }: { initialJobs: Job[] }) {
   async function handleBulkDelete() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) {
-      toast.error("Select at least one item to delete");
+      toastT.error("toast.selectOneDelete");
       return;
     }
     if (!confirm(`Delete ${ids.length} item(s)? This cannot be undone.`)) return;
@@ -62,14 +63,17 @@ export function HistoryList({ initialJobs }: { initialJobs: Job[] }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Failed to delete");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.failedDelete"
+        );
         return;
       }
       setJobs((prev) => prev.filter((j) => !selectedIds.has(j.id)));
       setSelectedIds(new Set());
-      toast.success(`Deleted ${ids.length} item(s)`);
+      toastT.success("toast.deletedItems", { count: ids.length });
     } catch {
-      toast.error("Network error");
+      toastT.error("toast.networkErrorShort");
     } finally {
       setBulkDeleting(false);
     }

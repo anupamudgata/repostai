@@ -3,6 +3,7 @@
 // FIX: removed unused expressions on lines 83 and 91 (onFilter side-effect calls)
 
 import { useState, useEffect, useMemo } from "react";
+import { useAppToast } from "@/hooks/use-app-toast";
 
 interface HistoryItem {
   id:         string;
@@ -36,6 +37,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export default function HistoryPage() {
+  const toastT = useAppToast();
   const [items,    setItems]    = useState<HistoryItem[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [query,    setQuery]    = useState("");
@@ -105,15 +107,30 @@ export default function HistoryPage() {
   async function handleDeleteSelected() {
     if (selected.size === 0) return;
     if (!confirm(`Delete ${selected.size} item${selected.size !== 1 ? "s" : ""}?`)) return;
+    const outputIds = Array.from(selected);
     setDeleting(true);
-    await Promise.all(
-      Array.from(selected).map((id) =>
-        fetch(`/api/history?id=${id}`, { method: "DELETE" })
-      )
-    );
-    setItems((prev) => prev.filter((i) => !selected.has(i.id)));
-    setSelected(new Set());
-    setDeleting(false);
+    try {
+      const res = await fetch("/api/history/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outputIds }),
+      });
+      const data = (await res.json()) as { error?: string; code?: string };
+      if (!res.ok) {
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.failedDelete"
+        );
+        return;
+      }
+      setItems((prev) => prev.filter((i) => !selected.has(i.id)));
+      setSelected(new Set());
+      toastT.success("toast.deletedItems", { count: outputIds.length });
+    } catch {
+      toastT.error("toast.networkErrorShort");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function copyContent(id: string, text: string) {

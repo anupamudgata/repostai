@@ -71,12 +71,60 @@ Set in Vercel (or your host) → Project → Settings → Environment Variables:
 
 ---
 
-## 5. Vercel / Hosting
+## 5. Vercel / Hosting & scheduled posts (cron)
 
-- [ ] **Cron** — Add cron job: `0 * * * *` → `/api/cron/scheduled-posts`
-- [ ] **CRON_SECRET** — Set in env; add `Authorization: Bearer {CRON_SECRET}` header in Vercel cron config
-- [ ] **Domain** — Point custom domain
-- [ ] **Build** — Verify `npm run build` succeeds
+### Hobby (free) vs Pro
+
+| Plan | Vercel Cron limit |
+|------|-------------------|
+| **Hobby** | **At most once per day.** Expressions like `0 * * * *` (hourly) **will fail deployment**. |
+| **Pro** | Hourly and more frequent schedules are allowed. |
+
+This repo’s `vercel.json` uses **`0 9 * * *`** — **once per day at 09:00 UTC** — so it **deploys on Hobby**. Vercel may run it anytime within that hour (not exact to the minute).
+
+**Trade-off on Hobby:** Posts are only picked up when the daily cron runs. If you need **hourly** checks, either **upgrade to Vercel Pro** and change the schedule back to hourly, or use an **external cron** (e.g. cron-job.org) to `GET` your endpoint more often (see below).
+
+### Configure cron + `CRON_SECRET`
+
+1. **Repo already defines cron** in `vercel.json` → `/api/cron/scheduled-posts` at `0 9 * * *` (adjust the hour in that file if you want a different UTC window).
+2. In Vercel → **Settings** → **Environment Variables**:
+   - Add **`CRON_SECRET`** = long random string (e.g. `openssl rand -hex 32`).
+   - Redeploy after saving.
+3. Vercel Cron will send **`Authorization: Bearer <CRON_SECRET>`** automatically when `CRON_SECRET` is set in the project — no manual header config in the dashboard is required for the built-in cron.
+4. **Always set `CRON_SECRET` in production** so random callers cannot trigger the cron URL.
+
+### Manual / external trigger (optional)
+
+Same endpoint, same auth:
+
+```bash
+curl -sS -H "Authorization: Bearer YOUR_CRON_SECRET" \
+  "https://your-domain.com/api/cron/scheduled-posts"
+```
+
+Or with query param (if your route supports it — this app uses **Bearer** in `Authorization`):
+
+```text
+GET https://your-domain.com/api/cron/scheduled-posts
+Header: Authorization: Bearer YOUR_CRON_SECRET
+```
+
+Use an external scheduler (cron-job.org, GitHub Actions, etc.) for **more than once per day** while staying on **Hobby**.
+
+### Vercel CLI (`The specified token is not valid`)
+
+If `vercel --prod` fails with that error, the CLI is usually picking up a **bad or expired `VERCEL_TOKEN`** from your shell (or you never logged in).
+
+1. One-time login (browser): `npm run vercel:login` (or `vercel login`).
+2. Deploy without the bad env var: `npm run deploy:vercel` (script unsets `VERCEL_TOKEN` so the CLI uses your saved login under `~/.vercel`).
+3. If you still need a token (CI only), create a new one at [Vercel → Account → Tokens](https://vercel.com/account/tokens) — revoke old tokens after rotation.
+
+Do **not** keep an old token in `~/.zshrc` as `export VERCEL_TOKEN=...` unless you maintain it; prefer `vercel login` locally.
+
+### Rest of hosting
+
+- [ ] **Domain** — Point custom domain in Vercel
+- [ ] **Build** — Verify `npm run build` succeeds (CI / Vercel)
 
 ---
 
@@ -84,6 +132,7 @@ Set in Vercel (or your host) → Project → Settings → Environment Variables:
 
 - [ ] Update `SUPPORT_EMAIL` in constants if needed
 - [ ] Review `/privacy` and `/terms` pages
+- [ ] **GDPR deletion** — Set `RESEND_API_KEY` / `RESEND_FROM_EMAIL`, optional `ACCOUNT_DELETION_TOKEN_SECRET` (or rely on `CRON_SECRET` / `ENCRYPTION_SECRET`). Manually test: email link flow (`POST /api/user/delete/request` → confirm page) and “delete now” on `/dashboard/settings/delete`; in Supabase confirm no orphaned rows for `user_id`.
 - [ ] Add real testimonials (replace placeholder if any)
 - [ ] Set `LANDING_USER_COUNT` if you have a number
 

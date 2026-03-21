@@ -1,8 +1,8 @@
-import crypto                            from "crypto";
-import { supabaseAdmin }                 from "@/lib/supabase/admin";
-import { buildBrandVoicePrompt }         from "@/lib/ai/prompts/brand-voice";
-import { captureError, captureMessage }  from "@/lib/sentry";
-import { openai } from "@/lib/ai/client";
+import crypto from "crypto";
+import { supabaseAdmin } from "@/lib/supabase/admin";
+import { captureError, captureMessage } from "@/lib/sentry";
+import { generateBrandVoicePersona } from "@/lib/ai/brand-voice-persona";
+
 const CACHE_TTL_DAYS = 30;
 
 function hashSamples(samples: string): string {
@@ -16,20 +16,12 @@ function isCacheValid(storedHash: string | null, currentHash: string, generatedA
   return ageDays <= CACHE_TTL_DAYS;
 }
 
-async function generatePersona(samples: string): Promise<string> {
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini", temperature: 0.4,
-    messages: [{ role: "user", content: buildBrandVoicePrompt(samples) }],
-  });
-  const persona = response.choices[0]?.message?.content?.trim() ?? "";
-  if (!persona) throw new Error("OpenAI returned empty persona");
-  return persona;
-}
-
 export async function getOrGeneratePersona(brandVoiceId: string): Promise<{ persona: string; fromCache: boolean }> {
   const { data: voice, error: fetchError } = await supabaseAdmin
     .from("brand_voices")
-    .select("id, samples, persona, persona_generated_at, samples_hash, user_id")
+    .select(
+      "id, samples, persona, persona_generated_at, samples_hash, user_id, humanization_level, imperfection_mode, personal_story_injection"
+    )
     .eq("id", brandVoiceId)
     .single();
 
@@ -43,11 +35,20 @@ export async function getOrGeneratePersona(brandVoiceId: string): Promise<{ pers
     return { persona: voice.persona, fromCache: true };
   }
 
-  const persona = await generatePersona(voice.samples);
+  const { text: persona, model: personaModel } = await generateBrandVoicePersona(voice.samples, {
+    humanization_level: voice.humanization_level,
+    imperfection_mode: voice.imperfection_mode,
+    personal_story_injection: voice.personal_story_injection,
+  });
 
   const { error: saveError } = await supabaseAdmin
     .from("brand_voices")
-    .update({ persona, samples_hash: currentHash, persona_generated_at: new Date().toISOString() })
+    .update({
+      persona,
+      samples_hash: currentHash,
+      persona_generated_at: new Date().toISOString(),
+      persona_model: personaModel,
+    })
     .eq("id", brandVoiceId);
 
   if (saveError) captureError(saveError, { action: "brand_voice_cache_save", extra: { brandVoiceId } });
@@ -58,7 +59,12 @@ export async function getOrGeneratePersona(brandVoiceId: string): Promise<{ pers
 export async function invalidateBrandVoiceCache(brandVoiceId: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from("brand_voices")
-    .update({ persona: null, samples_hash: null, persona_generated_at: null })
+    .update({
+      persona: null,
+      samples_hash: null,
+      persona_generated_at: null,
+      persona_model: null,
+    })
     .eq("id", brandVoiceId);
   if (error) captureError(error, { action: "brand_voice_cache_invalidate", extra: { brandVoiceId } });
 }

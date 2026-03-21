@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Copy, Check, ChevronDown, ChevronUp, RefreshCw, Loader2, Send, Trash2 } from "lucide-react";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 import { createClient } from "@/lib/supabase/client";
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
 
@@ -37,6 +37,7 @@ function platformProvider(p: string): string | null {
 }
 
 export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode }: HistoryCardProps) {
+  const toastT = useAppToast();
   const [expanded, setExpanded] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const initialOutputs = (() => {
@@ -107,7 +108,7 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
   async function handleCopy(content: string, outputId: string) {
     await navigator.clipboard.writeText(content);
     setCopiedId(outputId);
-    toast.success("Copied to clipboard!");
+    toastT.success("toast.copiedToClipboard");
     setTimeout(() => setCopiedId(null), 2000);
   }
 
@@ -121,7 +122,10 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Regeneration failed");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.regenerationFailed"
+        );
         return;
       }
       setOutputs((prev) =>
@@ -129,9 +133,9 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
           o.platform === platform ? { ...o, generated_content: data.content } : o
         )
       );
-      toast.success("Regenerated!");
+      toastT.success("toast.regenerated");
     } catch {
-      toast.error("Network error");
+      toastT.error("toast.networkErrorShort");
     } finally {
       setRegeneratingPlatform(null);
     }
@@ -144,13 +148,16 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
       const res = await fetch(`/api/history/${job.id}`, { method: "DELETE" });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Failed to delete");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.failedDelete"
+        );
         return;
       }
-      toast.success("History item deleted");
+      toastT.success("toast.historyDeleted");
       onDeleted?.(job.id);
     } catch {
-      toast.error("Network error");
+      toastT.error("toast.networkErrorShort");
     } finally {
       setDeleting(false);
     }
@@ -170,12 +177,15 @@ export function HistoryCard({ job, onDeleted, selected, onSelect, selectionMode 
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "Post failed");
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.postFailed"
+        );
         return;
       }
-      toast.success("Posted!");
+      toastT.success("toast.posted");
     } catch {
-      toast.error("Network error");
+      toastT.error("toast.networkErrorShort");
     } finally {
       setPostingPlatform(null);
     }

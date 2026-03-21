@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { useI18n } from "@/contexts/i18n-provider";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
 interface NavProps {
   user: {
@@ -42,19 +44,34 @@ interface NavProps {
 }
 
 const NAV_LINKS = [
-  { href: "/dashboard", label: "Repurpose", icon: LayoutDashboard },
-  { href: "/dashboard/agent", label: "Content Agent", icon: Bot, badge: "NEW" },
-  { href: "/dashboard/clips", label: "Video → Clips", icon: Scissors },
-  { href: "/dashboard/create", label: "Create", icon: Sparkles, badge: "PRO" },
-  { href: "/dashboard/history", label: "History", icon: History },
-  { href: "/dashboard/connections", label: "Connections", icon: Link2 },
-  { href: "/dashboard/scheduled", label: "Calendar", icon: CalendarClock },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/integrations", label: "Integrations", icon: Plug },
-  { href: "/dashboard/brand-voice", label: "Brand Voice", icon: Mic },
-];
+  { href: "/dashboard", labelKey: "nav.repurpose", icon: LayoutDashboard },
+  {
+    href: "/dashboard/agent",
+    labelKey: "nav.contentAgent",
+    icon: Bot,
+    badgeKey: "nav.badgeNew",
+  },
+  {
+    href: "/dashboard/clips",
+    labelKey: "nav.videoClips",
+    icon: Scissors,
+  },
+  {
+    href: "/dashboard/create",
+    labelKey: "nav.create",
+    icon: Sparkles,
+    badgeKey: "nav.badgePro",
+  },
+  { href: "/dashboard/history", labelKey: "nav.history", icon: History },
+  { href: "/dashboard/connections", labelKey: "nav.connections", icon: Link2 },
+  { href: "/dashboard/scheduled", labelKey: "nav.calendar", icon: CalendarClock },
+  { href: "/dashboard/analytics", labelKey: "nav.analytics", icon: BarChart3 },
+  { href: "/integrations", labelKey: "nav.integrations", icon: Plug },
+  { href: "/dashboard/brand-voice", labelKey: "nav.brandVoice", icon: Mic },
+] as const;
 
 export function DashboardNav({ user }: NavProps) {
+  const { t } = useI18n();
   const router = useRouter();
   const supabase = createClient();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -78,17 +95,17 @@ export function DashboardNav({ user }: NavProps) {
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-primary" />
-            <span className="font-bold">RepostAI</span>
+            <span className="font-bold">{t("brandName")}</span>
           </Link>
           <div className="hidden md:flex items-center gap-1">
             {NAV_LINKS.map((link) => (
               <Link key={link.href} href={link.href}>
                 <Button variant="ghost" size="sm" className="gap-2">
                   <link.icon className="h-4 w-4" />
-                  {link.label}
-                  {link.badge && (
+                  {t(link.labelKey)}
+                  {"badgeKey" in link && link.badgeKey && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                      {link.badge}
+                      {t(link.badgeKey)}
                     </Badge>
                   )}
                 </Button>
@@ -99,8 +116,12 @@ export function DashboardNav({ user }: NavProps) {
 
         <div className="flex items-center gap-3">
           <Badge variant={user.plan === "free" ? "secondary" : "default"}>
-            {user.plan === "free" ? "Free" : user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
+            {user.plan === "free"
+              ? t("common.free")
+              : user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
           </Badge>
+
+          <LanguageSwitcher variant="compact" />
 
           <Button
             variant="ghost"
@@ -131,13 +152,13 @@ export function DashboardNav({ user }: NavProps) {
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/settings" className="gap-2">
                   <Settings className="h-4 w-4" />
-                  Settings
+                  {t("common.settings")}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="gap-2">
                 <LogOut className="h-4 w-4" />
-                Log out
+                {t("common.logOut")}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -154,10 +175,10 @@ export function DashboardNav({ user }: NavProps) {
             >
               <Button variant="ghost" className="w-full justify-start gap-2">
                 <link.icon className="h-4 w-4" />
-                {link.label}
-                {link.badge && (
+                {t(link.labelKey)}
+                {"badgeKey" in link && link.badgeKey && (
                   <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                    {link.badge}
+                    {t(link.badgeKey)}
                   </Badge>
                 )}
               </Button>
@@ -166,7 +187,7 @@ export function DashboardNav({ user }: NavProps) {
           <Link href="/dashboard/settings" onClick={() => setMobileOpen(false)}>
             <Button variant="ghost" className="w-full justify-start gap-2">
               <Settings className="h-4 w-4" />
-              Settings
+              {t("common.settings")}
             </Button>
           </Link>
         </div>

@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 
 type Clip = {
   startTime: number;
@@ -32,6 +32,7 @@ type Clip = {
 };
 
 export default function ClipsPage() {
+  const toastT = useAppToast();
   const [inputMode, setInputMode] = useState<"url" | "transcript">("url");
   const [url, setUrl] = useState("");
   const [pastedTranscript, setPastedTranscript] = useState("");
@@ -44,15 +45,15 @@ export default function ClipsPage() {
 
   async function handleExtract() {
     if (inputMode === "url" && !url.trim()) {
-      toast.error("Enter a YouTube URL");
+      toastT.error("toast.enterYoutubeUrl");
       return;
     }
     if (inputMode === "transcript" && !pastedTranscript.trim()) {
-      toast.error("Paste a transcript with timestamps");
+      toastT.error("toast.pasteTranscript");
       return;
     }
     if (inputMode === "transcript" && pastedTranscript.trim().length < 100) {
-      toast.error("Transcript is too short. Paste at least 100 characters.");
+      toastT.error("toast.transcriptTooShort");
       return;
     }
     setLoading(true);
@@ -67,34 +68,40 @@ export default function ClipsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      let data: { error?: string; clips?: Clip[]; videoUrl?: string; videoId?: string };
+      let data: {
+        error?: string;
+        code?: string;
+        clips?: Clip[];
+        videoUrl?: string;
+        videoId?: string;
+      };
       try {
         data = await res.json();
       } catch {
         setError("Invalid response from server. Please try again.");
-        toast.error("Could not read server response");
+        toastT.error("toast.couldNotReadResponse");
         return;
       }
       if (!res.ok) {
         const errMsg = data.error || "Could not extract clips from this video";
         setError(errMsg);
-        toast.error(errMsg);
+        toastT.errorFromApi({ error: errMsg, code: data.code });
         return;
       }
       const clipsData = data.clips ?? [];
       if (clipsData.length === 0) {
         setError("No clip-worthy moments found. The video may have no captions, or the transcript was too short. Try a video with subtitles enabled.");
-        toast.error("No clips found");
+        toastT.error("toast.noClipsFound");
         return;
       }
       setClips(clipsData);
       setVideoUrl(data.videoUrl ?? "");
       setVideoId(data.videoId ?? "");
-      toast.success(`Found ${clipsData.length} clip-worthy moments`);
+      toastT.success("toast.clipsFound", { count: clipsData.length });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Network error. Please check your connection and try again.";
       setError(msg);
-      toast.error(msg);
+      toastT.errorFromApi({ error: msg });
     } finally {
       setLoading(false);
     }
@@ -103,7 +110,7 @@ export default function ClipsPage() {
   async function handleCopy(caption: string, index: number) {
     await navigator.clipboard.writeText(caption);
     setCopiedIndex(index);
-    toast.success("Caption copied to clipboard");
+    toastT.success("toast.captionCopied");
     setTimeout(() => setCopiedIndex(null), 2000);
   }
 

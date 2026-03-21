@@ -170,3 +170,8 @@
                     linear-gradient(90deg, oklch(0.55 0.24 280 / 5%) 1px, transparent 1px);
   background-size: 60px 60px;
 }
+
+/* Hindi (Devanagari): stack Noto with Latin UI font from next/font variables */
+.font-app-hi {
+  font-family: var(--font-noto-devanagari), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}

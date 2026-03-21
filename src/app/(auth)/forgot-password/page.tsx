@@ -8,9 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
-import { toast } from "sonner";
+import { useI18n } from "@/contexts/i18n-provider";
+import { useAppToast } from "@/hooks/use-app-toast";
 
 export default function ForgotPasswordPage() {
+  const { t } = useI18n();
+  const toastT = useAppToast();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -26,7 +29,7 @@ export default function ForgotPasswordPage() {
     });
 
     if (error) {
-      toast.error(error.message);
+      toastT.errorFromApi({ error: error.message });
       setLoading(false);
       return;
     }
@@ -44,49 +47,47 @@ export default function ForgotPasswordPage() {
             className="flex items-center justify-center gap-2 mb-4"
           >
             <Zap className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">RepostAI</span>
+            <span className="text-xl font-bold">{t("brandName")}</span>
           </Link>
-          <CardTitle className="text-2xl">Reset password</CardTitle>
+          <CardTitle className="text-2xl">{t("auth.resetPassword")}</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Enter your email and we&apos;ll send you a link to reset your
-            password.
+            {t("auth.resetSubtitle")}
           </p>
         </CardHeader>
         <CardContent>
           {sent ? (
             <div className="space-y-4 text-center">
               <p className="text-sm text-muted-foreground">
-                Check your inbox for <strong>{email}</strong>. Click the link to
-                set a new password, then sign in.
+                {t("auth.resetSent", { email })}
               </p>
               <Link href="/login">
                 <Button variant="outline" className="w-full">
-                  Back to sign in
+                  {t("auth.backToSignIn")}
                 </Button>
               </Link>
             </div>
           ) : (
             <form onSubmit={handleReset} className="space-y-4">
               <div>
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email">{t("auth.email")}</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="you@example.com"
+                  placeholder={t("auth.placeholderEmail")}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                 />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Sending..." : "Send reset link"}
+                {loading ? t("auth.sending") : t("auth.sendResetLink")}
               </Button>
             </form>
           )}
 
           <p className="text-sm text-center text-muted-foreground mt-6">
             <Link href="/login" className="text-primary hover:underline">
-              Back to sign in
+              {t("auth.backToSignIn")}
             </Link>
           </p>
         </CardContent>

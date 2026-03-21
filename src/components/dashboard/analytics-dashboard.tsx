@@ -42,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
-import { toast } from "sonner";
+import { useAppToast } from "@/hooks/use-app-toast";
 
 type PostRow = {
   id: string;
@@ -73,6 +73,7 @@ function getPlatformName(platform: string) {
 }
 
 export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }) {
+  const toastT = useAppToast();
   const [posts, setPosts] = useState(initialPosts);
   const [insights, setInsights] = useState<string[]>([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -106,7 +107,7 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
       const data = await res.json();
       setInsights(data.insights ?? []);
     } catch {
-      toast.error("Failed to load insights");
+      toastT.error("toast.failedLoadInsights");
     } finally {
       setInsightsLoading(false);
     }
@@ -200,7 +201,7 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed");
-      toast.success("Engagement added");
+      toastT.success("toast.engagementAdded");
       setAddOpen(false);
       setForm({
         platform: "linkedin",
@@ -213,7 +214,11 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
       });
       refresh();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to add");
+      if (err instanceof Error && err.message) {
+        toastT.errorFromApi({ error: err.message });
+      } else {
+        toastT.error("toast.failedAddEngagement");
+      }
     } finally {
       setSubmitting(false);
     }

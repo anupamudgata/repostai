@@ -2,9 +2,18 @@
 // FIXED: Removed outputFileTracingRoot which causes issues on Vercel,
 // added proper config for production stability
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
 
+/** Pin Turbopack when a parent folder has another package.json/lockfile (avoids wrong root + broken CSS resolve).
+ * `npm run dev` uses `--webpack` because Turbopack can resolve `@import "tailwindcss"` from a parent dir (e.g. ~/package.json). */
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: projectRoot,
+  },
   // Vercel handles file tracing automatically — don't override it
   // The outputFileTracingRoot you had was causing deployment instability
 
