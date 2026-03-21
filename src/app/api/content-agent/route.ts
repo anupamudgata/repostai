@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateBlogPost } from "@/lib/ai/content-generator";
 import { repurposeContent } from "@/lib/ai/openai";
 import { FREE_PLATFORM_IDS, FREE_TIER_WATERMARK, SUPPORTED_PLATFORMS } from "@/config/constants";
+import { getEffectivePlan, isFreePlanTier } from "@/lib/billing/plan-entitlements";
 import type { Platform } from "@/types";
 
 function parseLength(length: string): "short" | "medium" | "long" {
@@ -39,13 +40,12 @@ export async function POST(request: NextRequest) {
 
     const draft = await generateBlogPost(topic, t, length, audience, language, undefined);
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("plan")
-      .eq("id", user.id)
-      .single();
-
-    const isFree = !profile?.plan || profile.plan === "free";
+    const { plan: effectivePlan } = await getEffectivePlan(
+      supabase,
+      user.id,
+      user.email
+    );
+    const isFree = isFreePlanTier(effectivePlan);
     const platforms = (isFree
       ? [...FREE_PLATFORM_IDS]
       : SUPPORTED_PLATFORMS.map((p) => p.id)) as Platform[];
