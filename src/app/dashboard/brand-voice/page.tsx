@@ -42,11 +42,14 @@ export default function BrandVoicePage() {
   const [userPlan, setUserPlan] = useState("free");
   const supabase = createClient();
 
-  const planConfig = userPlan === "agency"
-    ? PLANS.AGENCY
-    : userPlan === "pro"
-      ? PLANS.PRO
-      : PLANS.FREE;
+  const planConfig =
+    userPlan === "agency"
+      ? PLANS.AGENCY
+      : userPlan === "pro"
+        ? PLANS.PRO
+        : userPlan === "starter"
+          ? PLANS.STARTER
+          : PLANS.FREE;
   const maxVoices = planConfig.brandVoices;
   const canCreateVoice = voices.length < maxVoices;
 

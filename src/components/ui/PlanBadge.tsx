@@ -19,6 +19,12 @@ const PLAN_STYLES = {
     color:      "#6B7280",
     border:     "#E5E7EB",
   },
+  starter: {
+    label:      "Starter",
+    background: "#CCFBF1",
+    color:      "#0F766E",
+    border:     "#5EEAD4",
+  },
   pro: {
     label:      "Pro",
     background: "#EFF6FF",

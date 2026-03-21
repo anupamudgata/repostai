@@ -5,7 +5,7 @@ type SeverityLevel = "fatal" | "error" | "warning" | "info" | "debug";
 interface CaptureOptions {
   userId?:    string;
   userEmail?: string;
-  plan?:      "free" | "pro" | "agency";
+  plan?:      "free" | "starter" | "pro" | "agency";
   action?:    string;
   extra?:     Record<string, unknown>;
   level?:     SeverityLevel;

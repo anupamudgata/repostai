@@ -31,7 +31,9 @@ Set in Vercel (or your host) → Project → Settings → Environment Variables:
 | `RAZORPAY_KEY_SECRET` | If payments | Razorpay secret |
 | `NEXT_PUBLIC_RAZORPAY_KEY_ID` | If payments | Same as key ID |
 | `RAZORPAY_WEBHOOK_SECRET` | If payments | From Razorpay webhooks |
-| `RAZORPAY_PLAN_PRO_MONTHLY` | If payments | Plan ID from Razorpay |
+| `RAZORPAY_PLAN_STARTER_MONTHLY` | If payments | Starter ₹199/mo plan ID |
+| `RAZORPAY_PLAN_STARTER_ANNUAL` | If payments | Starter annual plan ID |
+| `RAZORPAY_PLAN_PRO_MONTHLY` | If payments | Pro plan ID from Razorpay |
 | `LINKEDIN_CLIENT_ID` | If LinkedIn | OAuth app |
 | `LINKEDIN_CLIENT_SECRET` | If LinkedIn | OAuth app |
 | `TWITTER_CLIENT_ID` | If Twitter | OAuth app |

@@ -121,7 +121,8 @@ export async function POST(req: NextRequest) {
         const limiter =
           effectivePlan === "agency"
             ? agencyTierLimiter
-            : effectivePlan === "pro"
+            : effectivePlan === "pro" ||
+                effectivePlan === "starter"
               ? proTierLimiter
               : freeTierLimiter;
         const tierResult = await limiter.limit(user.id);
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
             type: "error",
             error:
               effectivePlan === "free"
-                ? "Too many streaming requests. Please wait or upgrade to Pro."
+                ? "Too many streaming requests. Please wait or upgrade to Starter or Pro."
                 : "Daily streaming limit reached. Resets at midnight UTC.",
           });
           close();

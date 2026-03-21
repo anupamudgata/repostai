@@ -2,13 +2,13 @@
 import { posthog }           from "@/lib/analytics/posthog.client";
 import { AnalyticsEventName } from "@/lib/analytics/events";
 
-interface TrackOptions { userId?: string; plan?: "free" | "pro" | "agency"; [key: string]: unknown; }
+interface TrackOptions { userId?: string; plan?: "free" | "starter" | "pro" | "agency"; [key: string]: unknown; }
 
 export function track(event: AnalyticsEventName, properties: TrackOptions = {}): void {
   try { if (typeof window !== "undefined") posthog.capture(event, properties); } catch { /* never crash */ }
 }
 
-export function identify(userId: string, traits: { email?: string; name?: string; plan?: "free" | "pro" | "agency"; created_at?: string; [key: string]: unknown; } = {}): void {
+export function identify(userId: string, traits: { email?: string; name?: string; plan?: "free" | "starter" | "pro" | "agency"; created_at?: string; [key: string]: unknown; } = {}): void {
   try { if (typeof window !== "undefined") posthog.identify(userId, traits); } catch { /* never crash */ }
 }
 

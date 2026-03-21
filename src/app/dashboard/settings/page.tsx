@@ -13,27 +13,35 @@ import { SUPPORT_EMAIL } from "@/config/constants";
 const PLAN_CONFIG = {
   free: {
     label:       "Free",
-    price:       "$0/month",
+    price:       "₹0/month",
     color:       "#6B7280",
     bg:          "#F9FAFB",
     border:      "#E5E7EB",
-    description: "5 repurposes per month",
+    description: "10 repurposes/mo · 3 platforms · Watermark",
+  },
+  starter: {
+    label:       "Starter",
+    price:       "₹199/month",
+    color:       "#0D9488",
+    bg:          "#F0FDFA",
+    border:      "#99F6E4",
+    description: "10 repurposes/mo · All platforms · GPT‑4o‑mini · No watermark",
   },
   pro: {
     label:       "Pro",
-    price:       "$19/month",
+    price:       "₹499/month",
     color:       "#2563EB",
     bg:          "#EFF6FF",
     border:      "#BFDBFE",
-    description: "Unlimited repurposes · All platforms · Brand voice",
+    description: "60 repurposes/mo · Claude · AI Content Starter · 3 brand voices",
   },
   agency: {
     label:       "Agency",
-    price:       "$49/month",
+    price:       "₹1,499/month",
     color:       "#7C3AED",
     bg:          "#F5F3FF",
     border:      "#DDD6FE",
-    description: "Everything in Pro · 10 brand voices · CSV export",
+    description: "Unlimited · 5 brand voices · Team & API (roadmap)",
   },
 } as const;
 
@@ -54,7 +62,7 @@ export default async function SettingsPage() {
     sub?.status === "active" || sub?.status === "trialing"
       ? sub.plan
       : "free"
-  ) as "free" | "pro" | "agency";
+  ) as keyof typeof PLAN_CONFIG;
 
   const planConfig = PLAN_CONFIG[activePlan];
 
@@ -194,7 +202,7 @@ export default async function SettingsPage() {
             <div style={{ padding: "16px 20px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
               {activePlan === "free" ? (
                 <a
-                  href="/pricing"
+                  href="/#pricing"
                   style={{
                     padding:      "9px 20px",
                     borderRadius: "8px",
@@ -205,7 +213,7 @@ export default async function SettingsPage() {
                     textDecoration: "none",
                   }}
                 >
-                  Upgrade to Pro — $19/mo
+                  View plans — from ₹199/mo
                 </a>
               ) : (
                 <ManageBillingButton />

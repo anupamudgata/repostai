@@ -780,7 +780,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 items-start">
+          <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
             {Object.values(PLANS).map((plan) => {
               const hasAnnual = "annualPrice" in plan && plan.monthlyPrice > 0;
               const displayPrice =

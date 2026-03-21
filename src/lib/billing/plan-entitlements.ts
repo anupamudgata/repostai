@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { FREE_PLATFORM_IDS, SUPERUSER_EMAIL } from "@/config/constants";
 
-export type PaidPlan = "free" | "pro" | "agency";
+export type PaidPlan = "free" | "starter" | "pro" | "agency";
 
 /** Razorpay stores subscription id in `subscriptions.stripe_subscription_id` (legacy column name). */
 
@@ -19,6 +19,12 @@ const ENTITLEMENTS: Record<PaidPlan, PlanEntitlements> = {
   free: {
     repurposesPerMonth: 10,
     allowedPlatformIds: FREE_PLATFORM_IDS as readonly string[],
+    brandVoicesMax: 1,
+    aiTier: "standard",
+  },
+  starter: {
+    repurposesPerMonth: 10,
+    allowedPlatformIds: null,
     brandVoicesMax: 1,
     aiTier: "standard",
   },
@@ -67,7 +73,9 @@ export async function getEffectivePlan(
   if (
     subOk &&
     sub.plan &&
-    (sub.plan === "pro" || sub.plan === "agency")
+    (sub.plan === "starter" ||
+      sub.plan === "pro" ||
+      sub.plan === "agency")
   ) {
     return { plan: sub.plan as PaidPlan, isSuperUser: false };
   }
@@ -79,7 +87,7 @@ export async function getEffectivePlan(
     .single();
 
   const p = profile?.plan;
-  if (p === "agency" || p === "pro") {
+  if (p === "agency" || p === "pro" || p === "starter") {
     return { plan: p, isSuperUser: false };
   }
   return { plan: "free", isSuperUser: false };

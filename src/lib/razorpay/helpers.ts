@@ -3,6 +3,8 @@ import { getRazorpay } from "./client";
 import type { Plan } from "@/types";
 
 const PLAN_IDS: Record<string, string | undefined> = {
+  starter: process.env.RAZORPAY_PLAN_STARTER_MONTHLY,
+  "starter-annual": process.env.RAZORPAY_PLAN_STARTER_ANNUAL,
   pro: process.env.RAZORPAY_PLAN_PRO_MONTHLY,
   "pro-annual": process.env.RAZORPAY_PLAN_PRO_ANNUAL,
   agency: process.env.RAZORPAY_PLAN_AGENCY_MONTHLY,
@@ -15,6 +17,10 @@ export function getRazorpayPlanId(plan: Plan, billing?: "monthly" | "annual"): s
 }
 
 export function getPlanFromRazorpayPlanId(planId: string): Plan {
+  const starterIds = [
+    process.env.RAZORPAY_PLAN_STARTER_MONTHLY,
+    process.env.RAZORPAY_PLAN_STARTER_ANNUAL,
+  ];
   const proIds = [
     process.env.RAZORPAY_PLAN_PRO_MONTHLY,
     process.env.RAZORPAY_PLAN_PRO_ANNUAL,
@@ -25,6 +31,7 @@ export function getPlanFromRazorpayPlanId(planId: string): Plan {
   ];
   if (agencyIds.includes(planId)) return "agency";
   if (proIds.includes(planId)) return "pro";
+  if (starterIds.includes(planId)) return "starter";
   return "free";
 }
 

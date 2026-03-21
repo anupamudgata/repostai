@@ -272,6 +272,16 @@ export const landingBulkHi: LandingBulk = {
         'वॉटरमार्क: "Generated with RepostAI - repostai.com"',
       ],
     },
+    Starter: {
+      subtitle: "किफ़ायती पूर्ण पहुँच (वही AI जैसे फ्री)",
+      features: [
+        "10 रीपर्पज़ / माह",
+        "सभी 9 प्लेटफ़ॉर्म",
+        "GPT-4o-mini",
+        "बिना वॉटरमार्क",
+        "1 ब्रांड वॉइस",
+      ],
+    },
     Pro: {
       subtitle: "गंभीर क्रिएटर्स के लिए",
       features: [
@@ -338,7 +348,7 @@ export const landingBulkHi: LandingBulk = {
     },
     {
       q: "क्या मुफ़्त ट्रायल है?",
-      a: "और भी अच्छा — मुफ़्त प्लान है। हर महीने 10 रीपर्पज़, LinkedIn/Twitter/Instagram, GPT-4o-mini, और वॉटरमार्क; कार्ड की ज़रूरत नहीं। Pro पर अपग्रेड करके सीमा, प्लेटफ़ॉर्म और Claude अनलॉक करें।",
+      a: "और भी अच्छा — मुफ़्त प्लान है। हर महीने 10 रीपर्पज़, LinkedIn/Twitter/Instagram, GPT-4o-mini, और वॉटरमार्क; कार्ड की ज़रूरत नहीं। Starter (₹199/माह) पर सभी 9 प्लेटफ़ॉर्म और बिना वॉटरमार्क। Pro पर 60/माह और Claude।",
     },
     {
       q: "अगर यह मेरे लिए न हो?",

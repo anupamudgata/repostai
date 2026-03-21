@@ -3,14 +3,28 @@
 import { BillingPortalButton } from "./BillingPortalButton";
 
 interface BillingSectionProps {
-  plan: "free" | "pro" | "agency";
+  plan: "free" | "starter" | "pro" | "agency";
   status?: string;
   currentPeriodEnd?: string;
 }
 
 export function BillingSection({ plan, status, currentPeriodEnd }: BillingSectionProps) {
-  const planName = plan === "pro" ? "Pro" : plan === "agency" ? "Agency" : "Free";
-  const planColor = plan === "pro" ? "#2563EB" : plan === "agency" ? "#7C3AED" : "#6B7280";
+  const planName =
+    plan === "pro"
+      ? "Pro"
+      : plan === "agency"
+        ? "Agency"
+        : plan === "starter"
+          ? "Starter"
+          : "Free";
+  const planColor =
+    plan === "pro"
+      ? "#2563EB"
+      : plan === "agency"
+        ? "#7C3AED"
+        : plan === "starter"
+          ? "#0D9488"
+          : "#6B7280";
 
   return (
     <div style={{ padding: "20px", borderRadius: "12px", border: "1px solid #E5E7EB", background: "#FFFFFF" }}>
@@ -26,7 +40,11 @@ export function BillingSection({ plan, status, currentPeriodEnd }: BillingSectio
       </div>
       {plan === "free" && (
         <p style={{ fontSize: "13px", color: "#6B7280", lineHeight: 1.6 }}>
-          You are on the free plan (unlimited repurposes with watermark). <a href="/pricing" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>Upgrade to Pro</a> to remove the watermark.
+          You are on the free plan (10 repurposes/month, watermark).{" "}
+          <a href="/#pricing" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>
+            Upgrade to Starter or Pro
+          </a>{" "}
+          for no watermark and more features.
         </p>
       )}
       {plan !== "free" && currentPeriodEnd && (

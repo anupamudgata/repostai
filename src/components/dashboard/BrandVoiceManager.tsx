@@ -27,6 +27,7 @@ export function BrandVoiceManager() {
   const limit = useMemo(() => {
     if (userPlan === "agency") return PLANS.AGENCY.brandVoices;
     if (userPlan === "pro") return PLANS.PRO.brandVoices;
+    if (userPlan === "starter") return PLANS.STARTER.brandVoices;
     return PLANS.FREE.brandVoices;
   }, [userPlan]);
 

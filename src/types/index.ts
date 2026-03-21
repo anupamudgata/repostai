@@ -1,4 +1,4 @@
-export type Plan = "free" | "pro" | "agency";
+export type Plan = "free" | "starter" | "pro" | "agency";
 
 export type InputType = "text" | "url" | "youtube" | "pdf";
 

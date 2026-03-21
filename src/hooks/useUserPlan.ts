@@ -3,8 +3,9 @@
 // FIX: renamed unused 'err' to '_err' to satisfy no-unused-vars rule
 
 import { useState, useEffect } from "react";
+import type { Plan } from "@/types";
 
-export type Plan = "free" | "pro" | "agency";
+export type { Plan };
 
 interface UserPlanState {
   plan:    Plan;

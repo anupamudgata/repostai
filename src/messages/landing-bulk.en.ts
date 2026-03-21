@@ -271,6 +271,16 @@ export const landingBulkEn = {
         'Watermark: "Generated with RepostAI - repostai.com"',
       ],
     },
+    Starter: {
+      subtitle: "Affordable full access (same AI as Free)",
+      features: [
+        "10 repurposes / month",
+        "All 9 platforms",
+        "GPT-4o-mini",
+        "No watermark",
+        "1 brand voice",
+      ],
+    },
     Pro: {
       subtitle: "For serious creators",
       features: [
@@ -309,7 +319,7 @@ export const landingBulkEn = {
     role: "Solo builder, content creator",
     p1: "I built RepostAI because I was tired of the same problem every creator faces: you spend hours writing one great blog post, then spend MORE hours reformatting it for LinkedIn, Twitter, Instagram, and email. It's exhausting.",
     p2: "I tried every tool out there. Repurpose.io only does video distribution — no AI, no text creation. Lately AI costs $49+/month and is built for enterprises. Most \"AI tools\" just wrap ChatGPT and produce generic slop that sounds nothing like you.",
-    p3: "So I built what I actually wanted: paste your content, pick your platforms, get platform-native posts that sound like YOU — in 60 seconds, from ₹0 to ₹499/month.",
+    p3: "So I built what I actually wanted: paste your content, pick your platforms, get platform-native posts that sound like YOU — in 60 seconds, from ₹0 (Free) to ₹199 (Starter) or ₹499/month (Pro).",
     p4: "No VC funding. No bloated team. Just one developer building the tool I wish existed. Every feature request goes straight to me, and I ship weekly.",
     footer: "Built with care. Shipped with speed.",
   },
@@ -337,7 +347,7 @@ export const landingBulkEn = {
     },
     {
       q: "Is there a free trial?",
-      a: "Better — there's a free plan: 10 repurposes/month, LinkedIn/Twitter/Instagram, with a small watermark. No credit card required. Upgrade to Pro for 60/mo, all platforms, and Claude.",
+      a: "Better — there's a free plan: 10 repurposes/month, LinkedIn/Twitter/Instagram, with a small watermark. No credit card required. Starter (₹199/mo) adds all 9 platforms and no watermark with the same GPT‑4o‑mini quota. Pro adds 60/mo and Claude.",
     },
     {
       q: "What if it's not for me?",
