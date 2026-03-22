@@ -164,8 +164,8 @@ Based on your migrations + app code. Your app uses **Supabase** (cloud or local)
 
 1. Base schema: `docs/DATABASE_SCHEMA.sql` (profiles, subscriptions, brand_voices, repurpose_jobs, repurpose_outputs, usage, created_posts, connected_accounts, scheduled_posts)
 2. `supabase/migrations/20250312_repurpose_outputs_rls.sql` — INSERT/UPDATE on repurpose_outputs
-3. `supabase/migrations/20250317_add_brand_voices_samples.sql` — samples, persona
-4. `supabase/migrations/20250318_brand_voice_authenticity_tuning.sql` — humanization_level, etc.
+3. `supabase/migrations/20250317000001_add_brand_voices_samples.sql` — samples, persona
+4. `supabase/migrations/20250318000001_brand_voice_authenticity_tuning.sql` — humanization_level, etc.
 5. `supabase/migrations/20250318120001_repurpose_jobs_outputs_status.sql` — outputs, status on repurpose_jobs
 6. `supabase/migrations/20250317120002_post_engagement.sql` — post_engagement table
 7. `supabase/migrations/20250319120000_performance_indexes.sql` — indexes

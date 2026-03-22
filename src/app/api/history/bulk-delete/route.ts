@@ -27,10 +27,11 @@ export async function POST(request: NextRequest) {
     }
 
     if (hasOutputs) {
-      const { error } = await supabase
+      const { data: deletedRows, error } = await supabase
         .from("repurpose_outputs")
         .delete()
-        .in("id", outputIds!);
+        .in("id", outputIds!)
+        .select("id");
 
       if (error) {
         console.error("History bulk delete (outputs) error:", error);
@@ -40,17 +41,20 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      const deleted = deletedRows?.length ?? 0;
       return NextResponse.json({
         success: true,
-        deleted: outputIds!.length,
+        deleted,
+        requested: outputIds!.length,
       });
     }
 
-    const { error } = await supabase
+    const { data: deletedJobs, error } = await supabase
       .from("repurpose_jobs")
       .delete()
       .eq("user_id", user.id)
-      .in("id", jobIds!);
+      .in("id", jobIds!)
+      .select("id");
 
     if (error) {
       console.error("History bulk delete error:", error);
@@ -60,7 +64,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, deleted: jobIds!.length });
+    const deleted = deletedJobs?.length ?? 0;
+    return NextResponse.json({
+      success: true,
+      deleted,
+      requested: jobIds!.length,
+    });
   } catch (error) {
     console.error("History bulk delete error:", error);
     return NextResponse.json(

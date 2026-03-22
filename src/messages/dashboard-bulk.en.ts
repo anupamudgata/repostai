@@ -100,6 +100,7 @@ export const dashboardBulkEn = {
   upgradeLink: "Upgrade to Pro",
   watermarkNoteAfter: "to remove it.",
   generatedHeading: "Generated Content",
+  clearResults: "Clear results",
   postAllConnected: "Post to all connected",
   postingAll: "Posting to all connected...",
   fetchingFromUrl: "Fetching from URL...",

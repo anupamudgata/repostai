@@ -1,4 +1,5 @@
 import type { Platform, OutputLanguage } from "@/types";
+import { buildHindiRepurposeAppend } from "@/lib/prompts/hindi";
 
 /** Research-backed best practices (from high-performing posts). Injected into prompts so the model follows proven patterns. */
 const BEST_PRACTICES: Record<Platform, string> = {
@@ -89,12 +90,9 @@ You may include one link or CTA if relevant. Avoid cluttered formatting or long 
 const LANGUAGE_INSTRUCTIONS: Record<OutputLanguage, string> = {
   en: "",
   hi: `
-CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in Hindi (हिन्दी) using Devanagari script.
-- Use natural, conversational Hindi — not overly formal or Sanskritized
-- Mix in commonly used English words where natural (e.g., "content", "post", "share") — this is how real Hindi speakers write on social media
-- Hashtags can be in English or Hindi, whichever is more discoverable
-- Maintain the same platform-specific formatting rules (hooks, CTAs, threads, etc.)
-- The JSON keys must remain in English, only the content values should be in Hindi`,
+OUTPUT LANGUAGE: Hindi mode = natural HINGLISH (see HINDI MASTER BLOCK below).
+- JSON keys stay English (platform ids). Each value = full post text in natural Indian Hinglish.
+- Do not use stiff Shuddh Hindi or literal translations; do not output only English.`,
 
   es: `
 CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in Spanish (Español).
@@ -201,7 +199,10 @@ export function buildRepurposePrompt(
     }
   }
 
-  const languageInstruction = LANGUAGE_INSTRUCTIONS[outputLanguage];
+  const languageInstruction =
+    outputLanguage === "hi"
+      ? `${LANGUAGE_INSTRUCTIONS.hi}\n\n${buildHindiRepurposeAppend(platforms)}`
+      : LANGUAGE_INSTRUCTIONS[outputLanguage];
 
   return `You are a world-class content strategist trained on what actually works. Your job is to repurpose the following content into platform-specific posts that follow proven best practices (engagement, length, and structure patterns from high-performing posts on each platform).
 

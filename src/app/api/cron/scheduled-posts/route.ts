@@ -3,6 +3,7 @@
 // Also fixed the missing segments assignment and else block from your commit history
 
 import { NextRequest, NextResponse } from "next/server";
+import type { PhotoPostPlatform } from "@/lib/photos/generate-captions";
 
 // Lazy imports — don't import at top level to avoid build-time crashes
 async function getSupabaseAdmin() {
@@ -157,12 +158,67 @@ export async function GET(req: NextRequest) {
 
     console.log(`[cron] Done — ${results.success} published, ${results.failed} failed`);
 
+    let photoProcessed = 0;
+    let photoPublished = 0;
+    let photoFailed = 0;
+    try {
+      const { finalizePhotoCaptionRunAdmin } = await import(
+        "@/lib/photos/complete-photo-post"
+      );
+      const { data: photoRuns } = await supabaseAdmin
+        .from("photo_caption_runs")
+        .select(
+          `
+          id,
+          user_id,
+          platforms,
+          captions,
+          photo_uploads ( public_url )
+        `
+        )
+        .eq("status", "scheduled")
+        .lte("scheduled_for", now)
+        .limit(25);
+
+      for (const run of photoRuns ?? []) {
+        const rawPhoto = run.photo_uploads as
+          | { public_url: string }
+          | { public_url: string }[]
+          | null;
+        const photo = Array.isArray(rawPhoto) ? rawPhoto[0] ?? null : rawPhoto;
+        if (!photo?.public_url) {
+          photoFailed++;
+          continue;
+        }
+        const captions = (run.captions ?? {}) as Record<string, string>;
+        const platforms = (run.platforms ?? []) as PhotoPostPlatform[];
+        photoProcessed++;
+        const out = await finalizePhotoCaptionRunAdmin({
+          runId: run.id,
+          userId: run.user_id,
+          publicImageUrl: photo.public_url,
+          captions,
+          platforms,
+        });
+        if (!out.locked) continue;
+        if (out.results.some((r) => r.success)) photoPublished++;
+        else photoFailed++;
+      }
+    } catch (photoErr) {
+      console.error("[cron] Photo scheduled posts:", photoErr);
+    }
+
     return NextResponse.json({
       success:   true,
       processed: posts.length,
       published: results.success,
       failed:    results.failed,
       errors:    results.errors.slice(0, 10), // cap to avoid huge response
+      photoScheduled: {
+        processed: photoProcessed,
+        published: photoPublished,
+        failed:    photoFailed,
+      },
     });
 
   } catch (err) {

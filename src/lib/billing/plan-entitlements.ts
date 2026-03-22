@@ -13,6 +13,8 @@ export interface PlanEntitlements {
   allowedPlatformIds: readonly string[] | null;
   brandVoicesMax: number;
   aiTier: AiTier;
+  /** null = unlimited photo uploads / month (vision + storage) */
+  photosPerMonth: number | null;
 }
 
 const ENTITLEMENTS: Record<PaidPlan, PlanEntitlements> = {
@@ -21,24 +23,28 @@ const ENTITLEMENTS: Record<PaidPlan, PlanEntitlements> = {
     allowedPlatformIds: FREE_PLATFORM_IDS as readonly string[],
     brandVoicesMax: 1,
     aiTier: "standard",
+    photosPerMonth: 0,
   },
   starter: {
     repurposesPerMonth: 10,
     allowedPlatformIds: null,
     brandVoicesMax: 1,
     aiTier: "standard",
+    photosPerMonth: 10,
   },
   pro: {
     repurposesPerMonth: 60,
     allowedPlatformIds: null,
     brandVoicesMax: 3,
     aiTier: "premium",
+    photosPerMonth: 40,
   },
   agency: {
     repurposesPerMonth: null,
     allowedPlatformIds: null,
     brandVoicesMax: 5,
     aiTier: "premium",
+    photosPerMonth: null,
   },
 };
 

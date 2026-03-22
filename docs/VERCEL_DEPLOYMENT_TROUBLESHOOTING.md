@@ -111,7 +111,7 @@ BEGIN
 END $$;
 ```
 
-Or run the full migration file: `supabase/migrations/20250317_add_brand_voices_samples.sql`.
+Or run the full migration file: `supabase/migrations/20250317000001_add_brand_voices_samples.sql`.
 
 ---
 

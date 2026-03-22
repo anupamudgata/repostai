@@ -61,7 +61,12 @@ export function HistoryList({ initialJobs }: { initialJobs: Job[] }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ jobIds: ids }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as {
+        error?: string;
+        code?: string;
+        deleted?: number;
+        requested?: number;
+      };
       if (!res.ok) {
         toastT.errorFromApi(
           { error: data.error, code: data.code },
@@ -69,9 +74,15 @@ export function HistoryList({ initialJobs }: { initialJobs: Job[] }) {
         );
         return;
       }
+      const deleted = data.deleted ?? 0;
+      const requested = data.requested ?? ids.length;
       setJobs((prev) => prev.filter((j) => !selectedIds.has(j.id)));
       setSelectedIds(new Set());
-      toastT.success("toast.deletedItems", { count: ids.length });
+      if (deleted < requested) {
+        toastT.error("toast.partialDelete", { deleted, requested });
+      } else {
+        toastT.success("toast.deletedItems", { count: deleted });
+      }
     } catch {
       toastT.error("toast.networkErrorShort");
     } finally {

@@ -1,6 +1,19 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+export const dynamic = "force-dynamic";
+
+const NO_STORE = {
+  "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+} as const;
+
+function jsonWithNoStore(body: unknown, init?: { status?: number }) {
+  return NextResponse.json(body, {
+    status: init?.status,
+    headers: NO_STORE,
+  });
+}
+
 /** GET /api/history — flat list of repurpose outputs for history page */
 export async function GET() {
   try {
@@ -10,7 +23,7 @@ export async function GET() {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return jsonWithNoStore({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { data: jobs, error: jobsError } = await supabase
@@ -21,7 +34,7 @@ export async function GET() {
       .limit(200);
 
     if (jobsError || !jobs?.length) {
-      return NextResponse.json({ items: [] });
+      return jsonWithNoStore({ items: [] });
     }
 
     const jobIds = jobs.map((j) => j.id);
@@ -32,7 +45,7 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (outputsError) {
-      return NextResponse.json({ items: [] });
+      return jsonWithNoStore({ items: [] });
     }
 
     const jobMap = new Map(jobs.map((j) => [j.id, j]));
@@ -48,9 +61,9 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json({ items });
+    return jsonWithNoStore({ items });
   } catch (error) {
     console.error("History fetch error:", error);
-    return NextResponse.json({ items: [] });
+    return jsonWithNoStore({ items: [] });
   }
 }

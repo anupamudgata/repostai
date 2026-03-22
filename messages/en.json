@@ -16,6 +16,7 @@
     "analytics": "Analytics",
     "integrations": "Integrations",
     "brandVoice": "Brand Voice",
+    "photos": "Photos",
     "badgeNew": "NEW",
     "badgePro": "PRO"
   },
@@ -164,6 +165,7 @@
     "selectOneDelete": "Select at least one item to delete",
     "failedDelete": "Failed to delete",
     "deletedItems": "Deleted {count} item(s)",
+    "partialDelete": "Only {deleted} of {requested} items were removed. Refresh the page or try again.",
     "scheduledRemoved": "Scheduled post removed",
     "failedReschedule": "Failed to reschedule",
     "postRescheduled": "Post rescheduled",

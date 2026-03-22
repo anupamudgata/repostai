@@ -19,6 +19,7 @@ import {
   BarChart3,
   Bot,
   Scissors,
+  ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -62,6 +63,7 @@ const NAV_LINKS = [
     icon: Sparkles,
     badgeKey: "nav.badgePro",
   },
+  { href: "/dashboard/photos", labelKey: "nav.photos", icon: ImagePlus },
   { href: "/dashboard/history", labelKey: "nav.history", icon: History },
   { href: "/dashboard/connections", labelKey: "nav.connections", icon: Link2 },
   { href: "/dashboard/scheduled", labelKey: "nav.calendar", icon: CalendarClock },

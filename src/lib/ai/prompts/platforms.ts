@@ -1,12 +1,23 @@
-import type { ContentBrief, Language } from "@/lib/ai/types";
+import type { ContentBrief, Language, Platform } from "@/lib/ai/types";
+import {
+  getHindiPlatformSupplementForStream,
+  getHindiStreamLanguageInstruction,
+} from "@/lib/prompts/hindi";
 
 const LANGUAGE_INSTRUCTION: Record<Language, string> = {
   en: "Write in English.",
-  hi: "Write entirely in Hindi (हिन्दी). Use natural conversational Hindi as spoken by Indian creators — not formal or translated-sounding Hindi. Every word must be in Hindi script, including hashtags where appropriate.",
+  hi: "",
   es: "Write entirely in Spanish. Use natural Latin American Spanish — conversational, warm, and authentic to the culture. Not formal Castilian Spanish.",
   pt: "Write entirely in Portuguese. Use natural Brazilian Portuguese — conversational, warm, and authentic. Not European Portuguese.",
   fr: "Write entirely in French. Use modern, conversational French — natural tone, not overly formal or literary.",
 };
+
+function languageFooter(platform: Platform, language: Language): string {
+  if (language === "hi") {
+    return `${getHindiStreamLanguageInstruction()}${getHindiPlatformSupplementForStream(platform)}`;
+  }
+  return LANGUAGE_INSTRUCTION[language];
+}
 
 export function buildLinkedInPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
   return `You are the world's best LinkedIn content writer. You have studied 50,000 viral LinkedIn posts and understand exactly what makes people stop scrolling, read to the end, and leave a comment.
@@ -44,7 +55,7 @@ LINKEDIN PSYCHOLOGY YOU MUST APPLY:
    - No bullet points with dashes
    - NEVER use: "In conclusion", "To summarize", "I hope this helps"
 
-${LANGUAGE_INSTRUCTION[language]}
+${languageFooter("linkedin", language)}
 
 Respond with ONLY the LinkedIn post text. No labels, no explanations, no quotes around the output.`;
 }
@@ -78,7 +89,7 @@ OUTPUT FORMAT — respond with JSON only:
   ]
 }
 
-${LANGUAGE_INSTRUCTION[language]}
+${languageFooter("twitter_thread", language)}
 
 Respond with ONLY the JSON. No preamble, no explanation.`;
 }
@@ -101,7 +112,7 @@ RULES:
 - No hashtags in a single tweet
 - No emojis unless they replace a word
 
-${LANGUAGE_INSTRUCTION[language]}
+${languageFooter("twitter_single", language)}
 
 Respond with ONLY the tweet text. No labels, no quotes.`;
 }
@@ -133,7 +144,7 @@ OUTPUT FORMAT — respond with JSON only:
   "hashtags": ["hashtag1", "hashtag2", "hashtag3"]
 }
 
-${LANGUAGE_INSTRUCTION[language]}
+${languageFooter("instagram", language)}
 
 Respond with ONLY the JSON. No preamble.`;
 }
@@ -162,7 +173,7 @@ RULES:
 8. NEVER: corporate speak, excessive formatting
 9. Don't include external links (put in first comment)
 
-${LANGUAGE_INSTRUCTION[language]}
+${languageFooter("facebook", language)}
 
 Respond with ONLY the Facebook post text. No labels, no explanations.`;
 }
@@ -198,7 +209,7 @@ OUTPUT FORMAT — respond with JSON only:
   "body": "Full Reddit post body here"
 }
 
-${LANGUAGE_INSTRUCTION[language]}
+${languageFooter("reddit", language)}
 
 Respond with ONLY the JSON. No preamble.`;
 }
@@ -233,7 +244,7 @@ OUTPUT FORMAT — respond with JSON only:
   "body": "Full email body here — use \\n\\n for paragraph breaks"
 }
 
-${LANGUAGE_INSTRUCTION[language]}
+${languageFooter("email", language)}
 
 Respond with ONLY the JSON. No preamble.`;
 }

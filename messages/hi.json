@@ -16,6 +16,7 @@
     "analytics": "एनालिटिक्स",
     "integrations": "इंटीग्रेशन",
     "brandVoice": "ब्रांड वॉइस",
+    "photos": "फ़ोटो",
     "badgeNew": "नया",
     "badgePro": "प्रो"
   },
@@ -164,6 +165,7 @@
     "selectOneDelete": "हटाने के लिए कम से एक आइटम चुनें",
     "failedDelete": "हटाने में विफल",
     "deletedItems": "{count} आइटम हटाए गए",
+    "partialDelete": "केवल {deleted} में से {requested} आइटम हटाए गए। पेज रीफ़्रेश करें या फिर कोशिश करें।",
     "scheduledRemoved": "शेड्यूल पोस्ट हटा दिया गया",
     "failedReschedule": "रीशेड्यूल में विफल",
     "postRescheduled": "पोस्ट फिर से शेड्यूल हो गया",

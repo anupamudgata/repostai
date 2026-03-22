@@ -102,6 +102,7 @@ export const dashboardBulkHi: DashboardBulk = {
   upgradeLink: "Pro पर अपग्रेड",
   watermarkNoteAfter: "करके हटाएँ।",
   generatedHeading: "जनरेट किया गया कंटेंट",
+  clearResults: "परिणाम साफ़ करें",
   postAllConnected: "सभी कनेक्टेड पर पोस्ट",
   postingAll: "सभी कनेक्टेड पर पोस्ट हो रहा है...",
   fetchingFromUrl: "URL से लोड हो रहा है...",

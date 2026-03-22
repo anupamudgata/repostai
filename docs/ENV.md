@@ -118,6 +118,23 @@ Callback (example): `https://your-domain.com/api/connect/linkedin/callback` — 
 
 ---
 
+## Photo → captions → post (R2 + Meta Instagram)
+
+| Variable | Description |
+|----------|-------------|
+| `R2_ACCOUNT_ID` | Cloudflare R2 account id |
+| `R2_ACCESS_KEY_ID` | R2 S3 API token access key |
+| `R2_SECRET_ACCESS_KEY` | R2 S3 API token secret |
+| `R2_BUCKET_NAME` | Bucket for `photos/` and `thumbnails/` keys |
+| `R2_PUBLIC_URL` | Public base URL for objects (no trailing slash), e.g. `https://pub-xxx.r2.dev` or your custom domain |
+| `OPENAI_API_KEY` | Vision analysis on upload (`OPENAI_VISION_MODEL` optional, default `gpt-4o-mini`) |
+| `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` | Meta app for Instagram OAuth (`META_APP_ID` / `META_APP_SECRET` aliases supported) |
+| Callback | Add to Meta app: `{NEXT_PUBLIC_APP_URL}/api/social/callback/instagram` |
+
+Instagram posting needs a **Facebook Page** linked to an **Instagram Business** account. Connect from **Dashboard → Connections** (Instagram). Scheduled photo posts are picked up by the same `/api/cron/scheduled-posts` job as other schedules (daily on Hobby — see cron section above).
+
+---
+
 ## Other env vars (for reference)
 
 The app also uses:

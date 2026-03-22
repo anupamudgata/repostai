@@ -47,7 +47,18 @@ npx supabase db push --linked
 
 ### If you see: “Remote migration versions not found in local migrations directory”
 
-The remote `schema_migrations` table lists versions that don’t match files in this repo. Until that’s fixed, `db push` will refuse to run.
+Migrations must use a **full timestamp prefix** (e.g. `20250317000001_...`) so the CLI version matches the filename. Legacy short names `20250317_...` / `20250318_...` were renamed to `20250317000001_...` and `20250318000001_...` to avoid `db push` errors.
+
+If your remote still has old history rows `20250317` / `20250318` (no matching file after rename), clear them once:
+
+```bash
+npm run db:repair:remote-migrations
+npm run db:push:remote
+```
+
+`SUPABASE_DB_PASSWORD` is read from `.env.local` by both scripts (see [scripts/read-supabase-db-password.mjs](../scripts/read-supabase-db-password.mjs)).
+
+**Manual:**
 
 1. Inspect differences:
 
@@ -56,11 +67,15 @@ The remote `schema_migrations` table lists versions that don’t match files in 
    npx supabase migration list --linked
    ```
 
-2. Fix using one of:
-   - Restore missing migration files (same timestamp names) from git or another machine.
-   - Or `npx supabase migration repair --status reverted <VERSION>` for bogus remote-only rows (use the **full** version from the list, e.g. `20250317120000`).
+2. For bogus **remote-only** short names:
 
-3. Or apply **only** the SQL you need in **SQL Editor** (e.g. the delete policy in `20250320150000_repurpose_outputs_delete_policy.sql`).
+   ```bash
+   npx supabase migration repair --status reverted 20250317 --linked
+   npx supabase migration repair --status reverted 20250318 --linked
+   npx supabase db push --linked --include-all
+   ```
+
+3. Or apply **only** the SQL you need in **SQL Editor** (e.g. a single migration file).
 
 ## 3. Hosted project — no CLI (SQL Editor)
 
@@ -74,14 +89,15 @@ Skip statements that already exist if the editor reports “already exists” er
 | File | Purpose (short) |
 |------|-------------------|
 | `20250312_repurpose_outputs_rls.sql` | RLS on `repurpose_outputs` |
-| `20250317_add_brand_voices_samples.sql` | Brand voice samples |
+| `20250317000001_add_brand_voices_samples.sql` | Brand voice samples |
 | `20250317120000_connected_accounts.sql` | Connected accounts |
 | `20250317120001_create_scheduled_posts.sql` | Scheduled posts |
 | `20250317120002_post_engagement.sql` | Post engagement |
 | `20250318120001_repurpose_jobs_outputs_status.sql` | Jobs outputs/status |
 | `20250318120002_repurposed_content_outputs.sql` | Repurposed content note |
-| `20250318_brand_voice_authenticity_tuning.sql` | Brand voice tuning |
+| `20250318000001_brand_voice_authenticity_tuning.sql` | Brand voice tuning |
 | `20250319120000_performance_indexes.sql` | Indexes |
 | `20250320130000_brand_voices_legacy_sample_text.sql` | Brand voices legacy |
 | `20250320140000_brand_voices_persona_model.sql` | Persona model |
-| `20250320150000_repurpose_outputs_delete_policy.sql` | **DELETE policy for history** |
+| `20250320150000_repurpose_outputs_delete_policy.sql` | **DELETE policy for history outputs** |
+| `20250321120000_repurpose_jobs_delete_policy.sql` | **DELETE policy for `repurpose_jobs`** (job-level history delete + cascade) |

@@ -47,14 +47,20 @@ export default function HistoryPage() {
   const [deleting, setDeleting] = useState(false);
   const [copied,   setCopied]   = useState<string | null>(null);
 
+  async function loadHistory() {
+    try {
+      const r = await fetch("/api/history", { cache: "no-store" });
+      const d = (await r.json()) as { items?: HistoryItem[] };
+      setItems(d.items ?? []);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
-    fetch("/api/history")
-      .then((r) => r.json())
-      .then((d) => {
-        setItems((d as { items?: HistoryItem[] }).items ?? []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    void loadHistory();
   }, []);
 
   const availablePlatforms = useMemo(() => {
@@ -115,7 +121,12 @@ export default function HistoryPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ outputIds }),
       });
-      const data = (await res.json()) as { error?: string; code?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        code?: string;
+        deleted?: number;
+        requested?: number;
+      };
       if (!res.ok) {
         toastT.errorFromApi(
           { error: data.error, code: data.code },
@@ -123,9 +134,16 @@ export default function HistoryPage() {
         );
         return;
       }
-      setItems((prev) => prev.filter((i) => !selected.has(i.id)));
+      const deleted = data.deleted ?? 0;
+      const requested = data.requested ?? outputIds.length;
       setSelected(new Set());
-      toastT.success("toast.deletedItems", { count: outputIds.length });
+      setExpanded(new Set());
+      await loadHistory();
+      if (deleted < requested) {
+        toastT.error("toast.partialDelete", { deleted, requested });
+      } else {
+        toastT.success("toast.deletedItems", { count: deleted });
+      }
     } catch {
       toastT.error("toast.networkErrorShort");
     } finally {

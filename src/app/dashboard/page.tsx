@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Link as LinkIcon,
   Type,
@@ -170,6 +171,8 @@ function CharacterCount({
 }
 
 export default function DashboardPage() {
+  const pathname = usePathname();
+  const prevPathRef = useRef<string | null>(null);
   const { locale } = useI18n();
   const d = locale === "hi" ? dashboardBulkHi : dashboardBulkEn;
   const toastT = useAppToast();
@@ -248,6 +251,24 @@ export default function DashboardPage() {
     { platform: string; score: number; reason: string; recommendation: "post" | "consider" | "skip" }[]
   >([]);
   const [platformFitLoading, setPlatformFitLoading] = useState(false);
+
+  const clearRepurposeResults = useCallback(() => {
+    setOutputs([]);
+    setBulkSources([]);
+    setLastJobId(null);
+    setPlatformFitScores([]);
+    setPlatformFitLoading(false);
+    setCopiedPlatform(null);
+    setRegeneratingPlatform(null);
+  }, []);
+
+  useEffect(() => {
+    const prev = prevPathRef.current;
+    prevPathRef.current = pathname;
+    if (prev === "/dashboard/history" && pathname === "/dashboard") {
+      clearRepurposeResults();
+    }
+  }, [pathname, clearRepurposeResults]);
 
   const isFreePlan = plan === "free";
 
@@ -1190,7 +1211,18 @@ export default function DashboardPage() {
             )}
           </p>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold">{d.generatedHeading}</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl sm:text-2xl font-bold">{d.generatedHeading}</h2>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground"
+                onClick={clearRepurposeResults}
+              >
+                {d.clearResults}
+              </Button>
+            </div>
             {!isFreePlan && bulkSources.length === 0 && (
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Button
