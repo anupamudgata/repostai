@@ -4,6 +4,7 @@
 // FIX #3: Plan badge now reads from subscriptions table (single source of truth)
 //         not from user metadata which can be stale.
 
+import Link              from "next/link";
 import { createClient }  from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redirect }      from "next/navigation";
@@ -201,7 +202,7 @@ export default async function SettingsPage() {
 
             <div style={{ padding: "16px 20px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
               {activePlan === "free" ? (
-                <a
+                <Link
                   href="/#pricing"
                   style={{
                     padding:      "9px 20px",
@@ -214,7 +215,7 @@ export default async function SettingsPage() {
                   }}
                 >
                   View plans — from ₹199/mo
-                </a>
+                </Link>
               ) : (
                 <ManageBillingButton />
               )}

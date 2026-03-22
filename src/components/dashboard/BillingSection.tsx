@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { BillingPortalButton } from "./BillingPortalButton";
 
 interface BillingSectionProps {
@@ -41,9 +42,9 @@ export function BillingSection({ plan, status, currentPeriodEnd }: BillingSectio
       {plan === "free" && (
         <p style={{ fontSize: "13px", color: "#6B7280", lineHeight: 1.6 }}>
           You are on the free plan (10 repurposes/month, watermark).{" "}
-          <a href="/#pricing" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>
+          <Link href="/#pricing" style={{ color: "#2563EB", fontWeight: 600, textDecoration: "none" }}>
             Upgrade to Starter or Pro
-          </a>{" "}
+          </Link>{" "}
           for no watermark and more features.
         </p>
       )}

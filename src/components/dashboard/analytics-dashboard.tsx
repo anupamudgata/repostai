@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
   BarChart,
   Bar,
@@ -100,7 +100,7 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
     refresh();
   }, []);
 
-  const fetchInsights = async () => {
+  const fetchInsights = useCallback(async () => {
     setInsightsLoading(true);
     try {
       const res = await fetch("/api/analytics/insights");
@@ -111,13 +111,13 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
     } finally {
       setInsightsLoading(false);
     }
-  };
+  }, [toastT]);
 
   useEffect(() => {
     if (posts.filter((p) => p.hasEngagement || (p.likes + p.comments + p.shares) > 0).length >= 2) {
-      fetchInsights();
+      void fetchInsights();
     }
-  }, [posts]);
+  }, [posts, fetchInsights]);
 
   const totals = useMemo(() => {
     let likes = 0, comments = 0, shares = 0, impressions = 0;

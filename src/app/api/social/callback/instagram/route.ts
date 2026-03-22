@@ -122,6 +122,17 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Same Page token publishes to the Facebook Page (feed + photos). No separate FB OAuth route yet.
+    await upsertToken(userId, "facebook", {
+      accessToken: pageToken,
+      platformUserId: pageId,
+      platformUsername: withIg.name ?? "Facebook Page",
+      meta: {
+        pageId,
+        pageAccessToken: pageToken,
+      },
+    });
+
     const res = NextResponse.redirect(
       new URL("/dashboard/connections?connected=instagram", APP_URL)
     );

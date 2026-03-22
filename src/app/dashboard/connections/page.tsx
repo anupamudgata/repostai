@@ -91,17 +91,18 @@ export default function ConnectionsPage() {
     const connected = params.get("connected");
     const error     = params.get("error");
 
-    if (connected) {
-      showToast(
-        `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected successfully!`
-      );
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-    if (error) {
-      showToast("Connection failed. Please try again.");
-      window.history.replaceState({}, "", window.location.pathname);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    queueMicrotask(() => {
+      if (connected) {
+        showToast(
+          `${connected.charAt(0).toUpperCase() + connected.slice(1)} connected successfully!`
+        );
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+      if (error) {
+        showToast("Connection failed. Please try again.");
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    });
   }, []);
 
   async function handleDisconnect(platformId: string) {

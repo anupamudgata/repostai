@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { PLANS } from "@/config/constants";
 import {
@@ -31,7 +31,7 @@ export function BrandVoiceManager() {
     return PLANS.FREE.brandVoices;
   }, [userPlan]);
 
-  async function loadVoices() {
+  const loadVoices = useCallback(async () => {
     try {
       const res = await fetch("/api/brand-voice");
       const data = await res.json();
@@ -46,7 +46,7 @@ export function BrandVoiceManager() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [toastT]);
 
   useEffect(() => {
     fetch("/api/me")
@@ -55,8 +55,8 @@ export function BrandVoiceManager() {
         if (d.plan) setUserPlan(d.plan);
       })
       .catch(() => {});
-    loadVoices();
-  }, []);
+    void loadVoices();
+  }, [loadVoices]);
 
   async function handleVoiceTraining(payload: BrandVoiceTrainingPayload) {
     const res = await fetch("/api/brand-voice", {
