@@ -250,7 +250,7 @@ Respond with ONLY the JSON. No preamble.`;
 }
 
 export function buildTikTokPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
-  return `You are a viral TikTok script writer. You understand the hook-story-CTA format that drives massive engagement on short-form video.
+  return `You are a viral TikTok script writer. You understand the hook-story-CTA format that makes people stop scrolling.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
 
@@ -260,20 +260,23 @@ Key points: ${brief.keyPoints.join(" | ")}
 Audience: ${brief.audience}
 Tone: ${brief.tone}
 
-YOUR TASK: Write a TikTok video script (voiceover style) that hooks in the first 2 seconds.
+YOUR TASK: Write a TikTok video script (talking-head / voiceover style).
 
-RULES:
-1. HOOK (first line): Pattern interrupt — bold claim, question, or "Stop scrolling if..."
-2. BODY: Fast-paced, punchy sentences. One idea per line. 60-90 seconds reading time.
-3. Use "[PAUSE]" markers for dramatic effect
-4. Include text overlay suggestions in [brackets]
-5. End with a CTA: "Follow for more" / "Save this" / "Comment your take"
-6. Max 2200 characters. Keep it under 200 words.
-7. No hashtags in the script body.
+CRITICAL RULES:
+1. HOOK (first 2 lines): Pattern interrupt that makes people STOP SCROLLING.
+   Good hooks: "Nobody talks about this..." / "Stop scrolling if you..." / "I tried X for 6 months — here's what happened" / "This one thing changed everything"
+2. BODY: MAX 5-7 short sentences. One idea per line. Say it out loud — if it takes more than 45-60 seconds, it's too long.
+3. Use [TEXT ON SCREEN: ...] for key visual overlays (2-3 max).
+4. Use [PAUSE] sparingly for dramatic effect (1-2 max).
+5. Each line should be spoken out loud — write for the EAR, not the eye.
+6. End with ONE clear verbal CTA: "Follow for more" / "Save this" / "Comment below".
+7. NO hashtags in the script. NO numbered lists. NO bullet points.
+8. Keep under 150 words total.
+9. Energy should feel like you're telling a friend something exciting, not reading a blog post.
 
 ${languageFooter("tiktok" as Platform, language)}
 
-Write the script as plain text. No JSON wrapper needed.`;
+Write ONLY the script. No JSON. No title. No hashtags.`;
 }
 
 export function buildWhatsAppStatusPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
@@ -287,19 +290,24 @@ Key points: ${brief.keyPoints.join(" | ")}
 Audience: ${brief.audience}
 Tone: ${brief.tone}
 
-YOUR TASK: Write a WhatsApp Status update (text-based) that is concise and impactful.
+YOUR TASK: Write a WhatsApp Status update (text-based) that is SHORT and impactful.
 
-RULES:
-1. MAX 700 characters — WhatsApp Status is short-form.
-2. Open with a strong one-liner or emoji-led statement.
-3. Keep it personal, conversational — like you're talking to a friend.
-4. Can use line breaks for readability.
-5. ONE takeaway or insight. Don't try to cover everything.
-6. Emojis OK but max 3-4. Not a wall of emojis.
-7. End with a question or forward-worthy line.
-8. Works great in India, Middle East, Brazil, and Africa — keep culturally aware.
+CRITICAL RULES:
+1. MAXIMUM 3-5 lines of text. Total UNDER 100 words. This is NOT a blog post.
+2. Open with ONE punchy line or bold statement (can start with an emoji).
+3. Pick THE single most interesting or surprising takeaway from the brief — ignore the rest.
+4. Write like you're texting a friend. Short sentences. No bullet points. No numbered lists.
+5. Max 2-3 emojis total. NOT a wall of emojis.
+6. End with a forward-worthy line, a question, or a "DM me" type CTA.
+7. ABSOLUTELY NO hashtags. Nobody uses hashtags on WhatsApp Status.
+8. NO links unless specifically requested.
+9. Think: what would make someone screenshot this and send it to a friend?
+
+EXAMPLES OF GOOD WhatsApp Status:
+- "AI se ek blog post 9 platform-ready posts mein convert ho gayi. 60 seconds. Maine khud try kiya 🤯 DM karo agar tumhe bhi chahiye"
+- "6 months ki building se ek lesson: perfect ka wait mat karo, ship karo. Baaki sab feedback se aata hai."
 
 ${languageFooter("whatsapp_status" as Platform, language)}
 
-Write the status update as plain text. No JSON wrapper needed.`;
+Write ONLY the status text. No JSON. No labels. No hashtags. Keep it SHORT.`;
 }

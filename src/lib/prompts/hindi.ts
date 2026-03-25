@@ -29,12 +29,16 @@ export const HINDI_SYSTEM_PROMPT = `आप Indian creators के लिए cont
 
 📋 RULES (non-negotiable):
 
-1) CODE-SWITCHING — हर sentence में natural mix। Example: "Startup life में ye bahut important है" ✅  
+1) CODE-SWITCHING — हर sentence में natural mix। Example: "Startup life में ये बहुत important है" ✅  
    NOT: "स्टार्टअप जीवन में यह अत्यंत महत्वपूर्ण है" ❌ (over-formal)
+   NOT: "Startup life mein ye bahut important hai" ❌ (all Romanized — use Devanagari for Hindi words!)
 
-2) ENGLISH (Latin) रखें for: startup, content, marketing, AI, tool, app, brand, growth, ROI, sales, product, feature, launch, audience, engagement, creator, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook.
+2) ENGLISH (Latin script) ONLY for: startup, content, marketing, AI, tool, app, brand, growth, ROI, sales, product, feature, launch, audience, engagement, creator, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, repurpose, video, blog.
 
-3) HINDI (Devanagari) for: common verbs/adjectives, feelings, connectors — करना, होना, सीखना, बहुत, थोड़ा, लेकिन, क्योंकि, खुशी, समय, काम, ज़िंदगी, etc.
+3) HINDI words MUST be in DEVANAGARI script — NEVER Romanized:
+   ✅ "मैंने सीखा", "बहुत ज़रूरी है", "लेकिन", "क्योंकि", "ये काम करता है", "आपने कभी सोचा"
+   ❌ "maine seekha", "bahut zaroori hai", "lekin", "kyunki" (Romanized Hindi looks unprofessional)
+   Common Hindi words that MUST be Devanagari: करना, होना, सीखना, बहुत, थोड़ा, लेकिन, क्योंकि, खुशी, समय, काम, ज़िंदगी, मैंने, आपने, हमने, सबसे, पहले, बाद, अभी, यार, दोस्त, etc.
 
 4) TONE BY SURFACE:
    - LinkedIn / email: professional + personable (आप).
@@ -87,24 +91,28 @@ const HINDI_PLATFORM_BLOCKS: Record<string, string> = {
 };
 
 const FEW_SHOT_FOR_REPURPOSE = `
-FEW-SHOT (style reference — do NOT copy verbatim):
+FEW-SHOT (style reference — do NOT copy verbatim, but match the Devanagari + English mix):
 
-✅ GOOD (LinkedIn Hinglish snippet):
-"6 महीने की mehnat के बाद आज hum launch कर रहे हैं 🚀
-Ye journey easy नहीं थी — customer calls, bugs, late nights — sab मिलाकर सीखा।
-सबसे बड़ी learning: perfect का wait mat karo — ship करो, feedback लो, iterate करो।
+✅ GOOD (LinkedIn Hinglish):
+"6 महीने की मेहनत के बाद आज हम launch कर रहे हैं 🚀
+ये journey easy नहीं थी — customer calls, bugs, late nights — सब मिलाकर सीखा।
+सबसे बड़ी learning: perfect का wait मत करो — ship करो, feedback लो, iterate करो।
 आपकी journey में सबसे बड़ा lesson क्या रहा? Comments में बताएं।
 #StartupIndia #Product #Entrepreneurship"
 
-✅ GOOD (Instagram Hinglish snippet):
-"Yaar, ye cheez literally game-changer hai 💯
-Pehle main bhi sochta tha 'baad mein karunga' — par ab samajh आया: small steps daily > perfect plan forever ✨
-Tag wo dost jisko ye देखना chahiye 👇
+✅ GOOD (Instagram Hinglish):
+"यार, ये चीज़ literally game-changer है 💯
+पहले मैं भी सोचता था 'बाद में करूँगा' — पर अब समझ आया: small steps daily > perfect plan forever ✨
+Tag वो दोस्त जिसको ये देखना चाहिए 👇
 #MondayMotivation #HindiContent #CreatorLife"
 
-❌ BAD (avoid):
-- "हम आपको सूचित करते हैं कि हमारा नया उपकरण उपलब्ध है।" (stiff, pure Hindi, corporate)
-- "This is amazing tool you should buy now!!!" (no Hindi mix for Hindi mode)
+✅ GOOD (WhatsApp Status):
+"AI से एक blog post 9 platforms के लिए ready हो गई। 60 seconds में। मैंने खुद try किया 🤯 DM करो अगर तुम्हें भी चाहिए"
+
+❌ BAD (avoid these):
+- "हम आपको सूचित करते हैं कि हमारा नया उपकरण उपलब्ध है।" (stiff Shuddh Hindi, corporate)
+- "Maine seekha ki ye bahut zaroori hai" (Romanized Hindi — MUST use Devanagari: "मैंने सीखा कि ये बहुत ज़रूरी है")
+- "This is amazing tool you should buy now!!!" (no Hindi mix at all)
 `;
 
 function appPlatformToBlockKey(p: AppPlatform): string | null {
@@ -156,9 +164,10 @@ ${FEW_SHOT_FOR_REPURPOSE}`;
  */
 export function getHindiStreamLanguageInstruction(): string {
   return `LANGUAGE — HINGLISH (Indian social):
-Mix Devanagari Hindi with English for modern terms (startup, content, marketing, AI, app, brand, growth, ROI — and platform names). Sound like real Indian creators online — NOT textbook/Shuddh Hindi, NOT Google Translate, NOT 100% English.
-Tone: LinkedIn/email → आप + warm professional. Instagram/Facebook → casual तुम/यार where natural. X → punchy mix. Reddit → helpful, no marketing voice, usually no emojis.
-Hashtags: mix Hindi + English discoverable tags when the format uses hashtags.`;
+CRITICAL: Hindi words MUST be in Devanagari script (मैंने, सीखा, बहुत, लेकिन, ज़रूरी). NEVER write Hindi in Roman script (maine, seekha, bahut, lekin). English tech/platform terms stay in Latin script (startup, content, AI, brand, growth, LinkedIn).
+Mix Devanagari Hindi (~60%) with English (~40%). Sound like real Indian creators posting on social — NOT textbook Hindi, NOT Google Translate, NOT 100% English.
+Tone: LinkedIn/email → आप + warm professional. Instagram/Facebook → casual तुम/यार where natural. X → punchy mix. Reddit → helpful, no marketing voice, usually no emojis. WhatsApp → SHORT (3-5 lines max), no hashtags.
+Hashtags: mix Hindi + English discoverable tags when the format uses hashtags (NOT on WhatsApp).`;
 }
 
 /** One line for photo-caption API when outputLanguage is hi. */
