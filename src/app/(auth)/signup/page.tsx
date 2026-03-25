@@ -42,35 +42,47 @@ export default function SignupPage() {
   async function handleEmailSignup(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: name, market_region: marketRegion },
+          emailRedirectTo: `${window.location.origin}/api/auth/callback`,
+        },
+      });
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: name, market_region: marketRegion },
-        emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-      },
-    });
+      if (error) {
+        toastT.errorFromApi({ error: error.message });
+        return;
+      }
 
-    if (error) {
-      toastT.errorFromApi({ error: error.message });
+      toastT.success("auth.checkEmailConfirm");
+      router.push("/login");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === "Failed to fetch" || msg.includes("NetworkError")) {
+        toastT.error("auth.supabaseNetworkError");
+      } else {
+        toastT.errorFromApi({ error: msg });
+      }
+    } finally {
       setLoading(false);
-      return;
     }
-
-    toastT.success("auth.checkEmailConfirm");
-    router.push("/login");
   }
 
   async function handleGoogleSignup() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
-    });
-
-    if (error) toastT.errorFromApi({ error: error.message });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+        },
+      });
+      if (error) toastT.errorFromApi({ error: error.message });
+    } catch {
+      toastT.error("auth.supabaseNetworkError");
+    }
   }
 
   return (

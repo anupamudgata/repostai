@@ -133,8 +133,8 @@ export async function GET(request: NextRequest) {
       {
         user_id: user.id,
         platform: "linkedin",
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token ?? null,
+        access_token: (await import("@/lib/crypto/tokens")).encrypt(tokenData.access_token),
+        refresh_token: tokenData.refresh_token ? (await import("@/lib/crypto/tokens")).encrypt(tokenData.refresh_token) : null,
         platform_username: platformUsername,
         platform_user_id: platformUserId,
         token_expires_at: tokenExpiresAt,

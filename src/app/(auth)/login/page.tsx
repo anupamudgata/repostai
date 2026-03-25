@@ -58,14 +58,17 @@ function LoginForm() {
   }
 
   async function handleGoogleLogin() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/api/auth/callback`,
-      },
-    });
-
-    if (error) toastT.errorFromApi({ error: error.message });
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+        },
+      });
+      if (error) toastT.errorFromApi({ error: error.message });
+    } catch {
+      toastT.error("auth.supabaseNetworkError");
+    }
   }
 
   return (

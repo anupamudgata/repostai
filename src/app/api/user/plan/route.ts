@@ -21,7 +21,6 @@ export async function GET() {
       return NextResponse.json({
         plan: "free",
         aiTier: "standard",
-        claudeConfigured: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
       });
     }
 
@@ -42,7 +41,6 @@ export async function GET() {
     return NextResponse.json({
       plan: "free",
       aiTier: "standard",
-      claudeConfigured: Boolean(process.env.ANTHROPIC_API_KEY?.trim()),
     });
   }
 }

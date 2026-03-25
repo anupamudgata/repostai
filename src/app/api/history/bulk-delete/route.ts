@@ -27,10 +27,21 @@ export async function POST(request: NextRequest) {
     }
 
     if (hasOutputs) {
+      const { data: ownedOutputIds } = await supabase
+        .from("repurpose_outputs")
+        .select("id, repurpose_jobs!inner(user_id)")
+        .in("id", outputIds!)
+        .eq("repurpose_jobs.user_id", user.id);
+
+      const safeIds = (ownedOutputIds ?? []).map((r) => r.id);
+      if (safeIds.length === 0) {
+        return NextResponse.json({ success: true, deleted: 0, requested: outputIds!.length });
+      }
+
       const { data: deletedRows, error } = await supabase
         .from("repurpose_outputs")
         .delete()
-        .in("id", outputIds!)
+        .in("id", safeIds)
         .select("id");
 
       if (error) {
@@ -41,10 +52,9 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const deleted = deletedRows?.length ?? 0;
       return NextResponse.json({
         success: true,
-        deleted,
+        deleted: deletedRows?.length ?? 0,
         requested: outputIds!.length,
       });
     }
@@ -64,10 +74,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const deleted = deletedJobs?.length ?? 0;
     return NextResponse.json({
       success: true,
-      deleted,
+      deleted: deletedJobs?.length ?? 0,
       requested: jobIds!.length,
     });
   } catch (error) {

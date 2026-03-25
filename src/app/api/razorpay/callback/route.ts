@@ -1,8 +1,5 @@
-// src/app/api/razorpay/callback/route.ts
-// FIXED: Lazy Supabase init so build doesn't crash when env vars are missing
-
 import { NextRequest, NextResponse } from "next/server";
-import crypto                        from "crypto";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,11 +8,8 @@ export async function POST(req: NextRequest) {
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      user_id,
-      plan,
     } = body;
 
-    // Verify signature
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     if (!keySecret) {
       return NextResponse.json(
@@ -24,32 +18,51 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const expectedSignature = crypto
-      .createHmac("sha256", keySecret)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest("hex");
-
-    if (expectedSignature !== razorpay_signature) {
+    const expectedBuf = Buffer.from(
+      crypto
+        .createHmac("sha256", keySecret)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest("hex")
+    );
+    const receivedBuf = Buffer.from(String(razorpay_signature ?? ""));
+    if (
+      expectedBuf.length !== receivedBuf.length ||
+      !crypto.timingSafeEqual(expectedBuf, receivedBuf)
+    ) {
       return NextResponse.json(
         { error: "Invalid payment signature" },
         { status: 400 }
       );
     }
 
-    // Lazy import Supabase — never at top level
     const { supabaseAdmin } = await import("@/lib/supabase/admin");
 
-    // Update subscription in DB
+    const { data: order, error: orderError } = await supabaseAdmin
+      .from("razorpay_orders")
+      .select("user_id, plan")
+      .eq("razorpay_order_id", razorpay_order_id)
+      .single();
+
+    if (orderError || !order) {
+      console.error("[razorpay] Order lookup failed:", orderError);
+      return NextResponse.json(
+        { error: "Order not found. Contact support." },
+        { status: 404 }
+      );
+    }
+
+    const { user_id, plan } = order;
+
     const { error: updateError } = await supabaseAdmin
       .from("subscriptions")
       .upsert(
         {
           user_id,
           plan,
-          status:              "active",
+          status: "active",
           razorpay_order_id,
           razorpay_payment_id,
-          updated_at:          new Date().toISOString(),
+          updated_at: new Date().toISOString(),
         },
         { onConflict: "user_id" }
       );
@@ -62,14 +75,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Update user plan
     await supabaseAdmin
       .from("profiles")
       .update({ plan, updated_at: new Date().toISOString() })
       .eq("id", user_id);
 
     return NextResponse.json({ success: true, plan });
-
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[razorpay] Callback error:", message);

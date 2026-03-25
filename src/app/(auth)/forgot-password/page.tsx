@@ -24,18 +24,27 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setSent(false);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login?reset=success`,
-    });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login?reset=success`,
+      });
 
-    if (error) {
-      toastT.errorFromApi({ error: error.message });
+      if (error) {
+        toastT.errorFromApi({ error: error.message });
+        return;
+      }
+
+      setSent(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === "Failed to fetch" || msg.includes("NetworkError")) {
+        toastT.error("auth.supabaseNetworkError");
+      } else {
+        toastT.errorFromApi({ error: msg });
+      }
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setSent(true);
-    setLoading(false);
   }
 
   return (
