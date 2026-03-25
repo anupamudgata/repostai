@@ -9,12 +9,15 @@ import {
 import { burstLimiter, freeTierLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
 import { captureError }                  from "@/lib/sentry";
 import { openai } from "@/lib/ai/client";
+import { getAnthropicClient } from "@/lib/ai/anthropic";
 import {
   buildLinkedInPrompt, buildTwitterThreadPrompt, buildTwitterSinglePrompt,
   buildInstagramPrompt, buildFacebookPrompt, buildRedditPrompt, buildEmailPrompt,
   buildTikTokPrompt, buildWhatsAppStatusPrompt,
 } from "@/lib/ai/prompts/platforms";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
+
+const CLAUDE_HINDI_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
 
 
 type SSEEventType = "brief_ready" | "platform_start" | "platform_chunk" | "platform_done" | "platform_error" | "all_done" | "error";
@@ -38,8 +41,8 @@ function sseEvent(payload: SSEPayload): string {
   return `data: ${JSON.stringify(payload)}\n\n`;
 }
 
-async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
-  const promptBuilders: Record<Platform, () => string> = {
+function getPromptBuilders(brief: ContentBrief, voice: string | null, language: Language): Record<Platform, () => string> {
+  return {
     linkedin:        () => buildLinkedInPrompt(brief, voice, language),
     twitter_thread:  () => buildTwitterThreadPrompt(brief, voice, language),
     twitter_single:  () => buildTwitterSinglePrompt(brief, voice, language),
@@ -50,15 +53,44 @@ async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voi
     tiktok:          () => buildTikTokPrompt(brief, voice, language),
     whatsapp_status: () => buildWhatsAppStatusPrompt(brief, voice, language),
   };
-  const temperatures: Record<Platform, number> = {
-    linkedin: 0.75, twitter_thread: 0.80, twitter_single: 0.85,
-    instagram: 0.80, facebook: 0.75, reddit: 0.70, email: 0.72,
-    tiktok: 0.85, whatsapp_status: 0.80,
-  };
+}
+
+const TEMPERATURES: Record<Platform, number> = {
+  linkedin: 0.75, twitter_thread: 0.80, twitter_single: 0.85,
+  instagram: 0.80, facebook: 0.75, reddit: 0.70, email: 0.72,
+  tiktok: 0.85, whatsapp_status: 0.80,
+};
+
+const SYSTEM_MSG = "You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly.";
+
+async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
+  const anthropic = getAnthropicClient();
+  if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
+  const promptBuilders = getPromptBuilders(brief, voice, language);
+  const stream = anthropic.messages.stream({
+    model: CLAUDE_HINDI_MODEL,
+    max_tokens: 2048,
+    temperature: TEMPERATURES[platform],
+    system: SYSTEM_MSG,
+    messages: [{ role: "user", content: promptBuilders[platform]() }],
+  });
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      yield event.delta.text;
+    }
+  }
+}
+
+async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
+  if (language === "hi" && getAnthropicClient()) {
+    yield* streamPlatformAgentClaude(platform, brief, voice, language);
+    return;
+  }
+  const promptBuilders = getPromptBuilders(brief, voice, language);
   const stream = await openai.chat.completions.create({
-    model: "gpt-4o-mini", temperature: temperatures[platform], stream: true,
+    model: "gpt-4o-mini", temperature: TEMPERATURES[platform], stream: true,
     messages: [
-      { role: "system", content: "You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly." },
+      { role: "system", content: SYSTEM_MSG },
       { role: "user",   content: promptBuilders[platform]() },
     ],
   });

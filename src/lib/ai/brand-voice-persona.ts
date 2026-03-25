@@ -8,9 +8,8 @@ import {
 
 const OPENAI_FALLBACK_MODEL = "gpt-4o-mini";
 
-/** Default Claude 3.5 Haiku snapshot; override with ANTHROPIC_BRAND_VOICE_MODEL at runtime. */
 export function getClaudeBrandVoiceModel(): string {
-  return process.env.ANTHROPIC_BRAND_VOICE_MODEL ?? "claude-3-5-haiku-20241022";
+  return process.env.ANTHROPIC_BRAND_VOICE_MODEL ?? "claude-haiku-4-5-20251001";
 }
 
 function textFromAnthropicMessage(msg: { content: unknown }): string {

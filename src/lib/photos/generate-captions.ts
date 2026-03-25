@@ -66,12 +66,13 @@ ${tasks}
 
 Return a JSON object like: {"instagram":"...","facebook":"..."} with only these keys: ${platforms.map((p) => `"${p}"`).join(", ")}.`;
 
-  if (tier === "premium") {
+  const useClaudeForHindi = outputLanguage === "hi";
+  if (tier === "premium" || useClaudeForHindi) {
     const client = getAnthropicClient();
     if (client) {
-      const model =
-        process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() ||
-        "claude-sonnet-4-20250514";
+      const hindiModel = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+      const premiumModel = process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() || "claude-sonnet-4-20250514";
+      const model = useClaudeForHindi ? hindiModel : premiumModel;
       try {
         const msg = await client.messages.create({
           model,
@@ -91,7 +92,7 @@ Return a JSON object like: {"instagram":"...","facebook":"..."} with only these 
       }
     } else {
       console.warn(
-        "[photo-captions] Premium tier but ANTHROPIC_API_KEY unset; using GPT-4o-mini"
+        "[photo-captions] Claude requested but ANTHROPIC_API_KEY unset; using GPT-4o-mini"
       );
     }
   }

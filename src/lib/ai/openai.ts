@@ -75,6 +75,9 @@ export async function repurposeContent(
   }
 }
 
+const CLAUDE_HINDI_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+const CLAUDE_PREMIUM_MODEL = process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() || "claude-sonnet-4-20250514";
+
 export async function repurposeContentClaude(
   content: string,
   platforms: Platform[],
@@ -101,9 +104,7 @@ export async function repurposeContentClaude(
     hookMode,
     authenticityTuning
   );
-  const model =
-    process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() ||
-    "claude-sonnet-4-20250514";
+  const model = outputLanguage === "hi" ? CLAUDE_HINDI_MODEL : CLAUDE_PREMIUM_MODEL;
 
   const msg = await client.messages.create({
     model,
@@ -124,7 +125,7 @@ export async function repurposeContentClaude(
   }
 }
 
-/** Routes premium (Claude) vs standard (GPT-4o-mini). */
+/** Routes premium (Claude) vs standard (GPT-4o-mini). Hindi always uses Claude Haiku 4.5. */
 export async function repurposeContentForTier(
   tier: AiTier,
   content: string,
@@ -136,7 +137,8 @@ export async function repurposeContentForTier(
   hookMode?: string,
   authenticityTuning?: AuthenticityTuning
 ): Promise<Record<Platform, string>> {
-  if (tier === "premium") {
+  const useClaudeForHindi = outputLanguage === "hi" && !!getAnthropicClient();
+  if (tier === "premium" || useClaudeForHindi) {
     try {
       return await repurposeContentClaude(
         content,

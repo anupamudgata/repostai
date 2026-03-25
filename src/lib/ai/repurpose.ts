@@ -1,4 +1,5 @@
 import { openai } from "./client";
+import { getAnthropicClient } from "./anthropic";
 import { buildExtractorPrompt }    from "@/lib/ai/prompts/extractor";
 import { generateBrandVoicePersona } from "@/lib/ai/brand-voice-persona";
 import {
@@ -25,6 +26,7 @@ import type {
 import { captureError } from "@/lib/sentry";
 
 const MODEL = "gpt-4o-mini";
+const CLAUDE_HINDI_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
 
 export async function extractBrief(content: string): Promise<ContentBrief> {
   const response = await openai.chat.completions.create({
@@ -50,8 +52,8 @@ export async function extractBrandVoicePersona(
   return text;
 }
 
-async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
-  const promptBuilders: Record<Platform, () => string> = {
+function getPromptBuilders(brief: ContentBrief, voice: string | null, language: Language): Record<Platform, () => string> {
+  return {
     linkedin:        () => buildLinkedInPrompt(brief, voice, language),
     twitter_thread:  () => buildTwitterThreadPrompt(brief, voice, language),
     twitter_single:  () => buildTwitterSinglePrompt(brief, voice, language),
@@ -62,19 +64,17 @@ async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: 
     tiktok:          () => buildTikTokPrompt(brief, voice, language),
     whatsapp_status: () => buildWhatsAppStatusPrompt(brief, voice, language),
   };
-  const temperatures: Record<Platform, number> = {
-    linkedin: 0.75, twitter_thread: 0.80, twitter_single: 0.85,
-    instagram: 0.80, facebook: 0.75, reddit: 0.70, email: 0.72,
-    tiktok: 0.85, whatsapp_status: 0.80,
-  };
-  const response = await openai.chat.completions.create({
-    model: MODEL, temperature: temperatures[platform],
-    messages: [
-      { role: "system", content: "You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly." },
-      { role: "user",   content: promptBuilders[platform]() },
-    ],
-  });
-  const raw = response.choices[0]?.message?.content ?? "";
+}
+
+const TEMPERATURES: Record<Platform, number> = {
+  linkedin: 0.75, twitter_thread: 0.80, twitter_single: 0.85,
+  instagram: 0.80, facebook: 0.75, reddit: 0.70, email: 0.72,
+  tiktok: 0.85, whatsapp_status: 0.80,
+};
+
+const SYSTEM_MSG = "You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly.";
+
+function parseRawOutput(platform: Platform, raw: string): PlatformOutput {
   const jsonPlatforms: Platform[] = ["twitter_thread", "instagram", "reddit", "email"];
   if (jsonPlatforms.includes(platform)) {
     try {
@@ -86,6 +86,38 @@ async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: 
     } catch { /* fallthrough to raw */ }
   }
   return { platform, content: raw, charCount: raw.length };
+}
+
+async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
+  const anthropic = getAnthropicClient();
+  if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
+  const promptBuilders = getPromptBuilders(brief, voice, language);
+  const msg = await anthropic.messages.create({
+    model: CLAUDE_HINDI_MODEL,
+    max_tokens: 2048,
+    temperature: TEMPERATURES[platform],
+    system: SYSTEM_MSG,
+    messages: [{ role: "user", content: promptBuilders[platform]() }],
+  });
+  const block = msg.content.find((b) => b.type === "text");
+  const raw = block && block.type === "text" ? block.text : "";
+  return parseRawOutput(platform, raw);
+}
+
+async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
+  if (language === "hi" && getAnthropicClient()) {
+    return runPlatformAgentClaude(platform, brief, voice, language);
+  }
+  const promptBuilders = getPromptBuilders(brief, voice, language);
+  const response = await openai.chat.completions.create({
+    model: MODEL, temperature: TEMPERATURES[platform],
+    messages: [
+      { role: "system", content: SYSTEM_MSG },
+      { role: "user",   content: promptBuilders[platform]() },
+    ],
+  });
+  const raw = response.choices[0]?.message?.content ?? "";
+  return parseRawOutput(platform, raw);
 }
 
 async function batchQualityCheck(
