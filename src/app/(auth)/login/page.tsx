@@ -33,19 +33,28 @@ function LoginForm() {
   async function handleEmailLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      if (error) {
+        toastT.errorFromApi({ error: error.message });
+        return;
+      }
 
-    if (error) {
-      toastT.errorFromApi({ error: error.message });
+      router.push("/dashboard");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === "Failed to fetch" || msg.includes("NetworkError")) {
+        toastT.error(t("auth.supabaseNetworkError"));
+      } else {
+        toastT.errorFromApi({ error: msg });
+      }
+    } finally {
       setLoading(false);
-      return;
     }
-
-    router.push("/dashboard");
   }
 
   async function handleGoogleLogin() {

@@ -98,6 +98,7 @@
     "sending": "भेजा जा रहा है...",
     "sendResetLink": "रीसेट लिंक भेजें",
     "passwordResetSuccess": "पासवर्ड रीसेट हो गया। नए पासवर्ड से साइन इन करें।",
+    "supabaseNetworkError": "Supabase तक पहुँच नहीं बन पा रही। .env.local में NEXT_PUBLIC_SUPABASE_URL और NEXT_PUBLIC_SUPABASE_ANON_KEY अपने प्रोजेक्ट से सेट करें (Supabase Dashboard → Project Settings → API), फिर npm run dev दोबारा चलाएँ।",
     "checkEmailConfirm": "पुष्टिकरण लिंक के लिए अपना ईमेल देखें!",
     "regions": {
       "na": "उत्तरी अमेरिका (USD)",

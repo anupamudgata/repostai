@@ -34,7 +34,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { inputType, content, url, platforms, brandVoiceId, outputLanguage, userIntent, contentAngle, hookMode } = parsed.data;
+    const {
+      inputType,
+      content,
+      url,
+      platforms,
+      brandVoiceId,
+      outputLanguage,
+      userIntent,
+      contentAngle,
+      hookMode,
+      includeBaselineComparison: wantBaselineCompare,
+    } = parsed.data;
+    const includeBaselineComparison = Boolean(wantBaselineCompare && brandVoiceId);
 
     const { plan: effectivePlan, isSuperUser } = await getEffectivePlan(
       supabase,
@@ -145,13 +157,15 @@ export async function POST(request: NextRequest) {
     const contentToSave = resolvedContent.slice(0, 10000);
 
     // Redis cache: skip OpenAI if we have cached outputs for this content+platforms+lang+voice
-    const cachedOutputs = await getCachedRepurposeOutputs(
-      contentToSave,
-      allowedPlatforms,
-      outputLanguage,
-      brandVoiceId || null,
-      cacheTierKey
-    );
+    const cachedOutputs = !includeBaselineComparison
+      ? await getCachedRepurposeOutputs(
+          contentToSave,
+          allowedPlatforms,
+          outputLanguage,
+          brandVoiceId || null,
+          cacheTierKey
+        )
+      : null;
     if (cachedOutputs && Object.keys(cachedOutputs).length > 0) {
       const outputsToUse = isFreePlan ? addFreeTierWatermark(cachedOutputs) : cachedOutputs;
       const { data: job } = await supabase
@@ -190,14 +204,18 @@ export async function POST(request: NextRequest) {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentJobs } = await supabase
       .from("repurpose_jobs")
-      .select("id, input_content")
+      .select("id, input_content, brand_voice_id")
       .eq("user_id", user.id)
       .gte("created_at", oneHourAgo)
       .order("created_at", { ascending: false })
       .limit(20);
 
-    const duplicate = recentJobs?.find((j) => j.input_content === contentToSave);
-    if (duplicate) {
+    const duplicate = recentJobs?.find(
+      (j) =>
+        j.input_content === contentToSave &&
+        (j.brand_voice_id ?? null) === (brandVoiceId ?? null)
+    );
+    if (!includeBaselineComparison && duplicate) {
       const { data: existingOutputs } = await supabase
         .from("repurpose_outputs")
         .select("platform, generated_content")

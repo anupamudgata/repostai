@@ -120,6 +120,8 @@ Callback (example): `https://your-domain.com/api/connect/linkedin/callback` — 
 
 ## Photo → captions → post (R2 + Meta Instagram)
 
+For local dev you can add the `R2_*` variables to `.env.local` with empty values and fill them when you need photo upload; until then uploads return a “storage not configured” response.
+
 | Variable | Description |
 |----------|-------------|
 | `R2_ACCOUNT_ID` | Cloudflare R2 account id |

@@ -98,6 +98,7 @@
     "sending": "Sending...",
     "sendResetLink": "Send reset link",
     "passwordResetSuccess": "Password reset. Sign in with your new password.",
+    "supabaseNetworkError": "Cannot reach Supabase. In .env.local set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY from your project (Supabase Dashboard → Project Settings → API), then restart npm run dev.",
     "checkEmailConfirm": "Check your email for the confirmation link!",
     "regions": {
       "na": "North America (USD)",
