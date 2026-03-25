@@ -45,7 +45,8 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (outputsError) {
-      return jsonWithNoStore({ items: [] });
+      console.error("History outputs fetch error:", outputsError);
+      return jsonWithNoStore({ error: "Failed to load history" }, { status: 500 });
     }
 
     const jobMap = new Map(jobs.map((j) => [j.id, j]));
@@ -64,6 +65,6 @@ export async function GET() {
     return jsonWithNoStore({ items });
   } catch (error) {
     console.error("History fetch error:", error);
-    return jsonWithNoStore({ items: [] });
+    return jsonWithNoStore({ error: "Failed to load history" }, { status: 500 });
   }
 }

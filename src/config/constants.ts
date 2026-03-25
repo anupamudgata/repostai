@@ -13,17 +13,17 @@ export const SUPERUSER_EMAIL = "anupam.udgata@gmail.com";
 export const ZAPIER_APP_URL = process.env.NEXT_PUBLIC_ZAPIER_APP_URL || "";
 
 /** Landing page: "Used by X+ creators" — set to real number when you have it, or leave empty to hide. */
-export const LANDING_USER_COUNT = "5,000+";
+export const LANDING_USER_COUNT = "";
 
 /** Landing page: optional YouTube/Vimeo embed URL for 60-second demo video. Empty = hide video section. */
 export const LANDING_VIDEO_URL = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL || "";
 
 /** Landing page: testimonial / social proof quotes. Replace with real user quotes when available. */
 export const LANDING_TESTIMONIALS = [
-  { quote: "Before: 3+ hours rewriting one post for every platform. After: under 3 minutes. Game changer.", attribution: "Content creator", beforeAfter: "3+ hrs → 3 min" },
-  { quote: "I paste the blog link, click once, and get LinkedIn, Twitter, and Instagram ready. No more copy-paste hell.", attribution: "Marketing lead", beforeAfter: "5+ hours saved/week" },
-  { quote: "The brand voice feature actually makes it sound like me. First AI tool that doesn't feel robotic.", attribution: "Founder", beforeAfter: "Sounds like me" },
-  { quote: "From one YouTube video to 7 platform-ready posts in under a minute. Insane.", attribution: "Creator", beforeAfter: "1 video → 7 posts" },
+  { quote: "Paste a blog link, click once, get LinkedIn + Twitter + Instagram ready. No more copy-paste.", attribution: "What RepostAI does", beforeAfter: "1 click → 7 posts" },
+  { quote: "Train the AI on your writing samples so every output matches your tone, not generic AI speak.", attribution: "Brand voice feature", beforeAfter: "Sounds like you" },
+  { quote: "YouTube transcript in, platform-native posts out. Works with text, URLs, PDFs, and videos.", attribution: "Multi-input support", beforeAfter: "Any content → posts" },
+  { quote: "Free tier included. Pro starts at ₹499/mo — a fraction of what competitors charge.", attribution: "Built for India pricing", beforeAfter: "10x cheaper" },
 ] as const;
 
 /** Display pricing (INR). Enforcement lives in `lib/billing/plan-entitlements.ts`. */

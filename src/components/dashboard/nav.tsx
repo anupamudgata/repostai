@@ -130,15 +130,16 @@ export function DashboardNav({ user }: NavProps) {
             size="icon"
             className="md:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="rounded-full" aria-label="Account menu">
                 <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.avatar_url} />
+                  <AvatarImage src={user.avatar_url} alt={user.name || "Profile"} />
                   <AvatarFallback className="text-xs">
                     {initials}
                   </AvatarFallback>

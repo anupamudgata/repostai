@@ -1041,12 +1041,12 @@ export default function LandingPage() {
             <div>
               <p className="font-medium text-sm mb-3">{L.footer.legal}</p>
               <div className="space-y-2 text-sm text-muted-foreground">
-                <a href="/privacy" className="block hover:text-foreground transition-colors">
+                <Link href="/privacy" className="block hover:text-foreground transition-colors">
                   {L.footer.privacy}
-                </a>
-                <a href="/terms" className="block hover:text-foreground transition-colors">
+                </Link>
+                <Link href="/terms" className="block hover:text-foreground transition-colors">
                   {L.footer.terms}
-                </a>
+                </Link>
                 <a href={`mailto:${SUPPORT_EMAIL}`} className="block hover:text-foreground transition-colors">
                   {L.footer.contact}
                 </a>
