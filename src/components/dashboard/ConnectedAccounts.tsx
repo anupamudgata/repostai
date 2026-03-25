@@ -16,9 +16,9 @@ export function ConnectedAccounts() {
   const [loading, setLoading]   = useState(true);
 
   useEffect(() => {
-    fetch("/api/me")
+    fetch("/api/social/accounts")
       .then((r) => r.json())
-      .then((data) => { setAccounts(data.connectedAccounts ?? []); setLoading(false); })
+      .then((data) => { setAccounts(data.accounts ?? []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
 

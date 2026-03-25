@@ -4,11 +4,11 @@
 // FIX #3: Plan badge now reads from subscriptions table (single source of truth)
 //         not from user metadata which can be stale.
 
-import Link              from "next/link";
 import { createClient }  from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redirect }      from "next/navigation";
 import { SUPPORT_EMAIL } from "@/config/constants";
+import UpgradeSection    from "@/components/dashboard/UpgradeSection";
 
 // Plan display config
 const PLAN_CONFIG = {
@@ -200,24 +200,13 @@ export default async function SettingsPage() {
               )}
             </div>
 
-            <div style={{ padding: "16px 20px", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <div style={{ padding: "16px 20px" }}>
               {activePlan === "free" ? (
-                <Link
-                  href="/#pricing"
-                  style={{
-                    padding:      "9px 20px",
-                    borderRadius: "8px",
-                    background:   "#2563EB",
-                    color:        "#FFFFFF",
-                    fontSize:     "13px",
-                    fontWeight:   600,
-                    textDecoration: "none",
-                  }}
-                >
-                  View plans — from ₹199/mo
-                </Link>
+                <UpgradeSection />
               ) : (
-                <ManageBillingButton />
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <ManageBillingButton />
+                </div>
               )}
             </div>
           </div>

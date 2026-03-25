@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { createClient } from "@/lib/supabase/client";
+import { track } from "@/lib/analytics/track";
+import { AnalyticsEvent } from "@/lib/analytics/events";
 import { useI18n } from "@/contexts/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 
@@ -122,6 +124,15 @@ export function DashboardNav({ user }: NavProps) {
               ? t("common.free")
               : user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
           </Badge>
+
+          {user.plan === "free" && (
+            <Link href="/#pricing" onClick={() => track(AnalyticsEvent.UPGRADE_CLICKED, { source: "nav" })}>
+              <Button size="sm" className="h-7 px-2.5 text-xs gap-1">
+                <Zap className="h-3 w-3" />
+                Upgrade
+              </Button>
+            </Link>
+          )}
 
           <LanguageSwitcher variant="compact" />
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { getPlanFromRazorpayPlanId } from "@/lib/razorpay/helpers";
+import { sendUpgradeEmail } from "@/lib/email/send";
 import crypto from "crypto";
 
 function verifyWebhookSignature(body: string, signature: string): boolean {
@@ -19,6 +20,14 @@ function verifyWebhookSignature(body: string, signature: string): boolean {
 }
 
 export async function POST(request: NextRequest) {
+  if (!process.env.RAZORPAY_WEBHOOK_SECRET) {
+    console.error("[razorpay webhook] RAZORPAY_WEBHOOK_SECRET is not configured");
+    return NextResponse.json(
+      { error: "Webhook secret not configured" },
+      { status: 503 }
+    );
+  }
+
   const signature = request.headers.get("X-Razorpay-Signature");
   if (!signature) {
     return NextResponse.json({ error: "Missing signature" }, { status: 400 });
@@ -62,6 +71,71 @@ export async function POST(request: NextRequest) {
           status: "active",
           current_period_end: periodEnd,
         }, { onConflict: "stripe_subscription_id" });
+
+        try {
+          if (plan === "starter" || plan === "pro" || plan === "agency") {
+            const { data: { user } } = await supabaseAdmin.auth.admin.getUserById(sub.notes.user_id);
+            if (user?.email) {
+              const fullName = (user.user_metadata?.full_name as string) ?? "";
+              const firstName = fullName.split(" ")[0] || user.email.split("@")[0];
+              await sendUpgradeEmail({ email: user.email, firstName, plan });
+            }
+          }
+        } catch (emailErr) {
+          console.error("[razorpay webhook] Upgrade email failed:", emailErr);
+        }
+      }
+    } else if (event.event === "subscription.charged") {
+      const sub = event.payload?.subscription?.entity as {
+        id: string;
+        notes?: { user_id?: string };
+        current_end?: number;
+      } | undefined;
+      if (sub?.notes?.user_id) {
+        const periodEnd = sub.current_end
+          ? new Date(sub.current_end * 1000).toISOString()
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({ current_period_end: periodEnd, status: "active" })
+          .eq("stripe_subscription_id", sub.id);
+      }
+    } else if (event.event === "subscription.pending") {
+      const sub = event.payload?.subscription?.entity as {
+        id: string;
+        notes?: { user_id?: string };
+      } | undefined;
+      if (sub?.notes?.user_id) {
+        console.warn(
+          `[razorpay webhook] Subscription ${sub.id} payment pending for user ${sub.notes.user_id}`
+        );
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({ status: "pending" })
+          .eq("stripe_subscription_id", sub.id);
+      }
+    } else if (event.event === "subscription.halted") {
+      const sub = event.payload?.subscription?.entity as {
+        id: string;
+      } | undefined;
+      if (sub?.id) {
+        const { data: row } = await supabaseAdmin
+          .from("subscriptions")
+          .select("user_id")
+          .eq("stripe_subscription_id", sub.id)
+          .single();
+
+        if (row) {
+          await supabaseAdmin
+            .from("profiles")
+            .update({ plan: "free" })
+            .eq("id", row.user_id);
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({ status: "halted" })
+            .eq("stripe_subscription_id", sub.id);
+        }
       }
     } else if (event.event === "subscription.cancelled" || event.event === "subscription.completed") {
       const sub = event.payload?.subscription?.entity as { id: string } | undefined;
@@ -80,6 +154,21 @@ export async function POST(request: NextRequest) {
             .eq("stripe_subscription_id", sub.id);
         }
       }
+    } else if (event.event === "payment.failed") {
+      const payment = event.payload?.payment?.entity as {
+        id: string;
+        method?: string;
+        error_code?: string;
+        error_description?: string;
+        notes?: { user_id?: string };
+      } | undefined;
+      console.error("[razorpay webhook] Payment failed:", {
+        payment_id: payment?.id,
+        method: payment?.method,
+        error_code: payment?.error_code,
+        error_description: payment?.error_description,
+        user_id: payment?.notes?.user_id ?? "unknown",
+      });
     }
   } catch (error) {
     console.error("Razorpay webhook error:", error);

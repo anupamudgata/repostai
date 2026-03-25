@@ -26,7 +26,7 @@ export async function GET() {
       .from("scheduled_posts")
       .select("id, platform, posted_at, output_id")
       .eq("user_id", user.id)
-      .eq("status", "completed")
+      .in("status", ["published", "completed"])
       .not("posted_at", "is", null)
       .order("posted_at", { ascending: false });
 

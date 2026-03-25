@@ -124,6 +124,23 @@ export const PLANS = {
   },
 } as const;
 
+/** Multi-currency display pricing keyed by region. */
+export const PLANS_PRICING: Record<string, { monthly: Record<string, number>; annual: Record<string, number> }> = {
+  Free: { monthly: { in: 0, global: 0, eu: 0, uk: 0, latam: 0 }, annual: { in: 0, global: 0, eu: 0, uk: 0, latam: 0 } },
+  Starter: {
+    monthly: { in: 199, global: 4.99, eu: 4.99, uk: 3.99, latam: 4.99 },
+    annual:  { in: 1899, global: 49, eu: 49, uk: 39, latam: 49 },
+  },
+  Pro: {
+    monthly: { in: 499, global: 9.99, eu: 9.99, uk: 7.99, latam: 9.99 },
+    annual:  { in: 4999, global: 99, eu: 99, uk: 79, latam: 99 },
+  },
+  Agency: {
+    monthly: { in: 1499, global: 29.99, eu: 29.99, uk: 24.99, latam: 29.99 },
+    annual:  { in: 14999, global: 299, eu: 299, uk: 249, latam: 299 },
+  },
+};
+
 /** Viral hook style — how to open the first line (80% of engagement). */
 export const HOOK_MODES = [
   { id: "default", name: "Auto (best fit)", description: "Let AI pick the best hook" },

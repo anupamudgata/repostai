@@ -23,7 +23,7 @@ const ENTITLEMENTS: Record<PaidPlan, PlanEntitlements> = {
     allowedPlatformIds: FREE_PLATFORM_IDS as readonly string[],
     brandVoicesMax: 1,
     aiTier: "standard",
-    photosPerMonth: 0,
+    photosPerMonth: 2,
   },
   starter: {
     repurposesPerMonth: 10,

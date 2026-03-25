@@ -38,7 +38,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { PLANS, SUPPORT_EMAIL, LANDING_USER_COUNT, LANDING_VIDEO_URL } from "@/config/constants";
+import { PLANS, PLANS_PRICING, SUPPORT_EMAIL, LANDING_USER_COUNT, LANDING_VIDEO_URL } from "@/config/constants";
 import { LandingNav } from "@/components/landing-nav";
 import { useI18n } from "@/contexts/i18n-provider";
 import { landingBulkEn } from "@/messages/landing-bulk.en";
@@ -763,13 +763,15 @@ export default function LandingPage() {
           </div>
           <div className="grid sm:grid-cols-2 xl:grid-cols-4 gap-6 items-start">
             {Object.values(PLANS).map((plan) => {
-              const hasAnnual = "annualPrice" in plan && plan.monthlyPrice > 0;
-              const displayPrice =
-                plan.monthlyPrice === 0
-                  ? 0
-                  : billingCycle === "yearly" && hasAnnual
-                    ? Math.round(plan.annualPrice / 12)
-                    : plan.monthlyPrice;
+              const regionPricing = PLANS_PRICING[plan.name];
+              const monthlyPrice = regionPricing?.monthly[pricingRegion] ?? 0;
+              const annualPrice = regionPricing?.annual[pricingRegion] ?? 0;
+              const hasAnnual = monthlyPrice > 0;
+              const displayPrice = regionPricing
+                ? billingCycle === "yearly" && hasAnnual
+                  ? Math.round(annualPrice / 12)
+                  : monthlyPrice
+                : 0;
               const perDay =
                 displayPrice > 0 ? (displayPrice / 30).toFixed(2) : "0";
               return (
@@ -792,12 +794,12 @@ export default function LandingPage() {
                       {pricingSymbol}
                       {displayPrice}
                     </span>
-                    {plan.monthlyPrice > 0 && (
+                    {monthlyPrice > 0 && (
                       <span className="text-muted-foreground text-sm">
                         {L.pricingSection.perMonth}
                       </span>
                     )}
-                    {plan.monthlyPrice > 0 && (
+                    {monthlyPrice > 0 && (
                       <p className="text-xs text-muted-foreground mt-1">
                         {L.pricingSection.perDayPrefix} {pricingSymbol}
                         {perDay}
@@ -808,7 +810,7 @@ export default function LandingPage() {
                       <p className="text-xs text-primary mt-0.5">
                         {pf(L.pricingSection.billedYearlyTotal, {
                           symbol: pricingSymbol,
-                          total: plan.annualPrice,
+                          total: annualPrice,
                         })}
                       </p>
                     )}
@@ -816,7 +818,7 @@ export default function LandingPage() {
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {pf(L.pricingSection.saveVsMonthly, {
                           symbol: pricingSymbol,
-                          save: plan.monthlyPrice * 12 - plan.annualPrice,
+                          save: monthlyPrice * 12 - annualPrice,
                         })}
                       </p>
                     )}
@@ -830,13 +832,20 @@ export default function LandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href="/signup" className="block">
+                  <Link
+                    href={
+                      monthlyPrice === 0
+                        ? "/signup"
+                        : `/signup?plan=${plan.name.toLowerCase()}&billing=${billingCycle === "yearly" ? "annual" : "monthly"}`
+                    }
+                    className="block"
+                  >
                     <Button
                       className={`w-full ${plan.name === "Pro" ? "shadow-md shadow-primary/25" : ""}`}
                       variant={plan.name === "Pro" ? "default" : "outline"}
                       size="lg"
                     >
-                      {plan.monthlyPrice === 0
+                      {monthlyPrice === 0
                         ? L.pricingSection.ctaFree
                         : pf(L.pricingSection.ctaPaid, { plan: plan.name })}
                     </Button>

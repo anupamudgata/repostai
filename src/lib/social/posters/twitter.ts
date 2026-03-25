@@ -15,7 +15,7 @@ async function refreshTwitterToken(userId: string, refreshToken: string): Promis
 }
 
 /** Post to Twitter using a raw access token (e.g. from connected_accounts). Used by API post route and cron. */
-export async function postToTwitterWithToken(text: string, accessToken: string): Promise<void> {
+export async function postToTwitterWithToken(text: string, accessToken: string): Promise<{ id: string }> {
   const tweetText = text.length > 280 ? text.slice(0, 277) + "..." : text;
   const response = await fetch("https://api.twitter.com/2/tweets", {
     method: "POST",
@@ -26,6 +26,8 @@ export async function postToTwitterWithToken(text: string, accessToken: string):
     const err = await response.json().catch(() => ({}));
     throw new Error((err as { detail?: string })?.detail ?? `Twitter API error ${response.status}`);
   }
+  const json = (await response.json()) as { data?: { id?: string } };
+  return { id: json.data?.id ?? "" };
 }
 
 export async function postToTwitter(userId: string, text: string): Promise<PostResult> {
@@ -38,8 +40,8 @@ export async function postToTwitter(userId: string, text: string): Promise<PostR
     accessToken = newToken;
   }
   try {
-    await postToTwitterWithToken(text, accessToken);
-    const postId = "";
+    const tweet = await postToTwitterWithToken(text, accessToken);
+    const postId = tweet.id;
     return { platform: "twitter", success: true, postId, postUrl: `https://x.com/${token.platformUsername}/status/${postId}` };
   } catch (err) {
     return { platform: "twitter", success: false, error: err instanceof Error ? err.message : "Unknown error" };

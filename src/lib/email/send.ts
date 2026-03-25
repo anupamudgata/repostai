@@ -15,9 +15,9 @@ export async function sendWelcomeEmail(params: { email: string; firstName: strin
   else console.log(`[email] ✓ Welcome email sent to ${email}`, data?.id);
 }
 
-export async function sendUpgradeEmail(params: { email: string; firstName: string; plan: "pro" | "agency" }) {
+export async function sendUpgradeEmail(params: { email: string; firstName: string; plan: "starter" | "pro" | "agency" }) {
   const { email, firstName, plan } = params;
-  const planName = plan === "pro" ? "Pro" : "Agency";
+  const planName = plan === "starter" ? "Starter" : plan === "pro" ? "Pro" : "Agency";
   const { data, error } = await resend.emails.send({
     from:    `Anupam from RepostAI <${FROM_EMAIL}>`,
     to:      [email],

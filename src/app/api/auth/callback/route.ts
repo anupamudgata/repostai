@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { sendWelcomeEmail } from "@/lib/email/send";
 
 function getBaseUrl(request: NextRequest): string {
   const allowed = process.env.NEXT_PUBLIC_APP_URL;
@@ -23,6 +24,16 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          const fullName = (user.user_metadata?.full_name as string) ?? "";
+          const firstName = fullName.split(" ")[0] || user.email.split("@")[0];
+          await sendWelcomeEmail({ email: user.email, firstName });
+        }
+      } catch (emailErr) {
+        console.error("[auth callback] Welcome email failed:", emailErr);
+      }
       return NextResponse.redirect(`${baseUrl}${next}`);
     }
   }

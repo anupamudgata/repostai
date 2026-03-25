@@ -1,16 +1,44 @@
-export function proUpgradeEmailHtml(firstName: string, plan: "pro" | "agency"): string {
+export function proUpgradeEmailHtml(firstName: string, plan: "starter" | "pro" | "agency"): string {
   const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? "https://repostai.com";
-  const isPro    = plan === "pro";
-  const planName = isPro ? "Pro" : "Agency";
-  const planPrice = isPro ? "$19" : "$49";
-  const planColor = isPro ? "#2563EB" : "#7C3AED";
-  const planBg    = isPro ? "#EFF6FF" : "#F5F3FF";
-  const planBorder = isPro ? "#BFDBFE" : "#DDD6FE";
-  const planText  = isPro ? "#1E3A5F" : "#4C1D95";
 
-  const features = isPro
-    ? ["Unlimited repurposes — no monthly cap","All 7+ platforms simultaneously","Brand voice training (3 voices)","AI Content Starter — topic to post in one click","3 languages: English, Hindi, Spanish","Full repurpose history","Priority generation speed"]
-    : ["Everything in Pro","10 brand voices — one per client","Unlimited AI Content Starter","CSV export for bulk delivery","API access for automation","3 languages: English, Hindi, Spanish","Priority support"];
+  const planConfig = {
+    starter: {
+      name: "Starter",
+      price: "₹199",
+      color: "#0D9488",
+      bg: "#F0FDFA",
+      border: "#99F6E4",
+      text: "#134E4A",
+      features: ["10 repurposes per month", "All 9 platforms", "GPT-4o-mini", "No watermark", "1 brand voice", "Photo captions (10/mo)"],
+    },
+    pro: {
+      name: "Pro",
+      price: "₹499",
+      color: "#2563EB",
+      bg: "#EFF6FF",
+      border: "#BFDBFE",
+      text: "#1E3A5F",
+      features: ["60 repurposes per month", "All 9 platforms", "Claude Sonnet (premium AI)", "3 brand voices", "AI Content Starter", "Photo captions (40/mo)", "No watermark", "Priority support"],
+    },
+    agency: {
+      name: "Agency",
+      price: "₹1,499",
+      color: "#7C3AED",
+      bg: "#F5F3FF",
+      border: "#DDD6FE",
+      text: "#4C1D95",
+      features: ["Unlimited repurposes", "All 9 platforms", "Claude Sonnet (premium AI)", "5 brand voices", "AI Content Starter", "Unlimited photo captions", "Team & API (roadmap)", "Dedicated support"],
+    },
+  } as const;
+
+  const cfg = planConfig[plan];
+  const planName   = cfg.name;
+  const planPrice  = cfg.price;
+  const planColor  = cfg.color;
+  const planBg     = cfg.bg;
+  const planBorder = cfg.border;
+  const planText   = cfg.text;
+  const features   = cfg.features;
 
   return `<!DOCTYPE html>
 <html lang="en">

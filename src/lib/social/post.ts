@@ -15,6 +15,7 @@ export async function postToPlatform(opts: PostOptions): Promise<PostResult> {
       case "twitter":   return await postToTwitter(userId, text);
       case "facebook":  return await postToFacebook(userId, text);
       case "reddit":    return await postToReddit(userId, text, subreddit ?? "");
+      case "instagram": return { platform, success: false, error: "Instagram requires a photo. Use Photo Captions instead." };
       default: return { platform, success: false, error: `Platform ${platform} not yet supported` };
     }
   } catch (err) {

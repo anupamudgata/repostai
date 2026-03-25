@@ -2,7 +2,13 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
+
+const OnboardingBanner = dynamic(
+  () => import("@/components/dashboard/OnboardingBanner"),
+  { ssr: false }
+);
 import {
   Link as LinkIcon,
   Type,
@@ -48,6 +54,8 @@ import { useI18n } from "@/contexts/i18n-provider";
 import { dashboardBulkEn } from "@/messages/dashboard-bulk.en";
 import { dashboardBulkHi } from "@/messages/dashboard-bulk.hi";
 import { createClient } from "@/lib/supabase/client";
+import { track } from "@/lib/analytics/track";
+import { AnalyticsEvent } from "@/lib/analytics/events";
 import type { InputType, Platform, OutputLanguage } from "@/types";
 import {
   SUPPORTED_PLATFORMS,
@@ -417,6 +425,7 @@ export default function DashboardPage() {
         if (data.code === "LIMIT_REACHED" || data.code === "PLAN_LIMIT") {
           setLimitModalCode(data.code);
           setLimitModalOpen(true);
+          track(AnalyticsEvent.FREE_LIMIT_HIT, { code: data.code, plan });
         }
         toastT.errorFromApi(
           { error: data.error, code: data.code },
@@ -466,6 +475,7 @@ export default function DashboardPage() {
         if (data.code === "LIMIT_REACHED" || data.code === "PLAN_LIMIT") {
           setLimitModalCode(data.code);
           setLimitModalOpen(true);
+          track(AnalyticsEvent.FREE_LIMIT_HIT, { code: data.code, plan });
         }
         toastT.errorFromApi(
           { error: data.error, code: data.code },
@@ -722,6 +732,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8 pb-8">
+      <OnboardingBanner />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">{d.title}</h1>

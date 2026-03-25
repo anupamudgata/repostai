@@ -31,7 +31,7 @@ const PLATFORMS = [
     bg:           "#EFF6FF",
     border:       "#BFDBFE",
     icon:         "f",
-    connectUrl:   "/api/social/connect/facebook",
+    connectUrl:   "",
     requiredPlan: "free" as const,
   },
   {
@@ -42,7 +42,7 @@ const PLATFORMS = [
     bg:           "#FFF7ED",
     border:       "#FED7AA",
     icon:         "r/",
-    connectUrl:   "/api/social/connect/reddit",
+    connectUrl:   "",
     requiredPlan: "free" as const,
   },
   {
@@ -53,7 +53,7 @@ const PLATFORMS = [
     bg:           "#F1F5F9",
     border:       "#CBD5E1",
     icon:         "𝕏",
-    connectUrl:   "/api/social/connect/twitter",
+    connectUrl:   "/api/connect/twitter",
     requiredPlan: "pro" as const,
   },
   {
@@ -276,23 +276,40 @@ export default function ConnectionsPage() {
                   {/* Action */}
                   <div style={{ flexShrink: 0 }}>
                     {!account ? (
-                      <a
-                        href={platform.connectUrl}
-                        style={{
-                          display:        "inline-flex",
-                          alignItems:     "center",
-                          padding:        "8px 16px",
-                          borderRadius:   "8px",
-                          border:         `1.5px solid ${platform.color}`,
-                          background:     "transparent",
-                          color:          platform.color,
-                          fontSize:       "12px",
-                          fontWeight:     600,
-                          textDecoration: "none",
-                        }}
-                      >
-                        Connect
-                      </a>
+                      !platform.connectUrl ? (
+                        <span
+                          style={{
+                            display:      "inline-flex",
+                            alignItems:   "center",
+                            padding:      "8px 16px",
+                            borderRadius: "8px",
+                            background:   "#F3F4F6",
+                            color:        "#9CA3AF",
+                            fontSize:     "12px",
+                            fontWeight:   600,
+                          }}
+                        >
+                          Coming soon
+                        </span>
+                      ) : (
+                        <a
+                          href={platform.connectUrl}
+                          style={{
+                            display:        "inline-flex",
+                            alignItems:     "center",
+                            padding:        "8px 16px",
+                            borderRadius:   "8px",
+                            border:         `1.5px solid ${platform.color}`,
+                            background:     "transparent",
+                            color:          platform.color,
+                            fontSize:       "12px",
+                            fontWeight:     600,
+                            textDecoration: "none",
+                          }}
+                        >
+                          Connect
+                        </a>
+                      )
                     ) : isExpired ? (
                       <a
                         href={platform.connectUrl}

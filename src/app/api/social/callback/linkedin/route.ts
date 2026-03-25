@@ -9,25 +9,25 @@ export async function GET(req: NextRequest) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL!;
 
   if (!code || !state) {
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?error=linkedin_denied`);
+    return NextResponse.redirect(`${appUrl}/dashboard/connections?error=linkedin_denied`);
   }
 
   const cookieState = req.cookies.get("linkedin_social_state")?.value;
   if (!cookieState || state !== cookieState) {
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?error=invalid_state`);
+    return NextResponse.redirect(`${appUrl}/dashboard/connections?error=invalid_state`);
   }
 
   let userId: string;
   try {
     ({ userId } = JSON.parse(Buffer.from(state, "base64").toString("utf-8")));
   } catch {
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?error=invalid_state`);
+    return NextResponse.redirect(`${appUrl}/dashboard/connections?error=invalid_state`);
   }
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || user.id !== userId) {
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?error=unauthorized`);
+    return NextResponse.redirect(`${appUrl}/dashboard/connections?error=unauthorized`);
   }
 
   try {
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
     });
     const tokenData = await tokenRes.json();
     if (!tokenData.access_token) {
-      return NextResponse.redirect(`${appUrl}/dashboard/settings?error=linkedin_token`);
+      return NextResponse.redirect(`${appUrl}/dashboard/connections?error=linkedin_token`);
     }
 
     const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
@@ -62,11 +62,11 @@ export async function GET(req: NextRequest) {
       scope: tokenData.scope,
     });
 
-    const res = NextResponse.redirect(`${appUrl}/dashboard/settings?connected=linkedin`);
+    const res = NextResponse.redirect(`${appUrl}/dashboard/connections?connected=linkedin`);
     res.cookies.delete("linkedin_social_state");
     return res;
   } catch (err) {
     console.error("[social/callback/linkedin] Error:", err);
-    return NextResponse.redirect(`${appUrl}/dashboard/settings?error=linkedin_error`);
+    return NextResponse.redirect(`${appUrl}/dashboard/connections?error=linkedin_error`);
   }
 }
