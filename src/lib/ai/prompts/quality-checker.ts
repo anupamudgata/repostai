@@ -1,13 +1,15 @@
 import type { Platform } from "@/lib/ai/types";
 
 const PLATFORM_RULES: Record<Platform, { maxChars?: number; rules: string[] }> = {
-  linkedin:       { maxChars: 3000, rules: ["Must have a hook in first 2 lines","Must end with question or strong close","Must have 3-5 hashtags"] },
-  twitter_thread: { rules: ["Each tweet must be under 280 chars","Must have at least 5 tweets","First tweet must work standalone"] },
-  twitter_single: { maxChars: 280,  rules: ["Must be under 280 characters","No hashtags"] },
-  instagram:      { rules: ["Must have first-line hook","Must have CTA before hashtags","Must have 8-15 hashtags"] },
-  facebook:       { rules: ["Must end with a question","Must feel personal not corporate"] },
-  reddit:         { rules: ["Title must not be promotional","Body must provide value first","No hashtags"] },
-  email:          { rules: ["Must have subject line","Must have preview text","Must have single CTA"] },
+  linkedin:        { maxChars: 3000, rules: ["Must have a hook in first 2 lines","Must end with question or strong close","Must have 3-5 hashtags"] },
+  twitter_thread:  { rules: ["Each tweet must be under 280 chars","Must have at least 5 tweets","First tweet must work standalone"] },
+  twitter_single:  { maxChars: 280,  rules: ["Must be under 280 characters","No hashtags"] },
+  instagram:       { rules: ["Must have first-line hook","Must have CTA before hashtags","Must have 8-15 hashtags"] },
+  facebook:        { rules: ["Must end with a question","Must feel personal not corporate"] },
+  reddit:          { rules: ["Title must not be promotional","Body must provide value first","No hashtags"] },
+  email:           { rules: ["Must have subject line","Must have preview text","Must have single CTA"] },
+  tiktok:          { maxChars: 2200, rules: ["Must have a hook in the first line","Must include CTA at end","Keep under 200 words"] },
+  whatsapp_status: { maxChars: 700,  rules: ["Must be under 700 characters","Keep personal and conversational","One key takeaway only"] },
 };
 
 export function buildQualityCheckerPrompt(platform: Platform, output: string): string {

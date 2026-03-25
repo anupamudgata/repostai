@@ -37,27 +37,44 @@ export function DeleteAccountDialog({ open, onClose }: DeleteAccountDialogProps)
   if (!open) return null;
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,.5)" }}>
-      <div style={{ background: "#fff", borderRadius: "16px", padding: "28px", maxWidth: "440px", width: "100%", boxShadow: "0 10px 40px rgba(0,0,0,.15)" }}>
-        <h2 style={{ fontSize: "18px", fontWeight: 700, color: "#DC2626", marginBottom: "8px" }}>Delete your account</h2>
-        <p style={{ fontSize: "13px", color: "#6B7280", lineHeight: 1.6, marginBottom: "10px" }}>This will permanently delete your account, all data, and cancel any active subscriptions. This action cannot be undone.</p>
-        <p style={{ fontSize: "12px", color: "#6B7280", lineHeight: 1.5, marginBottom: "16px" }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-card border rounded-2xl p-7 max-w-[440px] w-full shadow-xl mx-4">
+        <h2 className="text-lg font-bold text-destructive mb-2">Delete your account</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mb-2.5">
+          This will permanently delete your account, all data, and cancel any active subscriptions. This action cannot be undone.
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed mb-4">
           Prefer a confirmation email first?{" "}
-          <Link href="/dashboard/settings/delete" style={{ color: "#2563EB", fontWeight: 600 }} onClick={onClose}>
+          <Link href="/dashboard/settings/delete" className="text-primary font-semibold" onClick={onClose}>
             Use the full delete page
           </Link>
           .
         </p>
-        <label style={{ fontSize: "12px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "6px" }}>Type <strong>DELETE MY ACCOUNT</strong> to confirm:</label>
+        <label className="text-xs font-semibold text-foreground block mb-1.5">
+          Type <strong>DELETE MY ACCOUNT</strong> to confirm:
+        </label>
         <input
-          type="text" value={confirmText} onChange={(e) => setConfirmText(e.target.value)} disabled={status === "deleting"}
-          style={{ width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #E5E7EB", fontSize: "14px", marginBottom: "16px", boxSizing: "border-box", outline: "none" }}
+          type="text"
+          value={confirmText}
+          onChange={(e) => setConfirmText(e.target.value)}
+          disabled={status === "deleting"}
+          className="w-full px-3 py-2.5 rounded-lg border bg-background text-foreground text-sm mb-4 outline-none focus:ring-2 focus:ring-destructive/30"
           placeholder="DELETE MY ACCOUNT"
         />
-        {error && <p style={{ fontSize: "12px", color: "#DC2626", marginBottom: "10px" }}>{error}</p>}
-        <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-          <button onClick={onClose} disabled={status === "deleting"} style={{ padding: "8px 18px", borderRadius: "8px", border: "1px solid #E5E7EB", background: "#fff", color: "#374151", fontSize: "13px", fontWeight: 500, cursor: "pointer" }}>Cancel</button>
-          <button onClick={handleDelete} disabled={!confirmed || status === "deleting"} style={{ padding: "8px 18px", borderRadius: "8px", border: "none", background: confirmed ? "#DC2626" : "#FCA5A5", color: "#fff", fontSize: "13px", fontWeight: 600, cursor: confirmed ? "pointer" : "default", opacity: confirmed ? 1 : 0.5 }}>
+        {error && <p className="text-xs text-destructive mb-2.5">{error}</p>}
+        <div className="flex gap-2.5 justify-end">
+          <button
+            onClick={onClose}
+            disabled={status === "deleting"}
+            className="px-4 py-2 rounded-lg border bg-card text-foreground text-sm font-medium hover:bg-muted transition-colors cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={!confirmed || status === "deleting"}
+            className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-default hover:bg-destructive/90 transition-colors"
+          >
             {status === "deleting" ? "Deleting..." : "Delete permanently"}
           </button>
         </div>

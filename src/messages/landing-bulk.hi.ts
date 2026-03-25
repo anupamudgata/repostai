@@ -5,9 +5,10 @@ export const landingBulkHi: LandingBulk = {
   pricingRegions: {
     global: "वैश्विक (USD $)",
     eu: "यूरोप (EUR €)",
+    uk: "यूके (GBP £)",
     in: "भारत (INR ₹)",
     latam: "लैटिन अमेरिका (USD $)",
-  },
+  } as Record<string, string>,
   pricingMarketLabel: "बाज़ार क्षेत्र:",
   testimonials: [
     {
@@ -245,9 +246,9 @@ export const landingBulkHi: LandingBulk = {
     ],
   },
   pricingSection: {
-    badge: "भारत के लिए INR मूल्य — स्पष्ट टियर",
+    badge: "हर बाज़ार के लिए पारदर्शी कीमतें",
     title: "मुफ़्त शुरू करें। तैयार हों तो स्केल करें।",
-    subtitle: "छिपी फीस नहीं। कभी भी रद्द करें। Razorpay सब्सक्रिप्शन।",
+    subtitle: "छिपी फीस नहीं। कभी भी रद्द करें। आपकी स्थानीय मुद्रा में कीमतें।",
     mostPopular: "सबसे लोकप्रिय",
     billingMonthly: "मासिक",
     billingYearly: "वार्षिक",

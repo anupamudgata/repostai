@@ -1,6 +1,4 @@
 "use client";
-// FIX: removed unused useCallback import
-// FIX: removed unused expressions on lines 83 and 91 (onFilter side-effect calls)
 
 import { useState, useEffect, useMemo } from "react";
 import { useAppToast } from "@/hooks/use-app-toast";
@@ -23,17 +21,21 @@ const PLATFORM_LABELS: Record<string, string> = {
   facebook:       "Facebook",
   reddit:         "Reddit",
   email:          "Email",
+  tiktok:         "TikTok",
+  whatsapp_status:"WhatsApp",
 };
 
 const PLATFORM_COLORS: Record<string, string> = {
   linkedin:       "#0A66C2",
-  twitter_thread: "#0F172A",
-  twitter_single: "#0F172A",
-  twitter:        "#0F172A",
-  instagram:      "#C13584",
+  twitter_thread: "#1D9BF0",
+  twitter_single: "#1D9BF0",
+  twitter:        "#1D9BF0",
+  instagram:      "#E1306C",
   facebook:       "#1877F2",
   reddit:         "#FF4500",
   email:          "#059669",
+  tiktok:         "#FE2C55",
+  whatsapp_status:"#25D366",
 };
 
 export default function HistoryPage() {
@@ -69,7 +71,6 @@ export default function HistoryPage() {
     return Array.from(seen);
   }, [items]);
 
-  // FIX: removed onFilter side-effect call — filter result used directly in JSX
   const filtered = useMemo(() => {
     let result = items;
     if (platform !== "all") {
@@ -160,25 +161,20 @@ export default function HistoryPage() {
   }
 
   return (
-    <div style={{
-      minHeight:  "100vh",
-      background: "#F9FAFB",
-      padding:    "40px 24px",
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
-    }}>
-      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+    <div className="min-h-screen bg-background px-4 sm:px-6 py-8 sm:py-10">
+      <div className="max-w-3xl mx-auto">
 
         {/* Header */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h1 style={{ fontSize: "22px", fontWeight: 700, color: "#111827", marginBottom: "4px" }}>History</h1>
-            <p style={{ fontSize: "13px", color: "#9CA3AF" }}>{items.length} item{items.length !== 1 ? "s" : ""} total</p>
+            <h1 className="text-xl font-bold text-foreground mb-1">History</h1>
+            <p className="text-sm text-muted-foreground">{items.length} item{items.length !== 1 ? "s" : ""} total</p>
           </div>
           {selected.size > 0 && (
             <button
               onClick={handleDeleteSelected}
               disabled={deleting}
-              style={{ padding: "8px 16px", borderRadius: "8px", border: "1px solid #FECACA", background: "#FEF2F2", color: "#DC2626", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}
+              className="px-4 py-2 rounded-lg border border-destructive/30 bg-destructive/5 text-destructive text-sm font-semibold cursor-pointer hover:bg-destructive/10 transition-colors disabled:opacity-50"
             >
               {deleting ? "Deleting..." : `Delete ${selected.size} selected`}
             </button>
@@ -186,9 +182,9 @@ export default function HistoryPage() {
         </div>
 
         {/* Search */}
-        <div style={{ position: "relative", marginBottom: "12px" }}>
-          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round"
-            style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }}>
+        <div className="relative mb-3">
+          <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+            className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
             <circle cx="9" cy="9" r="6"/><path d="M15 15l-3-3"/>
           </svg>
           <input
@@ -196,23 +192,28 @@ export default function HistoryPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search history..."
-            style={{ width: "100%", padding: "10px 36px", borderRadius: "10px", border: "1px solid #E5E7EB", fontSize: "13px", color: "#111827", background: "#FFFFFF", outline: "none", boxSizing: "border-box" }}
+            className="w-full py-2.5 pl-9 pr-9 rounded-xl border bg-card text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground"
           />
           {query && (
-            <button onClick={() => setQuery("")} style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#9CA3AF", cursor: "pointer", fontSize: "18px", lineHeight: 1 }}>×</button>
+            <button onClick={() => setQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer text-lg leading-none">×</button>
           )}
         </div>
 
         {/* Platform filter chips */}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
+        <div className="flex flex-wrap gap-1.5 mb-4">
           {["all", ...availablePlatforms].map((p) => {
             const active = platform === p;
-            const color  = active ? (p === "all" ? "#2563EB" : (PLATFORM_COLORS[p] ?? "#2563EB")) : "#9CA3AF";
+            const color  = active ? (p === "all" ? "#2563EB" : (PLATFORM_COLORS[p] ?? "#2563EB")) : undefined;
             return (
               <button
                 key={p}
                 onClick={() => setPlatform(p)}
-                style={{ padding: "5px 12px", borderRadius: "999px", border: active ? `1.5px solid ${color}` : "1px solid #E5E7EB", background: active ? color + "15" : "transparent", color: active ? color : "#6B7280", fontSize: "12px", fontWeight: active ? 600 : 400, cursor: "pointer" }}
+                className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors ${
+                  active
+                    ? "font-semibold border-[1.5px]"
+                    : "font-normal border text-muted-foreground border-border hover:bg-muted/50"
+                }`}
+                style={active ? { borderColor: `${color}60`, background: `${color}15`, color } : undefined}
               >
                 {p === "all"
                   ? `All (${items.length})`
@@ -224,12 +225,12 @@ export default function HistoryPage() {
 
         {/* Select all */}
         {filtered.length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px", fontSize: "13px", color: "#6B7280" }}>
+          <div className="flex items-center gap-2.5 mb-2.5 text-sm text-muted-foreground">
             <input
               type="checkbox"
               checked={selected.size === filtered.length && filtered.length > 0}
               onChange={toggleSelectAll}
-              style={{ cursor: "pointer" }}
+              className="cursor-pointer accent-primary"
             />
             <span>{filtered.length} result{filtered.length !== 1 ? "s" : ""}</span>
           </div>
@@ -237,18 +238,18 @@ export default function HistoryPage() {
 
         {/* Results */}
         {loading ? (
-          <div style={{ textAlign: "center", padding: "48px", color: "#9CA3AF", fontSize: "14px" }}>Loading history...</div>
+          <div className="text-center py-12 text-muted-foreground text-sm">Loading history...</div>
         ) : filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "48px 24px", background: "#FFFFFF", border: "1px dashed #E5E7EB", borderRadius: "14px" }}>
-            <p style={{ fontSize: "14px", fontWeight: 600, color: "#374151", marginBottom: "6px" }}>
+          <div className="text-center py-12 px-6 bg-card border border-dashed rounded-2xl">
+            <p className="text-sm font-semibold text-foreground mb-1">
               {query || platform !== "all" ? "No results found" : "No history yet"}
             </p>
-            <p style={{ fontSize: "13px", color: "#9CA3AF" }}>
+            <p className="text-sm text-muted-foreground">
               {query || platform !== "all" ? "Try a different search or filter" : "Your repurposed content will appear here"}
             </p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          <div className="flex flex-col gap-2">
             {filtered.map((item) => {
               const isOpen     = expanded.has(item.id);
               const isSelected = selected.has(item.id);
@@ -257,31 +258,39 @@ export default function HistoryPage() {
               const preview    = item.content.slice(0, 120) + (item.content.length > 120 ? "…" : "");
 
               return (
-                <div key={item.id} style={{ background: "#FFFFFF", border: isSelected ? `1.5px solid ${color}40` : "1px solid #E5E7EB", borderRadius: "12px", overflow: "hidden" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 16px" }}>
-                    <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(item.id)} onClick={(e) => e.stopPropagation()} style={{ cursor: "pointer", flexShrink: 0 }} />
-                    <span style={{ fontSize: "10px", fontWeight: 700, padding: "3px 8px", borderRadius: "999px", background: color + "15", color, flexShrink: 0, whiteSpace: "nowrap" }}>
+                <div key={item.id} className={`bg-card rounded-xl overflow-hidden border transition-colors ${isSelected ? "border-primary/30" : "border-border"}`}>
+                  <div className="flex items-center gap-3 px-4 py-3">
+                    <input type="checkbox" checked={isSelected} onChange={() => toggleSelect(item.id)} onClick={(e) => e.stopPropagation()} className="cursor-pointer shrink-0 accent-primary" />
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap"
+                      style={{ background: `${color}15`, color }}
+                    >
                       {label}
                     </span>
-                    <span onClick={() => toggleExpand(item.id)} style={{ flex: 1, fontSize: "13px", color: "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", cursor: "pointer" }}>
+                    <span onClick={() => toggleExpand(item.id)} className="flex-1 text-sm text-foreground overflow-hidden text-ellipsis whitespace-nowrap cursor-pointer">
                       {preview}
                     </span>
-                    <span style={{ fontSize: "11px", color: "#9CA3AF", flexShrink: 0, whiteSpace: "nowrap" }}>
+                    <span className="text-[11px] text-muted-foreground shrink-0 whitespace-nowrap">
                       {new Date(item.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                     </span>
                     <button
                       onClick={() => copyContent(item.id, item.content)}
-                      style={{ padding: "4px 10px", borderRadius: "6px", border: copied === item.id ? "0.5px solid #86EFAC" : "0.5px solid #E5E7EB", background: copied === item.id ? "#F0FDF4" : "transparent", color: copied === item.id ? "#16A34A" : "#9CA3AF", fontSize: "11px", fontWeight: 600, cursor: "pointer", flexShrink: 0 }}
+                      className={`ro-copy-btn ${copied === item.id ? "[data-copied]" : ""}`}
+                      data-copied={copied === item.id || undefined}
                     >
                       {copied === item.id ? "Copied!" : "Copy"}
                     </button>
-                    <button onClick={() => toggleExpand(item.id)} style={{ background: "none", border: "none", color: "#9CA3AF", cursor: "pointer", fontSize: "16px", lineHeight: 1, flexShrink: 0, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform .2s" }}>
+                    <button
+                      onClick={() => toggleExpand(item.id)}
+                      className="text-muted-foreground cursor-pointer text-base leading-none shrink-0 transition-transform"
+                      style={{ transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                    >
                       ▾
                     </button>
                   </div>
                   {isOpen && (
-                    <div style={{ padding: "14px 16px 16px 44px", borderTop: "0.5px solid #F3F4F6" }}>
-                      <pre style={{ fontSize: "13px", lineHeight: 1.75, color: "#1E293B", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "Georgia, serif", margin: 0 }}>
+                    <div className="px-4 pb-4 pl-11 border-t border-border">
+                      <pre className="text-sm leading-relaxed text-foreground whitespace-pre-wrap break-words font-serif mt-3">
                         {item.content}
                       </pre>
                     </div>

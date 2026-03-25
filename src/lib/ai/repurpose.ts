@@ -9,6 +9,8 @@ import {
   buildFacebookPrompt,
   buildRedditPrompt,
   buildEmailPrompt,
+  buildTikTokPrompt,
+  buildWhatsAppStatusPrompt,
 } from "@/lib/ai/prompts/platforms";
 import { buildBatchQualityCheckerPrompt } from "@/lib/ai/prompts/quality-checker";
 import type {
@@ -50,17 +52,20 @@ export async function extractBrandVoicePersona(
 
 async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
   const promptBuilders: Record<Platform, () => string> = {
-    linkedin:       () => buildLinkedInPrompt(brief, voice, language),
-    twitter_thread: () => buildTwitterThreadPrompt(brief, voice, language),
-    twitter_single: () => buildTwitterSinglePrompt(brief, voice, language),
-    instagram:      () => buildInstagramPrompt(brief, voice, language),
-    facebook:       () => buildFacebookPrompt(brief, voice, language),
-    reddit:         () => buildRedditPrompt(brief, voice, language),
-    email:          () => buildEmailPrompt(brief, voice, language),
+    linkedin:        () => buildLinkedInPrompt(brief, voice, language),
+    twitter_thread:  () => buildTwitterThreadPrompt(brief, voice, language),
+    twitter_single:  () => buildTwitterSinglePrompt(brief, voice, language),
+    instagram:       () => buildInstagramPrompt(brief, voice, language),
+    facebook:        () => buildFacebookPrompt(brief, voice, language),
+    reddit:          () => buildRedditPrompt(brief, voice, language),
+    email:           () => buildEmailPrompt(brief, voice, language),
+    tiktok:          () => buildTikTokPrompt(brief, voice, language),
+    whatsapp_status: () => buildWhatsAppStatusPrompt(brief, voice, language),
   };
   const temperatures: Record<Platform, number> = {
     linkedin: 0.75, twitter_thread: 0.80, twitter_single: 0.85,
     instagram: 0.80, facebook: 0.75, reddit: 0.70, email: 0.72,
+    tiktok: 0.85, whatsapp_status: 0.80,
   };
   const response = await openai.chat.completions.create({
     model: MODEL, temperature: temperatures[platform],

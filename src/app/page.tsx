@@ -32,6 +32,7 @@ import {
   Plug,
   Send,
   CalendarClock,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -46,6 +47,7 @@ import { landingBulkHi } from "@/messages/landing-bulk.hi";
 const PRICING_REGIONS = [
   { id: "global", symbol: "$" },
   { id: "eu", symbol: "€" },
+  { id: "uk", symbol: "£" },
   { id: "in", symbol: "₹" },
   { id: "latam", symbol: "$" },
 ] as const;
@@ -309,27 +311,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Social proof carousel — scrollable quotes */}
-      <section className="py-12 overflow-hidden" aria-label="What creators say">
-        <div className="max-w-6xl mx-auto px-4">
-          <p className="text-center text-sm text-muted-foreground uppercase tracking-wider mb-6 font-medium">
-            {L.carouselTitle}
-          </p>
-          <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-track-transparent scrollbar-thumb-muted" style={{ scrollbarWidth: "thin" }}>
-            {L.testimonials.map((item, i) => (
-              <Card key={i} className="min-w-[280px] sm:min-w-[320px] snap-center shrink-0">
-                <CardContent className="pt-6 pb-5">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    &ldquo;{item.quote}&rdquo;
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-3">— {item.attribution}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Scrolling Input Types */}
       <section className="py-6 overflow-hidden">
         <div className="max-w-4xl mx-auto px-4 text-center">
@@ -432,7 +413,7 @@ export default function LandingPage() {
                 <ul className="space-y-3">
                   {L.caseStudy.beforeList.map((item) => (
                     <li key={item} className="flex items-start gap-2 text-sm">
-                      <span className="text-destructive mt-0.5">x</span>
+                      <X className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                       <span className="text-muted-foreground">{item}</span>
                     </li>
                   ))}
@@ -679,7 +660,7 @@ export default function LandingPage() {
           <p className="text-muted-foreground text-lg mb-12">
             {L.platformsSection.subtitle}
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
             {PLATFORM_ICONS.map((platform, idx) => (
               <Card
                 key={idx}

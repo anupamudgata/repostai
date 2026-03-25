@@ -41,20 +41,22 @@ export const metadata: Metadata = {
     "LinkedIn post generator",
     "Twitter thread generator",
     "content marketing",
+    "social media tool India",
+    "content repurpose AI",
+    "Instagram caption generator",
+    "WhatsApp status generator",
   ],
   openGraph: {
     title: "RepostAI - Repurpose Content for Every Platform",
     description:
       "Paste one piece of content. Get 10+ ready-to-post versions for every platform. Under 60 seconds.",
     type: "website",
-    images: [
-      {
-        url: `${process.env.NEXT_PUBLIC_APP_URL || "https://repostai.com"}/og.png`,
-        width: 1200,
-        height: 630,
-        alt: "RepostAI - One post. Every platform. Under 60 seconds.",
-      },
-    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "RepostAI - One post. Every platform. Under 60 seconds.",
+    description:
+      "AI-powered content repurposing for LinkedIn, Twitter/X, Instagram, and 6 more platforms.",
   },
 };
 

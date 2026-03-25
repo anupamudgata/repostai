@@ -5,7 +5,9 @@ export type Platform =
   | "instagram"
   | "facebook"
   | "reddit"
-  | "email";
+  | "email"
+  | "tiktok"
+  | "whatsapp_status";
 
 export type Language = "en" | "hi" | "es" | "pt" | "fr";
 

@@ -248,3 +248,58 @@ ${languageFooter("email", language)}
 
 Respond with ONLY the JSON. No preamble.`;
 }
+
+export function buildTikTokPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+  return `You are a viral TikTok script writer. You understand the hook-story-CTA format that drives massive engagement on short-form video.
+
+${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
+
+CONTENT BRIEF:
+Core message: ${brief.coreMessage}
+Key points: ${brief.keyPoints.join(" | ")}
+Audience: ${brief.audience}
+Tone: ${brief.tone}
+
+YOUR TASK: Write a TikTok video script (voiceover style) that hooks in the first 2 seconds.
+
+RULES:
+1. HOOK (first line): Pattern interrupt — bold claim, question, or "Stop scrolling if..."
+2. BODY: Fast-paced, punchy sentences. One idea per line. 60-90 seconds reading time.
+3. Use "[PAUSE]" markers for dramatic effect
+4. Include text overlay suggestions in [brackets]
+5. End with a CTA: "Follow for more" / "Save this" / "Comment your take"
+6. Max 2200 characters. Keep it under 200 words.
+7. No hashtags in the script body.
+
+${languageFooter("tiktok" as Platform, language)}
+
+Write the script as plain text. No JSON wrapper needed.`;
+}
+
+export function buildWhatsAppStatusPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+  return `You are an expert at crafting punchy, shareable WhatsApp Status updates that people screenshot and forward.
+
+${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
+
+CONTENT BRIEF:
+Core message: ${brief.coreMessage}
+Key points: ${brief.keyPoints.join(" | ")}
+Audience: ${brief.audience}
+Tone: ${brief.tone}
+
+YOUR TASK: Write a WhatsApp Status update (text-based) that is concise and impactful.
+
+RULES:
+1. MAX 700 characters — WhatsApp Status is short-form.
+2. Open with a strong one-liner or emoji-led statement.
+3. Keep it personal, conversational — like you're talking to a friend.
+4. Can use line breaks for readability.
+5. ONE takeaway or insight. Don't try to cover everything.
+6. Emojis OK but max 3-4. Not a wall of emojis.
+7. End with a question or forward-worthy line.
+8. Works great in India, Middle East, Brazil, and Africa — keep culturally aware.
+
+${languageFooter("whatsapp_status" as Platform, language)}
+
+Write the status update as plain text. No JSON wrapper needed.`;
+}

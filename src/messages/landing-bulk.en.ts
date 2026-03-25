@@ -3,9 +3,10 @@ export const landingBulkEn = {
   pricingRegions: {
     global: "Global (USD $)",
     eu: "Europe (EUR €)",
+    uk: "UK (GBP £)",
     in: "India (INR ₹)",
     latam: "Latin America (USD $)",
-  },
+  } as Record<string, string>,
   pricingMarketLabel: "Market region:",
   testimonials: [
     {
@@ -244,9 +245,9 @@ export const landingBulkEn = {
     ],
   },
   pricingSection: {
-    badge: "INR pricing for India — transparent tiers",
+    badge: "Transparent pricing for every market",
     title: "Start free. Scale when ready.",
-    subtitle: "No hidden fees. Cancel anytime. Razorpay subscriptions.",
+    subtitle: "No hidden fees. Cancel anytime. Prices shown in your local currency.",
     mostPopular: "Most Popular",
     billingMonthly: "Monthly",
     billingYearly: "Yearly",

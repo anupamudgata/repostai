@@ -5,9 +5,9 @@ import { useRepurposeStream } from "@/hooks/useRepurposeStream";
 import { RepurposeOutput }    from "@/components/dashboard/RepurposeOutput";
 import type { Platform, Language }      from "@/lib/ai/types";
 
-const ALL_PLATFORMS: Platform[] = ["linkedin","twitter_thread","twitter_single","instagram","facebook","reddit","email"];
-const PLATFORM_LABELS: Record<Platform, string> = { linkedin: "LinkedIn", twitter_thread: "X Thread", twitter_single: "X Post", instagram: "Instagram", facebook: "Facebook", reddit: "Reddit", email: "Email" };
-const PLATFORM_COLORS: Record<Platform, string> = { linkedin: "#0A66C2", twitter_thread: "#0F172A", twitter_single: "#0F172A", instagram: "#C13584", facebook: "#1877F2", reddit: "#FF4500", email: "#059669" };
+const ALL_PLATFORMS: Platform[] = ["linkedin","twitter_thread","twitter_single","instagram","facebook","reddit","email","tiktok","whatsapp_status"];
+const PLATFORM_LABELS: Record<Platform, string> = { linkedin: "LinkedIn", twitter_thread: "X Thread", twitter_single: "X Post", instagram: "Instagram", facebook: "Facebook", reddit: "Reddit", email: "Email", tiktok: "TikTok", whatsapp_status: "WhatsApp" };
+const PLATFORM_COLORS: Record<Platform, string> = { linkedin: "#0A66C2", twitter_thread: "#1D9BF0", twitter_single: "#1D9BF0", instagram: "#E1306C", facebook: "#1877F2", reddit: "#FF4500", email: "#059669", tiktok: "#FE2C55", whatsapp_status: "#25D366" };
 
 export default function RepurposePage() {
   const { state, start, cancel, reset } = useRepurposeStream();
