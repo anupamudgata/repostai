@@ -1,5 +1,5 @@
 import { openai } from "./client";
-import { getAnthropicClient } from "./anthropic";
+import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "./anthropic";
 import { buildExtractorPrompt }    from "@/lib/ai/prompts/extractor";
 import { generateBrandVoicePersona } from "@/lib/ai/brand-voice-persona";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/lib/ai/prompts/platforms";
 import { buildBatchQualityCheckerPrompt } from "@/lib/ai/prompts/quality-checker";
 import { getHindiStreamSystemPrompt, getHindiPlatformSupplementForStream } from "@/lib/prompts/hindi";
+import { applyOdiaSocialMediaGuards } from "@/lib/ai/odia-social-prompt";
 import { isIndianLanguage } from "@/lib/ai/types";
 import { getRegionalPrompts } from "@/lib/prompts/regional";
 import type {
@@ -93,7 +94,7 @@ function parseRawOutput(platform: Platform, raw: string): PlatformOutput {
 
 async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
   const anthropic = getAnthropicClient();
-  if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
+  if (!anthropic) throw new Error(ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES);
   const promptBuilders = getPromptBuilders(brief, voice, language);
 
   let systemPrompt = SYSTEM_MSG;
@@ -110,11 +111,17 @@ async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, v
     }
   }
 
+  const { systemPrompt: finalSystem, temperature } = applyOdiaSocialMediaGuards(
+    language,
+    systemPrompt,
+    TEMPERATURES[platform]
+  );
+
   const msg = await anthropic.messages.create({
     model: CLAUDE_REGIONAL_MODEL,
     max_tokens: 2048,
-    temperature: TEMPERATURES[platform],
-    system: systemPrompt,
+    temperature,
+    system: finalSystem,
     messages: [{ role: "user", content: userPrompt }],
   });
   const block = msg.content.find((b) => b.type === "text");
@@ -123,7 +130,7 @@ async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, v
 }
 
 async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
-  if (isIndianLanguage(language) && getAnthropicClient()) {
+  if (isIndianLanguage(language)) {
     return runPlatformAgentClaude(platform, brief, voice, language);
   }
   const promptBuilders = getPromptBuilders(brief, voice, language);
@@ -131,7 +138,7 @@ async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: 
     model: MODEL, temperature: TEMPERATURES[platform],
     messages: [
       { role: "system", content: SYSTEM_MSG },
-      { role: "user",   content: promptBuilders[platform]() },
+      { role: "user", content: promptBuilders[platform]() },
     ],
   });
   const raw = response.choices[0]?.message?.content ?? "";

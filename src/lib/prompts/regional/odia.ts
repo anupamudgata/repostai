@@ -23,6 +23,7 @@ export const ODIA_CONFIG: RegionalLanguageConfig = {
       "ଆରମ୍ଭିକ ଜୀବନରେ ଏହା ଅତ୍ୟନ୍ତ ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ (over-formal literary Odia)",
       "Word-for-word English→Odia that sounds like a newspaper headline (NOT natural spoken/written LinkedIn Odia)",
       "Sahitya/newspaper Odia on X — threads must sound like young Odia pros, not formal literature",
+      "Facebook post with no hook and no closing question — community CTAs are mandatory for Odia Facebook",
     ],
   },
   culturalContext: `DEFAULT VOICE — Simple everyday Odia words in Odia script; conversational, emotional, motivating — like popular Odia quotes pages on Instagram. Adapt feeling to Odia life: family, struggle, small-town dreams, life in Odisha, Odias in Bengaluru — NOT literal English translation.
@@ -108,6 +109,13 @@ Agree karuchha? Comment re kahantu.
 ✅ GOOD — WhatsApp Status:
 "Content ବନାଇବା ଠାରୁ distribute କରିବା important. ଗୋଟେ ଭଲ post 5 platforms ରେ ଦେ 💡"
 
+✅ GOOD — Facebook (story hook → short paragraphs → natural emojis → warm community CTA):
+"ଗତ ସପ୍ତାହରେ ଗୋଟେ ଛୋଟ ଅପଡେଟ୍ ଦେଖିଲି — ମୋ ଫ୍ରେଣ୍ଡ ନିଜ ସ୍ମଲ ବିଜନେସ୍ ରେ ଫଟୋ ଅପଲୋଡ୍ କରିବା ବନ୍ଦ କରିଦେଲା 😅
+
+କାରଣ ସେ ବୁଝିଲା: ଲୋକ ଚାହୁଁଛନ୍ତି ଭିଡିଓ ଆଉ ରିଅଲ୍ ଗପ, ସୁନ୍ଦର ପୋଷ୍ଟ ନୁହେଁ।
+
+ଆପଣମାନଙ୍କ ପାଖରେ କ'ଣ ସମାନ ଅନୁଭବ ହୋଇଛି? କମେଣ୍ଟ ରେ କୁହନ୍ତୁ 👇"
+
 ✅ GOOD — X / Twitter thread (each tweet ≤280 chars; hook ends with 🧵; 1/5, 2/5 …):
 "1/5
 ଗୋଟେ ଭୁଲ୍ — ଅଧିକାଂଶ creator ଏହା କରନ୍ତି 🧵
@@ -162,8 +170,19 @@ FORMATTING: Generous line breaks inside a tweet for mobile skim — short lines,
 NO LITERAL IDIOMS: Capture vibe/meaning from English prompts; express in natural Odia phrasing.
 
 SINGLE TWEET (non-thread): Same voice; stay under 280 chars; punchy hook.`,
-    facebook: `ODIA + FACEBOOK:
-- Warm community tone; comment prompt at end.`,
+    facebook: `ODIA + FACEBOOK (community manager — scroll + comments):
+
+HOOK / OPEN: Start with a relatable, personal, or locally relevant storytelling beat — like sharing news with a friend. Facebook readers bond with human stories and shared experience; draw them in before the “lesson” or update.
+
+TONE — ‘ଖାଟି’ ଭାଇବ୍: Warm, everyday spoken Odia (କଥାଭାଷା ଓଡ଼ିଆ). Conversational and friendly; avoid stiff formal, textbook, or newspaper-style translation voice.
+
+FORMATTING: Short paragraphs only — 2–3 lines max per paragraph for mobile. Emojis: use naturally to set mood and break text; do not clutter.
+
+VOCABULARY: Natural Odia for feelings, community, and lived experience. Seamlessly weave everyday tech/business loanwords in Odia script (e.g. ଫଟୋ, ଭିଡିଓ, ଅପଡେଟ୍, ପୋଷ୍ଟ, କମେଣ୍ଟ) so it sounds like a real modern speaker — not a literal English→Odia line.
+
+LENGTH: Often 150–300 words when the brief allows; prioritize readability over density.
+
+COMMUNITY CTA — MANDATORY: End with a warm, open-ended question that invites comments — thoughts, advice, or experiences (e.g. "ଆପଣମାନଙ୍କର ଏଥିରେ କ'ଣ ମତାମତ?", "ଆପଣମାନେ କ'ଣ ଭାବୁଛନ୍ତି?", "କମେଣ୍ଟ ରେ ତୁମେ ଅନୁଭବ କୁହ").`,
     whatsapp: `ODIA + WHATSAPP STATUS:
 - 50–100 words; conversational; one CTA.`,
     email: `ODIA + EMAIL:
@@ -182,6 +201,10 @@ SINGLE TWEET (non-thread): Same voice; stay under 280 chars; punchy hook.`,
     instagram: `ODIA-SPECIFIC INSTAGRAM:
 - Soft CTAs: "Agree karuchha? Comment re kahantu.", "Comment re ତୁମେ ଭାବ କୁହନ୍ତୁ", "Save କର", "Share କର ଯିଏ ଦରକାର"
 - Motivational closings — not corporate`,
+    facebook: `ODIA-SPECIFIC FACEBOOK:
+- Default address on page/community posts: ଆପଣମାନେ / ଆପଣମାନଙ୍କର; warmer friend-feed vibe may use ତୁମେମାନେ where brief fits.
+- Never skip the closing question — comments are the goal.
+- Avoid LinkedIn-formal or X-ultra-short voice; Facebook = story + paragraphs + community.`,
     tiktok: `ODIA-SPECIFIC TIKTOK:
 - Hooks: "ଶୁଣ ଏହା", "ଅଟକ ଟିକେ", "ଏହା ଦେଖ ଆଗରୁ"`,
     twitter_thread: `ODIA X — THREADS:
@@ -200,6 +223,7 @@ ODIA/ODIANGLISH QUALITY RULES:
 - Must sound like a real Odia creator.
 - LinkedIn: native rewrite bar — no literal English line-by-line; conversational professional Odia; metaphors adapted; loanwords in Odia script OK when natural. Instagram motivational = ତୁମେ/ତୁମେମାନେ + quotes-page warmth.
 - X/Twitter threads: hook + 🧵 on first tweet; numbered 1/N; each tweet ≤280 chars; no literary/formal Odia; loanwords in Odia script OK; heavy line breaks for mobile.
+- Facebook: storytelling hook first; କଥାଭାଷା warm Odia; 2–3 line paragraphs; emojis natural not spammy; loanwords in Odia script; MUST end with warm open-ended comment CTA.
 - Do not explain prompt choices in the output unless the user asks.
 - VARIANTS (when requested): A = pure Odia script; B = Odia + light English; C = Roman Odia (Latin letters).`,
 
@@ -209,6 +233,7 @@ ODIA OUTPUT CONTEXT:
 - Preserve Odia idioms, cultural references (Jagannath, Rath Yatra, ପଖାଳ).
 - LinkedIn: prioritize natural Odia fluency over English structure — translate intent, not wording.
 - X: thread = one idea per segment; never exceed 280 characters per tweet in the output.
+- Facebook: community post shape — hook + short stacked paragraphs + mandatory closing question for engagement.
 - Keep JSON keys in English. Values can be in Odianglish.`,
 
   photoCaptionHint: `Natural Odia-first captions — simple words, emotional tone, ତୁମେ address when fitting.

@@ -9,13 +9,14 @@ import {
 import { burstLimiter, freeTierLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
 import { captureError }                  from "@/lib/sentry";
 import { openai } from "@/lib/ai/client";
-import { getAnthropicClient } from "@/lib/ai/anthropic";
+import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
 import {
   buildLinkedInPrompt, buildTwitterThreadPrompt, buildTwitterSinglePrompt,
   buildInstagramPrompt, buildFacebookPrompt, buildRedditPrompt, buildEmailPrompt,
   buildTikTokPrompt, buildWhatsAppStatusPrompt,
 } from "@/lib/ai/prompts/platforms";
 import { getHindiStreamSystemPrompt, getHindiPlatformSupplementForStream } from "@/lib/prompts/hindi";
+import { applyOdiaSocialMediaGuards } from "@/lib/ai/odia-social-prompt";
 import { isIndianLanguage } from "@/lib/ai/types";
 import { getRegionalPrompts } from "@/lib/prompts/regional";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
@@ -68,7 +69,7 @@ const SYSTEM_MSG = "You are a specialist social media content writer. Follow all
 
 async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
   const anthropic = getAnthropicClient();
-  if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
+  if (!anthropic) throw new Error(ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES);
   const promptBuilders = getPromptBuilders(brief, voice, language);
 
   let systemPrompt = SYSTEM_MSG;
@@ -85,11 +86,17 @@ async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrie
     }
   }
 
+  const { systemPrompt: finalSystem, temperature } = applyOdiaSocialMediaGuards(
+    language,
+    systemPrompt,
+    TEMPERATURES[platform]
+  );
+
   const stream = anthropic.messages.stream({
     model: CLAUDE_REGIONAL_MODEL,
     max_tokens: 2048,
-    temperature: TEMPERATURES[platform],
-    system: systemPrompt,
+    temperature,
+    system: finalSystem,
     messages: [{ role: "user", content: userPrompt }],
   });
   for await (const event of stream) {
@@ -100,7 +107,7 @@ async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrie
 }
 
 async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
-  if (isIndianLanguage(language) && getAnthropicClient()) {
+  if (isIndianLanguage(language)) {
     yield* streamPlatformAgentClaude(platform, brief, voice, language);
     return;
   }
@@ -109,7 +116,7 @@ async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voi
     model: "gpt-4o-mini", temperature: TEMPERATURES[platform], stream: true,
     messages: [
       { role: "system", content: SYSTEM_MSG },
-      { role: "user",   content: promptBuilders[platform]() },
+      { role: "user", content: promptBuilders[platform]() },
     ],
   });
   for await (const chunk of stream) {
@@ -233,7 +240,12 @@ export async function POST(req: NextRequest) {
             send({ type: "platform_done", platform, durationMs: Date.now() - platformStart, ...parsed });
           } catch (err) {
             captureError(err, { userId: user.id, action: "stream_platform_agent", extra: { platform } });
-            send({ type: "platform_error", platform, error: "Generation failed. Click regenerate to try again." });
+            const fallback = "Generation failed. Click regenerate to try again.";
+            const message =
+              err instanceof Error && err.message.includes("ANTHROPIC_API_KEY")
+                ? err.message
+                : fallback;
+            send({ type: "platform_error", platform, error: message });
           }
         }));
 

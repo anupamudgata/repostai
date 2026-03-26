@@ -18,3 +18,7 @@ export function getAnthropicClient(): Anthropic | null {
   if (!process.env.ANTHROPIC_API_KEY?.trim()) return null;
   return getClient();
 }
+
+/** Shown when repurpose/stream requests Hindi or another Indian regional language but the key is missing. */
+export const ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES =
+  "ANTHROPIC_API_KEY is required for Hindi and regional Indian language outputs (Odia, Marathi, Bengali, etc.). OpenAI is not used for these languages.";
