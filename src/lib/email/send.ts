@@ -1,10 +1,10 @@
-import { resend, FROM_EMAIL }       from "@/lib/email/resend";
+import { getResend, FROM_EMAIL }    from "@/lib/email/resend";
 import { welcomeEmailHtml }         from "@/lib/email/templates/welcome";
 import { proUpgradeEmailHtml }      from "@/lib/email/templates/pro-upgrade";
 
 export async function sendWelcomeEmail(params: { email: string; firstName: string }) {
   const { email, firstName } = params;
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from:    `Anupam from RepostAI <${FROM_EMAIL}>`,
     to:      [email],
     subject: `Welcome to RepostAI, ${firstName}! Here's how to start`,
@@ -18,7 +18,7 @@ export async function sendWelcomeEmail(params: { email: string; firstName: strin
 export async function sendUpgradeEmail(params: { email: string; firstName: string; plan: "starter" | "pro" | "agency" }) {
   const { email, firstName, plan } = params;
   const planName = plan === "starter" ? "Starter" : plan === "pro" ? "Pro" : "Agency";
-  const { data, error } = await resend.emails.send({
+  const { data, error } = await getResend().emails.send({
     from:    `Anupam from RepostAI <${FROM_EMAIL}>`,
     to:      [email],
     subject: `You're on RepostAI ${planName} — here's what just unlocked`,
