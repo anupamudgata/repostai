@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { X, ClipboardList, LayoutGrid, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -24,18 +24,27 @@ const STEPS = [
   },
 ];
 
-export default function OnboardingBanner() {
-  const [dismissed, setDismissed] = useState(true);
+function getSnapshot(): boolean {
+  return localStorage.getItem(STORAGE_KEY) === "true";
+}
+function getServerSnapshot(): boolean {
+  return true;
+}
+function subscribe(cb: () => void): () => void {
+  window.addEventListener("storage", cb);
+  return () => window.removeEventListener("storage", cb);
+}
 
-  useEffect(() => {
-    setDismissed(localStorage.getItem(STORAGE_KEY) === "true");
-  }, []);
+export default function OnboardingBanner() {
+  const alreadyDismissed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [localDismissed, setLocalDismissed] = useState(false);
+  const dismissed = alreadyDismissed || localDismissed;
 
   if (dismissed) return null;
 
   function handleDismiss() {
     localStorage.setItem(STORAGE_KEY, "true");
-    setDismissed(true);
+    setLocalDismissed(true);
   }
 
   function handleStart() {
