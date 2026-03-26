@@ -30,9 +30,32 @@ const HINDI_PLATFORM_OVERRIDES: Partial<Record<Platform, string>> = {
 - Indian context when natural: "Monday morning metro vibes" → "Monday सुबह metro में ये realisation आई"`,
 
   instagram: `HINDI-SPECIFIC INSTAGRAM:
-- CTA in Hindi: "Save करो", "Tag करो उस दोस्त को", "Comment में बताओ" — NOT English CTAs
-- Hashtags: mix Hindi + English (#HindiContent #CreatorLife #SocialMedia #ContentCreator)
-- Emojis as Hinglish bullets work well; casual तुम/यार tone for relatability`,
+
+📌 MANDATORY 3-PART STRUCTURE:
+1) [HOOK] — Scroll-stopping first line (<125 chars). Use a desi hook formula from below. This line decides if they read or scroll.
+2) [SHORT STORY / VALUE] — 3-6 short paras. Relatable story, insight, or value bomb. Energetic, slightly dramatic, filmi energy. Use desi slang naturally.
+3) [CTA] — Save/share/comment call in Hindi: "Save करो", "Share करो उस दोस्त को जिसको ज़रूरत है", "Tag करो", "Comment में बताओ" — NEVER English CTAs.
+
+🔥 SCROLL-STOPPING DESI HOOK FORMULAS (rotate, never repeat same style twice):
+1. "99% लोग ये गलती करते हैं..." (stat + mistake)
+2. "लिख के ले लो — [bold claim]" (guarantee format)
+3. "ये सुनकर दिमाग खराब हो जाएगा..." (shock/reveal)
+4. "कोई नहीं बोलता ये बात..." (hidden truth)
+5. "🚫 ये मत करो अगर [context]" (warning/prohibition)
+6. "[Topic] का सबसे बड़ा सच..." (truth-bomb)
+7. "मैंने [X] किया और ये हुआ..." (personal result)
+8. "3 seconds दो — पूरी game बदल जाएगी" (time-hook)
+9. "एक चीज़ जो मुझे पहले बता देते तो..." (regret hook)
+10. "बस ये एक trick — और result तगड़ा" (single hack)
+11. "Unpopular opinion: [Hindi hot take]" (controversy)
+12. "[Number] में से [number] लोग ये नहीं जानते..." (knowledge gap)
+13. "रुको — scroll मत करो ❌" (direct interrupt)
+
+💡 TONE: Conversational, ENERGETIC, slightly dramatic — like a popular Indian Reels creator. Not informational, not blog-style, not flat.
+- Use desi slang naturally: बवाल, मस्त, तगड़ा, दिमाग खराब, जुगाड़, सॉलिड, पैसा वसूल
+- Casual तुम/यार tone for relatability
+- Emojis as Hinglish bullets work well (5-8, integrated not dumped)
+- Hashtags: mix Hindi + English (#HindiContent #CreatorLife #SocialMedia #ContentCreator)`,
 
   reddit: `HINDI-SPECIFIC REDDIT:
 - Title formulas in Hinglish: "X साल Y करने के बाद ये सीखा" or "Unpopular opinion: [Hindi hot take]"
@@ -40,9 +63,12 @@ const HINDI_PLATFORM_OVERRIDES: Partial<Record<Platform, string>> = {
 - Value-first, no marketing voice — just sound like a helpful desi Redditor`,
 
   tiktok: `HINDI-SPECIFIC TIKTOK SCRIPT:
+- Tone: ENERGETIC, slightly dramatic, filmi energy — sound like a viral Indian creator, not a script reader
 - Spoken Hinglish: "सुनो ये ज़रूरी है", "रुको ज़रा", "ये देखो पहले"
-- Hooks: "कोई नहीं बोलता ये...", "ये सुनो पहले...", "3 seconds दो, फिर scroll करना"
-- End CTA: "Follow करो", "Save करो", "Comment में बताओ" — Hindi verbal CTAs`,
+- Desi hooks for first 2 seconds: "कोई नहीं बोलता ये...", "ये सुनो पहले...", "3 seconds दो, फिर scroll करना", "रुको — ये मत skip करो", "दिमाग खराब हो जाएगा..."
+- Use desi slang naturally: बवाल, तगड़ा, मस्त, दिमाग खराब, जुगाड़
+- Structure: [HOOK: scroll-stopper] → [Value/story 15-30 sec] → [Hindi verbal CTA]
+- End CTA: "Follow करो", "Save करो", "Comment में बताओ" — Hindi verbal CTAs only`,
 
   whatsapp_status: `HINDI-SPECIFIC WHATSAPP:
 - Ultra short: 3-5 lines max, texting-a-friend vibe

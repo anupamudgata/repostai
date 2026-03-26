@@ -61,10 +61,14 @@ const HINDI_PLATFORM_BLOCKS: Record<string, string> = {
 - Personal story or failure beats generic advice.`,
 
   instagram: `HINDI + INSTAGRAM:
-- Killer first line (<125 chars visible before "more").
+- Killer first line (<125 chars visible before "more") — scroll-stopping desi hook.
+- Tone: conversational, ENERGETIC, slightly dramatic (filmi energy) — not flat or informational.
 - Short paras, line breaks; 5–8 emojis integrated, not dumped.
-- CTA (comment / save / share); 8–15 hashtags after a blank line.
-- Casual तुम/यार tone when it fits brand voice.`,
+- Structure: [HOOK] → [Short story or value drop] → [CTA: save/share/comment].
+- CTA MUST be in Hindi: "Save करो", "Share करो उस दोस्त को जिसको ज़रूरत है", "Comment में बताओ".
+- 8–15 hashtags after a blank line.
+- Use desi slang naturally: बवाल, मस्त, तगड़ा, दिमाग खराब, जुगाड़ — they boost relatability.
+- Casual तुम/यार tone; sound like a popular Indian Reels creator, not a blog writer.`,
 
   twitter: `HINDI + X (THREAD OR SINGLE):
 - Thread: numbered tweets, each <280 chars, strong hook in 1/.
@@ -87,8 +91,31 @@ const HINDI_PLATFORM_BLOCKS: Record<string, string> = {
 - No hashtags; no emoji spam; value before any soft ask.`,
 
   tiktok: `HINDI + TIKTOK SCRIPT:
-- Spoken Hinglish; hook in first 2 seconds; short lines; [bracket] visual cues OK; end with clear verbal CTA.`,
+- Spoken Hinglish; hook in first 2 seconds — dramatic, attention-grabbing desi opener.
+- Tone: ENERGETIC, slightly dramatic, filmi energy — sound like an Indian creator going viral, not reading a script.
+- Short punchy lines; [bracket] visual cues OK; use desi slang (बवाल, तगड़ा, दिमाग खराब).
+- Structure: [HOOK: scroll-stopper] → [Value/story in 15-30 sec] → [Verbal Hindi CTA: "Follow करो", "Save करो"].
+- End with clear verbal CTA in Hindi.`,
 };
+
+/** Desi slang vocabulary — actively encouraged in casual platforms. */
+export const HINDI_SLANG_VOCABULARY = `DESI SLANG TOOLKIT — Use these naturally (don't force all of them, pick what fits):
+
+ENERGY/HYPE: बवाल ("ये तो बवाल है!"), मस्त, झक्कास, तगड़ा, कमाल, धांसू, सॉलिड, फ़ाड़ू, लिट
+SURPRISE/SHOCK: दिमाग खराब ("ये देखके दिमाग खराब हो जाएगा"), होश उड़ गए, पागल हो गया, क्रेज़ी
+CASUAL ADDRESS: भाई, यार, बॉस, दोस्त, भिड़ू (Mumbai), पापा log (ironic elder ref)
+HUSTLE/SMART: जुगाड़, पैसा वसूल, चक्कर, तोड़, फ़ॉर्मूला, ट्रिक, हैक
+AGREEMENT/EMPHASIS: बिल्कुल, सही बात, 100%, पक्का, लिख के ले लो, guarantee
+DISMISSAL/SARCASM: छोड़ो, बकवास, टाइम बर्बाद, वाट लगा दी, फ़ालतू
+RELATABLE: रिलेट करो, same pinch, मेरी कहानी, हम सबकी story, असली बात
+DRAMA (filmi): "picture अभी बाकी है", "ये तो trailer था", "interval", "climax", "full entry"
+
+USAGE RULES:
+- Instagram/TikTok/Facebook: use liberally — these platforms reward desi energy
+- LinkedIn: use sparingly and professionally ("तगड़ा result", "सॉलिड framework" — OK; "बवाल मचा दिया" — too casual)
+- Reddit: minimal slang, sound helpful not hype
+- WhatsApp: natural texting slang OK
+- ALWAYS in Devanagari script — never "jugaad", always "जुगाड़"`;
 
 /** Cultural context layer — Indian-native references for authentic Hinglish. */
 export const HINDI_CULTURAL_CONTEXT = `CULTURAL AUTHENTICITY — Think like a popular Indian creator, not a translation engine:
@@ -283,6 +310,8 @@ export function buildHindiRepurposeAppend(platforms: AppPlatform[]): string {
     .join("\n\n");
   return `${HINDI_SYSTEM_PROMPT}
 
+${HINDI_SLANG_VOCABULARY}
+
 ${HINDI_CULTURAL_CONTEXT}
 
 ${HINDI_OPENING_VARIETY}
@@ -305,6 +334,8 @@ CRITICAL: Hindi words MUST be in Devanagari script (मैंने, सीख�
 Mix Devanagari Hindi (~60%) with English (~40%). Sound like real Indian creators posting on social — NOT textbook Hindi, NOT Google Translate, NOT 100% English.
 Tone: LinkedIn/email → आप + warm professional. Instagram/Facebook → casual तुम/यार where natural. X → punchy mix. Reddit → helpful, no marketing voice, usually no emojis. WhatsApp → SHORT (3-5 lines max), no hashtags.
 Hashtags: mix Hindi + English discoverable tags when the format uses hashtags (NOT on WhatsApp).
+
+${HINDI_SLANG_VOCABULARY}
 
 ${HINDI_CULTURAL_CONTEXT}
 
