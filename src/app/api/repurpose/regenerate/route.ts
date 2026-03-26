@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { repurposeContentForTier } from "@/lib/ai/openai";
-import type { Platform } from "@/types";
+import type { OutputLanguage, Platform } from "@/types";
 import {
   getEffectivePlan,
   getEntitlements,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     let originalContent: string;
     let brandVoiceSample: string | undefined;
     let authenticityTuning: { humanizationLevel?: string; imperfectionMode?: boolean; personalStoryInjection?: boolean } | undefined;
-    let outputLanguage: "en" | "hi" | "es" = "en";
+    let outputLanguage: OutputLanguage = "en";
 
     if (jobId) {
       const { data: job } = await supabase
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       }
 
       originalContent = job.input_content || "";
-      outputLanguage = (job.output_language as "en" | "hi" | "es") || "en";
+      outputLanguage = (job.output_language as OutputLanguage) || "en";
 
       if (job.brand_voice_id) {
         const { data: voice } = await supabase

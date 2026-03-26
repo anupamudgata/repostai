@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { outputLanguageSchema } from "@/lib/validators/output-language";
 
 export const repurposeSchema = z.object({
   inputType: z.enum(["text", "url", "youtube", "pdf"]),
@@ -23,7 +24,7 @@ export const repurposeSchema = z.object({
     )
     .min(1, "Select at least one platform"),
   brandVoiceId: z.string().uuid().optional(),
-  outputLanguage: z.enum(["en", "hi", "es", "pt", "fr"]).default("en"),
+  outputLanguage: outputLanguageSchema.default("en"),
   userIntent: z.string().max(300).optional(),
   contentAngle: z.enum(["default", "insight", "story", "howto", "contrarian", "listicle"]).optional(),
   hookMode: z.enum(["default", "pattern_interrupt", "story", "statistic", "fomo", "controversy", "sneak_peek"]).optional(),

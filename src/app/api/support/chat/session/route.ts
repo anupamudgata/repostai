@@ -60,5 +60,8 @@ export async function GET() {
     .map(dbRowToUIMessage)
     .filter((m): m is UIMessage => m != null);
 
-  return NextResponse.json({ sessionId, status, messages });
+  /** Lets the widget show a clear message instead of a silent failed stream (e.g. missing OPENAI_API_KEY on Vercel). */
+  const supportChatAvailable = Boolean(process.env.OPENAI_API_KEY?.trim());
+
+  return NextResponse.json({ sessionId, status, messages, supportChatAvailable });
 }

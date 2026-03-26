@@ -12,6 +12,7 @@ import { buildSupportChatTools } from "@/lib/support-chat/tools";
 import { textFromUIMessageParts } from "@/lib/support-chat/db-message";
 
 export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({
   messages: z.array(z.unknown()),
@@ -89,7 +90,22 @@ export async function POST(req: Request) {
       userEmail,
     });
 
-    const modelMessages = await convertToModelMessages(uiMessages, { tools });
+    let modelMessages;
+    try {
+      modelMessages = await convertToModelMessages(uiMessages, {
+        tools,
+        ignoreIncompleteToolCalls: true,
+      });
+    } catch (convErr) {
+      console.error("[support-chat] convertToModelMessages:", convErr);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid message history. Try refreshing the chat or starting a new message.",
+          code: "INVALID_MESSAGES",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     const last = uiMessages[uiMessages.length - 1];
     if (last?.role === "user") {

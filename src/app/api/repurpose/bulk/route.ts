@@ -4,7 +4,7 @@ import { repurposeContentForTier } from "@/lib/ai/openai";
 import { scrapeUrl } from "@/lib/scrapers/url-scraper";
 import { addFreeTierWatermark } from "@/lib/watermark";
 import { notifyZapier } from "@/lib/zapier/notify";
-import type { Platform } from "@/types";
+import type { OutputLanguage, Platform } from "@/types";
 import {
   getEffectivePlan,
   getEntitlements,
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const urlsRaw = body.urls as string | string[] | undefined;
     const platforms = body.platforms as Platform[] | undefined;
     const brandVoiceId = body.brandVoiceId as string | undefined;
-    const outputLanguage = (body.outputLanguage as string) || "en";
+    const outputLanguage = ((body.outputLanguage as string) || "en") as OutputLanguage;
     const userIntent = body.userIntent as string | undefined;
     const contentAngle = body.contentAngle as string | undefined;
     const hookMode = body.hookMode as string | undefined;
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
             resolvedContent,
             allowedPlatforms.slice(0, mid) as Platform[],
             brandVoiceSample,
-            outputLanguage as "en",
+            outputLanguage,
             userIntent,
             contentAngle,
             hookMode,
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
             resolvedContent,
             allowedPlatforms.slice(mid) as Platform[],
             brandVoiceSample,
-            outputLanguage as "en",
+            outputLanguage,
             userIntent,
             contentAngle,
             hookMode,
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
           resolvedContent,
           allowedPlatforms as Platform[],
           brandVoiceSample,
-          outputLanguage as "en",
+          outputLanguage,
           userIntent,
           contentAngle,
           hookMode,

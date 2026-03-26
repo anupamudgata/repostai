@@ -130,6 +130,12 @@ export const dashboardBulkEn = {
   outputLangHint: {
     en: "Content will be generated in English",
     hi: "Content will be generated in Hindi",
+    mr: "Content will be generated in Marathi",
+    bn: "Content will be generated in Bengali",
+    te: "Content will be generated in Telugu",
+    kn: "Content will be generated in Kannada",
+    or: "Content will be generated in Odia",
+    pa: "Content will be generated in Punjabi (Gurmukhi)",
     es: "Content will be generated in Spanish",
     pt: "Content will be generated in Portuguese",
     fr: "Content will be generated in French",

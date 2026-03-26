@@ -12,6 +12,9 @@
     "src/app/api/repurpose/route.ts": {
       "maxDuration": 60
     },
+    "src/app/api/chat/route.ts": {
+      "maxDuration": 60
+    },
     "src/app/api/cron/scheduled-posts/route.ts": {
       "maxDuration": 300
     }

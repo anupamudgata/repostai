@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { outputLanguageSchema } from "@/lib/validators/output-language";
 
 export const photoPostPlatformSchema = z.enum([
   "instagram",
@@ -10,7 +11,7 @@ export const photoPostPlatformSchema = z.enum([
 export const photoCaptionsBodySchema = z.object({
   photoId: z.string().uuid(),
   platforms: z.array(photoPostPlatformSchema).min(1),
-  outputLanguage: z.enum(["en", "hi"]).optional().default("en"),
+  outputLanguage: outputLanguageSchema.optional().default("en"),
 });
 
 export const photoPostBodySchema = z.object({

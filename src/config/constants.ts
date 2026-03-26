@@ -184,6 +184,12 @@ export const INPUT_TYPES = [
 export const SUPPORTED_LANGUAGES = [
   { id: "en", name: "English", nativeName: "English", flag: "🇺🇸" },
   { id: "hi", name: "Hindi", nativeName: "हिन्दी", flag: "🇮🇳" },
+  { id: "mr", name: "Marathi", nativeName: "मराठी", flag: "🇮🇳" },
+  { id: "bn", name: "Bengali", nativeName: "বাংলা", flag: "🇮🇳" },
+  { id: "te", name: "Telugu", nativeName: "తెలుగు", flag: "🇮🇳" },
+  { id: "kn", name: "Kannada", nativeName: "ಕನ್ನಡ", flag: "🇮🇳" },
+  { id: "or", name: "Odia", nativeName: "ଓଡ଼ିଆ", flag: "🇮🇳" },
+  { id: "pa", name: "Punjabi", nativeName: "ਪੰਜਾਬੀ", flag: "🇮🇳" },
   { id: "es", name: "Spanish", nativeName: "Español", flag: "🇪🇸" },
   { id: "pt", name: "Portuguese", nativeName: "Português", flag: "🇧🇷" },
   { id: "fr", name: "French", nativeName: "Français", flag: "🇫🇷" },

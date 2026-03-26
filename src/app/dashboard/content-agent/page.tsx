@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { SUPPORTED_LANGUAGES } from "@/config/constants";
+import type { OutputLanguage } from "@/types";
 
 const TONES   = ["Professional", "Casual", "Humorous", "Inspirational", "Educational"] as const;
 const LENGTHS = ["Short (300 words)", "Medium (600 words)", "Long (1000+ words)"] as const;
@@ -19,7 +21,7 @@ export default function ContentAgentPage() {
   const [tone,     setTone]     = useState<typeof TONES[number]>("Professional");
   const [length,   setLength]   = useState<typeof LENGTHS[number]>("Medium (600 words)");
   const [audience, setAudience] = useState("");
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState<OutputLanguage>("en");
   const [result,   setResult]   = useState<{ draft: string; jobId: string } | null>(null);
   const [error,    setError]    = useState("");
   const [progress, setProgress] = useState(0);
@@ -182,19 +184,28 @@ export default function ContentAgentPage() {
               {/* Language */}
               <div style={{ marginBottom: "20px" }}>
                 <label style={{ fontSize: "13px", fontWeight: 600, color: "#374151", display: "block", marginBottom: "6px" }}>Output language</label>
-                <div style={{ display: "flex", gap: "8px" }}>
-                  {(["en", "hi", "es"] as const).map((l) => {
-                    const labels = { en: "English", hi: "हिन्दी", es: "Español" };
-                    return (
-                      <button
-                        key={l}
-                        onClick={() => setLanguage(l)}
-                        style={{ padding: "6px 14px", borderRadius: "7px", border: language === l ? "1.5px solid #1E3A5F" : "1px solid #E5E7EB", background: language === l ? "#EFF6FF" : "transparent", color: language === l ? "#1E3A5F" : "#6B7280", fontSize: "12px", fontWeight: language === l ? 600 : 400, cursor: "pointer" }}
-                      >
-                        {labels[l]}
-                      </button>
-                    );
-                  })}
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.id}
+                      type="button"
+                      onClick={() => setLanguage(lang.id as OutputLanguage)}
+                      style={{
+                        padding: "6px 12px",
+                        borderRadius: "7px",
+                        border:
+                          language === lang.id ? "1.5px solid #1E3A5F" : "1px solid #E5E7EB",
+                        background: language === lang.id ? "#EFF6FF" : "transparent",
+                        color: language === lang.id ? "#1E3A5F" : "#6B7280",
+                        fontSize: "12px",
+                        fontWeight: language === lang.id ? 600 : 400,
+                        cursor: "pointer",
+                      }}
+                    >
+                      <span style={{ marginRight: "4px" }}>{lang.flag}</span>
+                      {lang.nativeName}
+                    </button>
+                  ))}
                 </div>
               </div>
 

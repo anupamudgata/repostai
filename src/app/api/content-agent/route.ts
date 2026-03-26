@@ -4,7 +4,8 @@ import { generateBlogPost } from "@/lib/ai/content-generator";
 import { repurposeContent } from "@/lib/ai/openai";
 import { FREE_PLATFORM_IDS, FREE_TIER_WATERMARK, SUPPORTED_PLATFORMS } from "@/config/constants";
 import { getEffectivePlan, isFreePlanTier } from "@/lib/billing/plan-entitlements";
-import type { Platform } from "@/types";
+import { outputLanguageSchema } from "@/lib/validators/output-language";
+import type { OutputLanguage, Platform } from "@/types";
 
 function parseLength(length: string): "short" | "medium" | "long" {
   if (length.toLowerCase().includes("short")) return "short";
@@ -29,7 +30,8 @@ export async function POST(request: NextRequest) {
     const audience = String(body.audience ?? "").trim();
     const tone = (String(body.tone ?? "professional").toLowerCase()) as "professional" | "casual" | "humorous" | "inspirational" | "educational";
     const length = parseLength(String(body.length ?? "medium"));
-    const language = (String(body.language ?? "en") || "en") as "en" | "hi" | "es" | "pt" | "fr";
+    const langParsed = outputLanguageSchema.safeParse(String(body.language ?? "en").trim() || "en");
+    const language: OutputLanguage = langParsed.success ? langParsed.data : "en";
 
     if (!topic || !audience) {
       return NextResponse.json({ error: "Topic and audience required" }, { status: 400 });

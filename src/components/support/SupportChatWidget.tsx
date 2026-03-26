@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { MessageCircle, Send, Sparkles, X } from "lucide-react";
@@ -8,12 +8,28 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { SupportMarkdown } from "@/components/support/SupportMarkdown";
+import { SUPPORT_EMAIL } from "@/config/constants";
 
 type SessionPayload = {
   sessionId: string;
   status: string;
   messages: UIMessage[];
+  /** false when OPENAI_API_KEY is not set (e.g. Vercel env). */
+  supportChatAvailable?: boolean;
 };
+
+function formatChatTransportError(err: Error | undefined): string {
+  if (!err?.message) return "Could not reach support chat. Please try again.";
+  const raw = err.message.trim();
+  try {
+    const j = JSON.parse(raw) as { error?: string };
+    if (j?.error && typeof j.error === "string") return j.error;
+  } catch {
+    /* plain text error from fetch */
+  }
+  if (raw.length > 200) return `${raw.slice(0, 200)}…`;
+  return raw;
+}
 
 function TypingDots() {
   return (
@@ -40,10 +56,12 @@ function SupportChatPanel({
   sessionId,
   initialMessages,
   initialStatus,
+  supportChatAvailable,
 }: {
   sessionId: string;
   initialMessages: UIMessage[];
   initialStatus: string;
+  supportChatAvailable: boolean;
 }) {
   const [sessionStatus, setSessionStatus] = useState(initialStatus);
   const [input, setInput] = useState("");
@@ -53,14 +71,20 @@ function SupportChatPanel({
     setSessionStatus(initialStatus);
   }, [initialStatus]);
 
-  const { messages, sendMessage, status } = useChat({
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport({
+        credentials: "include",
+        api: "/api/chat",
+        body: { sessionId },
+      }),
+    [sessionId]
+  );
+
+  const { messages, sendMessage, status, error, clearError } = useChat({
     id: sessionId,
     messages: initialMessages,
-    transport: new DefaultChatTransport({
-      credentials: "include",
-      api: "/api/chat",
-      body: { sessionId },
-    }),
+    transport,
     onFinish: async () => {
       const r = await fetch("/api/support/chat/session", { credentials: "include" });
       if (r.ok) {
@@ -76,13 +100,15 @@ function SupportChatPanel({
 
   const busy = status === "submitted" || status === "streaming";
   const needsHuman = sessionStatus === "needs_human";
+  const canSend = supportChatAvailable && !needsHuman;
 
   const submitDraft = useCallback(async () => {
     const text = input.trim();
-    if (!text || busy || needsHuman) return;
+    if (!text || busy || !canSend) return;
+    clearError();
     setInput("");
     await sendMessage({ text });
-  }, [input, busy, needsHuman, sendMessage]);
+  }, [input, busy, canSend, sendMessage, clearError]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,9 +137,32 @@ function SupportChatPanel({
         </div>
       </header>
 
+      {!supportChatAvailable && (
+        <div className="border-b border-destructive/20 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+          AI chat isn&apos;t configured on this deployment (missing OpenAI key). Please email{" "}
+          <a href={`mailto:${SUPPORT_EMAIL}`} className="font-medium underline">
+            {SUPPORT_EMAIL}
+          </a>
+          .
+        </div>
+      )}
+
       {needsHuman && (
         <div className="border-b border-amber-500/25 bg-amber-500/10 px-4 py-2 text-xs text-amber-950 dark:text-amber-100">
           You&apos;re on our human queue — we&apos;ll email you shortly. This chat is read-only until then.
+        </div>
+      )}
+
+      {error && (
+        <div className="border-b border-destructive/25 bg-destructive/10 px-4 py-2 text-xs text-destructive">
+          <span>{formatChatTransportError(error)}</span>
+          <button
+            type="button"
+            onClick={() => clearError()}
+            className="ml-2 font-medium underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
@@ -175,9 +224,13 @@ function SupportChatPanel({
               }
             }}
             placeholder={
-              needsHuman ? "Human follow-up by email…" : "Ask about RepostAI…"
+              !supportChatAvailable
+                ? "Chat unavailable — use email…"
+                : needsHuman
+                  ? "Human follow-up by email…"
+                  : "Ask about RepostAI…"
             }
-            disabled={busy || needsHuman}
+            disabled={busy || !canSend}
             rows={2}
             className="min-h-[44px] resize-none bg-background text-sm"
             aria-label="Message RepostAI support"
@@ -185,7 +238,7 @@ function SupportChatPanel({
           <Button
             type="submit"
             size="icon"
-            disabled={busy || needsHuman || !input.trim()}
+            disabled={busy || !canSend || !input.trim()}
             className="h-[44px] w-11 shrink-0 rounded-xl"
             aria-label="Send message"
           >
@@ -222,6 +275,7 @@ export function SupportChatWidget() {
             sessionId: j.sessionId,
             status: j.status,
             messages: j.messages,
+            supportChatAvailable: j.supportChatAvailable !== false,
           });
         }
       })
@@ -272,6 +326,7 @@ export function SupportChatWidget() {
               sessionId={session.sessionId}
               initialMessages={session.messages}
               initialStatus={session.status}
+              supportChatAvailable={session.supportChatAvailable !== false}
             />
           )}
         </div>
