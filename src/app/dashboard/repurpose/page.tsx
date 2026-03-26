@@ -80,13 +80,13 @@ export default function RepurposePage() {
 
           {/* Language + submit */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", background: "#FAFAFA", borderTop: "1px solid #F1F5F9", flexWrap: "wrap", gap: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
               <span style={{ fontSize: "12px", color: "#94A3B8" }}>Language:</span>
-              {(["en","hi","es","pt","fr"] as const).map((lang) => {
-                const labels: Record<Language, string> = { en: "English", hi: "हिन्दी", es: "Español", pt: "Português", fr: "Français" };
+              {(["en","hi","mr","bn","te","kn","or","pa","es","pt","fr"] as const).map((lang) => {
+                const labels: Record<Language, string> = { en: "English", hi: "हिन्दी", mr: "मराठी", bn: "বাংলা", te: "తెలుగు", kn: "ಕನ್ನಡ", or: "ଓଡ଼ିଆ", pa: "ਪੰਜਾਬੀ", es: "Español", pt: "Português", fr: "Français" };
                 return (
                   <button key={lang} onClick={() => setLanguage(lang)} disabled={isRunning}
-                    style={{ padding: "5px 12px", borderRadius: "6px", border: language === lang ? "1.5px solid #1E3A5F" : "1px solid #E5E7EB", background: language === lang ? "#EFF6FF" : "transparent", color: language === lang ? "#1E3A5F" : "#94A3B8", fontSize: "12px", fontWeight: language === lang ? 600 : 400, cursor: "pointer", transition: "all .15s" }}>
+                    style={{ padding: "5px 10px", borderRadius: "6px", border: language === lang ? "1.5px solid #1E3A5F" : "1px solid #E5E7EB", background: language === lang ? "#EFF6FF" : "transparent", color: language === lang ? "#1E3A5F" : "#94A3B8", fontSize: "11px", fontWeight: language === lang ? 600 : 400, cursor: "pointer", transition: "all .15s" }}>
                     {labels[lang]}
                   </button>
                 );

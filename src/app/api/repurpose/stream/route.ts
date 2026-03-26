@@ -16,9 +16,11 @@ import {
   buildTikTokPrompt, buildWhatsAppStatusPrompt,
 } from "@/lib/ai/prompts/platforms";
 import { getHindiStreamSystemPrompt, getHindiPlatformSupplementForStream } from "@/lib/prompts/hindi";
+import { isIndianLanguage } from "@/lib/ai/types";
+import { getRegionalPrompts } from "@/lib/prompts/regional";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
 
-const CLAUDE_HINDI_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+const CLAUDE_REGIONAL_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
 
 
 type SSEEventType = "brief_ready" | "platform_start" | "platform_chunk" | "platform_done" | "platform_error" | "all_done" | "error";
@@ -69,19 +71,25 @@ async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrie
   if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
   const promptBuilders = getPromptBuilders(brief, voice, language);
 
-  const hindiSystemPrompt = language === "hi"
-    ? `${SYSTEM_MSG}\n\n${getHindiStreamSystemPrompt()}`
-    : SYSTEM_MSG;
+  let systemPrompt = SYSTEM_MSG;
+  let userPrompt = promptBuilders[platform]();
 
-  const userPrompt = language === "hi"
-    ? `${promptBuilders[platform]()}${getHindiPlatformSupplementForStream(platform)}`
-    : promptBuilders[platform]();
+  if (language === "hi") {
+    systemPrompt = `${SYSTEM_MSG}\n\n${getHindiStreamSystemPrompt()}`;
+    userPrompt = `${promptBuilders[platform]()}${getHindiPlatformSupplementForStream(platform)}`;
+  } else {
+    const regional = getRegionalPrompts(language);
+    if (regional) {
+      systemPrompt = `${SYSTEM_MSG}\n\n${regional.getStreamSystemPrompt()}`;
+      userPrompt = `${promptBuilders[platform]()}${regional.getPlatformSupplementForStream(platform)}`;
+    }
+  }
 
   const stream = anthropic.messages.stream({
-    model: CLAUDE_HINDI_MODEL,
+    model: CLAUDE_REGIONAL_MODEL,
     max_tokens: 2048,
     temperature: TEMPERATURES[platform],
-    system: hindiSystemPrompt,
+    system: systemPrompt,
     messages: [{ role: "user", content: userPrompt }],
   });
   for await (const event of stream) {
@@ -92,7 +100,7 @@ async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrie
 }
 
 async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
-  if (language === "hi" && getAnthropicClient()) {
+  if (isIndianLanguage(language) && getAnthropicClient()) {
     yield* streamPlatformAgentClaude(platform, brief, voice, language);
     return;
   }

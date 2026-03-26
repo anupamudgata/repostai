@@ -1,4 +1,5 @@
 import type { Platform, Language } from "@/lib/ai/types";
+import { getRegionalPrompts } from "@/lib/prompts/regional";
 
 const PLATFORM_RULES: Record<Platform, { maxChars?: number; rules: string[] }> = {
   linkedin:        { maxChars: 3000, rules: ["Must have a hook in first 2 lines","Must end with question or strong close","Must have 3-5 hashtags"] },
@@ -21,9 +22,16 @@ HINDI/HINGLISH QUALITY RULES (apply these IN ADDITION to platform rules when con
 - RELAX English-centric rules: "Never start with I" does NOT apply to Hindi (मैंने/मैं is natural). "What do you think?" ban only applies to that English phrase — Hindi equivalents (आपका क्या अनुभव रहा?) are fine.
 - Formulaic check: If the output uses overused Hindi openers ("आइये जानते हैं", "दोस्तों आज हम") or stale patterns, flag as issue.`;
 
+function getQcRulesForLanguage(language?: Language): string {
+  if (!language) return "";
+  if (language === "hi") return HINDI_QC_RULES;
+  const regional = getRegionalPrompts(language);
+  return regional?.qcRules ?? "";
+}
+
 export function buildQualityCheckerPrompt(platform: Platform, output: string, language?: Language): string {
   const rules = PLATFORM_RULES[platform];
-  const hindiBlock = language === "hi" ? HINDI_QC_RULES : "";
+  const hindiBlock = getQcRulesForLanguage(language);
   return `You are a quality checker for social media content. Review this ${platform} output and determine if it passes quality standards.
 
 PLATFORM RULES FOR ${platform.toUpperCase()}:
@@ -51,7 +59,7 @@ export function buildBatchQualityCheckerPrompt(
   items: { platform: Platform; content: string }[],
   language?: Language
 ): string {
-  const hindiBlock = language === "hi" ? HINDI_QC_RULES : "";
+  const langQcBlock = getQcRulesForLanguage(language);
   const sections = items
     .map(
       (item, idx) => {
@@ -68,7 +76,7 @@ ${item.content}
     .join("\n\n");
 
   return `You are a quality checker for social media content. Review each platform output below and determine if it passes.
-${hindiBlock}
+${langQcBlock}
 
 ${sections}
 

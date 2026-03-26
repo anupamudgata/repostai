@@ -1,5 +1,6 @@
 import type { Platform, OutputLanguage } from "@/types";
 import { buildHindiRepurposeAppend } from "@/lib/prompts/hindi";
+import { getRegionalPrompts } from "@/lib/prompts/regional";
 
 /** Research-backed best practices (from high-performing posts). Injected into prompts so the model follows proven patterns. */
 const BEST_PRACTICES: Record<Platform, string> = {
@@ -93,6 +94,36 @@ const LANGUAGE_INSTRUCTIONS: Record<OutputLanguage, string> = {
 OUTPUT LANGUAGE: Hindi mode = natural HINGLISH (see HINDI MASTER BLOCK below).
 - JSON keys stay English (platform ids). Each value = full post text in natural Indian Hinglish.
 - Do not use stiff Shuddh Hindi or literal translations; do not output only English.`,
+
+  mr: `
+OUTPUT LANGUAGE: Marathi mode = natural MARATHLISH (see REGIONAL MASTER BLOCK below).
+- JSON keys stay English. Each value = full post text in natural Marathlish (Marathi + English mix).
+- Use Devanagari for Marathi words. English tech/platform terms stay in Latin script.`,
+
+  bn: `
+OUTPUT LANGUAGE: Bengali mode = natural BENGLISH (see REGIONAL MASTER BLOCK below).
+- JSON keys stay English. Each value = full post text in natural Benglish (Bengali + English mix).
+- Use Bengali script for Bengali words. English tech/platform terms stay in Latin script.`,
+
+  te: `
+OUTPUT LANGUAGE: Telugu mode = natural TENGLISH (see REGIONAL MASTER BLOCK below).
+- JSON keys stay English. Each value = full post text in natural Tenglish (Telugu + English mix).
+- Use Telugu script for Telugu words. English tech/platform terms stay in Latin script.`,
+
+  kn: `
+OUTPUT LANGUAGE: Kannada mode = natural KANGLISH (see REGIONAL MASTER BLOCK below).
+- JSON keys stay English. Each value = full post text in natural Kanglish (Kannada + English mix).
+- Use Kannada script for Kannada words. English tech/platform terms stay in Latin script.`,
+
+  or: `
+OUTPUT LANGUAGE: Odia mode = natural ODIANGLISH (see REGIONAL MASTER BLOCK below).
+- JSON keys stay English. Each value = full post text in natural Odianglish (Odia + English mix).
+- Use Odia script for Odia words. English tech/platform terms stay in Latin script.`,
+
+  pa: `
+OUTPUT LANGUAGE: Punjabi mode = natural PUNGLISH (see REGIONAL MASTER BLOCK below).
+- JSON keys stay English. Each value = full post text in natural Punglish (Punjabi + English mix).
+- Use Gurmukhi script for Punjabi words. English tech/platform terms stay in Latin script.`,
 
   es: `
 CRITICAL LANGUAGE INSTRUCTION: Write ALL output content in Spanish (Español).
@@ -199,10 +230,17 @@ export function buildRepurposePrompt(
     }
   }
 
-  const languageInstruction =
-    outputLanguage === "hi"
-      ? `${LANGUAGE_INSTRUCTIONS.hi}\n\n${buildHindiRepurposeAppend(platforms)}`
-      : LANGUAGE_INSTRUCTIONS[outputLanguage];
+  let languageInstruction: string;
+  if (outputLanguage === "hi") {
+    languageInstruction = `${LANGUAGE_INSTRUCTIONS.hi}\n\n${buildHindiRepurposeAppend(platforms)}`;
+  } else {
+    const regional = getRegionalPrompts(outputLanguage);
+    if (regional) {
+      languageInstruction = `${LANGUAGE_INSTRUCTIONS[outputLanguage]}\n\n${regional.buildRepurposeAppend(platforms)}`;
+    } else {
+      languageInstruction = LANGUAGE_INSTRUCTIONS[outputLanguage];
+    }
+  }
 
   return `You are a world-class content strategist trained on what actually works. Your job is to repurpose the following content into platform-specific posts that follow proven best practices (engagement, length, and structure patterns from high-performing posts on each platform).
 

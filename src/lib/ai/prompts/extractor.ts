@@ -1,6 +1,9 @@
+import { getRegionalPrompts } from "@/lib/prompts/regional";
+
 export function buildExtractorPrompt(rawContent: string, outputLanguage?: string): string {
-  const hindiGuard = outputLanguage === "hi"
-    ? `
+  let languageGuard = "";
+  if (outputLanguage === "hi") {
+    languageGuard = `
 HINDI OUTPUT CONTEXT:
 - The extracted brief will be used to generate Hinglish (Hindi + English) social content.
 - If the source content contains Hindi words, idioms, cultural references, or Hinglish phrases, PRESERVE them naturally in coreMessage and keyPoints — do NOT translate them to formal English.
@@ -8,8 +11,13 @@ HINDI OUTPUT CONTEXT:
 - Preserve Indian cultural context: festival references, cricket analogies, Bollywood mentions, desi humor, regional expressions.
 - Example: if source says "jugaad se काम चला लिया", keep that flavor — don't write "managed through improvisation".
 - Audience should reflect Indian context if present (e.g. "Indian startup founders", "Hindi-speaking creators").
-`
-    : "";
+`;
+  } else if (outputLanguage) {
+    const regional = getRegionalPrompts(outputLanguage);
+    if (regional) {
+      languageGuard = regional.extractorGuard;
+    }
+  }
 
   return `You are a content analyst. Your job is to read content and extract a structured brief that other AI agents will use to repurpose it.
 
@@ -27,7 +35,7 @@ Rules:
 - coreMessage must be the ONE idea someone should remember after reading this.
 - If the content is a YouTube transcript, focus on the spoken insights, not the video description.
 - Respond with ONLY the JSON object. No preamble, no explanation, no markdown code fences.
-${hindiGuard}
+${languageGuard}
 CONTENT:
 ---
 ${rawContent}

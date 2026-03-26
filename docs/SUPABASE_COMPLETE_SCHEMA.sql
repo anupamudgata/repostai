@@ -69,7 +69,7 @@ create table if not exists public.repurpose_jobs (
     (input_content is not null and trim(input_content) <> '') or (input_url is not null and trim(input_url) <> '')
   ),
   brand_voice_id uuid references public.brand_voices(id) on delete set null,
-  output_language text not null default 'en' check (output_language in ('en', 'hi', 'es', 'pt', 'fr')),
+  output_language text not null default 'en' check (output_language in ('en', 'hi', 'mr', 'bn', 'te', 'kn', 'or', 'pa', 'es', 'pt', 'fr')),
   outputs jsonb default '[]'::jsonb,
   status text default 'pending' check (status in ('pending', 'completed', 'failed')),
   created_at timestamptz not null default now()
@@ -99,7 +99,7 @@ create table if not exists public.created_posts (
   tone text not null check (tone in ('professional', 'casual', 'humorous', 'inspirational', 'educational')),
   length text not null check (length in ('short', 'medium', 'long')),
   audience text not null,
-  output_language text not null default 'en' check (output_language in ('en', 'hi', 'es', 'pt', 'fr')),
+  output_language text not null default 'en' check (output_language in ('en', 'hi', 'mr', 'bn', 'te', 'kn', 'or', 'pa', 'es', 'pt', 'fr')),
   generated_content text not null,
   brand_voice_id uuid references public.brand_voices(id) on delete set null,
   created_at timestamptz not null default now()
@@ -299,7 +299,7 @@ alter table public.repurpose_jobs add constraint repurpose_jobs_input_check chec
 
 alter table public.repurpose_jobs drop constraint if exists repurpose_jobs_output_language_check;
 alter table public.repurpose_jobs add constraint repurpose_jobs_output_language_check
-  check (output_language in ('en', 'hi', 'es', 'pt', 'fr'));
+  check (output_language in ('en', 'hi', 'mr', 'bn', 'te', 'kn', 'or', 'pa', 'es', 'pt', 'fr'));
 
 alter table public.repurpose_jobs drop constraint if exists repurpose_jobs_status_check;
 alter table public.repurpose_jobs add constraint repurpose_jobs_status_check
@@ -307,7 +307,7 @@ alter table public.repurpose_jobs add constraint repurpose_jobs_status_check
 
 alter table public.created_posts drop constraint if exists created_posts_output_language_check;
 alter table public.created_posts add constraint created_posts_output_language_check
-  check (output_language in ('en', 'hi', 'es', 'pt', 'fr'));
+  check (output_language in ('en', 'hi', 'mr', 'bn', 'te', 'kn', 'or', 'pa', 'es', 'pt', 'fr'));
 
 -- connected_accounts: add legacy Twitter columns
 alter table public.connected_accounts

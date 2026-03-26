@@ -9,7 +9,12 @@ export type Platform =
   | "tiktok"
   | "whatsapp_status";
 
-export type Language = "en" | "hi" | "es" | "pt" | "fr";
+export type Language = "en" | "hi" | "mr" | "bn" | "te" | "kn" | "or" | "pa" | "es" | "pt" | "fr";
+
+export const INDIAN_LANGUAGES = new Set(["hi", "mr", "bn", "te", "kn", "or", "pa"] as const);
+export function isIndianLanguage(lang: string): lang is Language {
+  return INDIAN_LANGUAGES.has(lang as "hi");
+}
 
 export interface ContentBrief {
   coreMessage:  string;

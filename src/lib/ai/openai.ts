@@ -2,6 +2,7 @@ import { openai } from "./client";
 import type { Platform, OutputLanguage } from "@/types";
 import { buildRepurposePrompt, type AuthenticityTuning } from "./prompts";
 import { getAnthropicClient } from "./anthropic";
+import { isIndianLanguage } from "@/lib/ai/types";
 import type { AiTier } from "@/lib/billing/plan-entitlements";
 
 const SYSTEM_JSON =
@@ -75,7 +76,7 @@ export async function repurposeContent(
   }
 }
 
-const CLAUDE_HINDI_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+const CLAUDE_REGIONAL_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
 const CLAUDE_PREMIUM_MODEL = process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() || "claude-sonnet-4-20250514";
 
 export async function repurposeContentClaude(
@@ -104,12 +105,13 @@ export async function repurposeContentClaude(
     hookMode,
     authenticityTuning
   );
-  const model = outputLanguage === "hi" ? CLAUDE_HINDI_MODEL : CLAUDE_PREMIUM_MODEL;
+  const isIndian = isIndianLanguage(outputLanguage ?? "en");
+  const model = isIndian ? CLAUDE_REGIONAL_MODEL : CLAUDE_PREMIUM_MODEL;
 
   const msg = await client.messages.create({
     model,
     max_tokens: 8192,
-    temperature: outputLanguage === "hi" ? 0.75 : undefined,
+    temperature: isIndian ? 0.75 : undefined,
     system: SYSTEM_JSON,
     messages: [{ role: "user", content: prompt }],
   });
@@ -138,8 +140,8 @@ export async function repurposeContentForTier(
   hookMode?: string,
   authenticityTuning?: AuthenticityTuning
 ): Promise<Record<Platform, string>> {
-  const useClaudeForHindi = outputLanguage === "hi" && !!getAnthropicClient();
-  if (tier === "premium" || useClaudeForHindi) {
+  const useClaudeForRegional = isIndianLanguage(outputLanguage ?? "en") && !!getAnthropicClient();
+  if (tier === "premium" || useClaudeForRegional) {
     try {
       return await repurposeContentClaude(
         content,

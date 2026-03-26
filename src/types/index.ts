@@ -2,7 +2,7 @@ export type Plan = "free" | "starter" | "pro" | "agency";
 
 export type InputType = "text" | "url" | "youtube" | "pdf";
 
-export type OutputLanguage = "en" | "hi" | "es" | "pt" | "fr";
+export type OutputLanguage = "en" | "hi" | "mr" | "bn" | "te" | "kn" | "or" | "pa" | "es" | "pt" | "fr";
 
 export type ContentTone =
   | "professional"

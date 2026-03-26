@@ -26,6 +26,30 @@ CRITICAL: Write the ENTIRE blog post in Hindi (हिन्दी) using Devanag
 - Use natural, conversational Hindi — not overly formal or Sanskritized
 - Mix in commonly used English tech/business words where natural
 - The headline and all sections must be in Hindi`,
+  mr: `
+CRITICAL: Write the ENTIRE blog post in Marathi (मराठी) using Devanagari script.
+- Use natural, conversational Marathi — mix in English tech/business terms naturally
+- The headline and all sections must be in Marathi`,
+  bn: `
+CRITICAL: Write the ENTIRE blog post in Bengali (বাংলা) using Bengali script.
+- Use natural, conversational Bengali — mix in English tech/business terms naturally
+- The headline and all sections must be in Bengali`,
+  te: `
+CRITICAL: Write the ENTIRE blog post in Telugu (తెలుగు) using Telugu script.
+- Use natural, conversational Telugu — mix in English tech/business terms naturally
+- The headline and all sections must be in Telugu`,
+  kn: `
+CRITICAL: Write the ENTIRE blog post in Kannada (ಕನ್ನಡ) using Kannada script.
+- Use natural, conversational Kannada — mix in English tech/business terms naturally
+- The headline and all sections must be in Kannada`,
+  or: `
+CRITICAL: Write the ENTIRE blog post in Odia (ଓଡ଼ିଆ) using Odia script.
+- Use natural, conversational Odia — mix in English tech/business terms naturally
+- The headline and all sections must be in Odia`,
+  pa: `
+CRITICAL: Write the ENTIRE blog post in Punjabi (ਪੰਜਾਬੀ) using Gurmukhi script.
+- Use natural, conversational Punjabi — mix in English tech/business terms naturally
+- The headline and all sections must be in Punjabi`,
   es: `
 CRITICAL: Write the ENTIRE blog post in Spanish (Español).
 - Use natural, conversational Latin American Spanish

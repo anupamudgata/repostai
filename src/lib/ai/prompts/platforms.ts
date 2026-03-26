@@ -3,10 +3,17 @@ import {
   getHindiPlatformSupplementForStream,
   getHindiStreamLanguageInstruction,
 } from "@/lib/prompts/hindi";
+import { getRegionalPrompts } from "@/lib/prompts/regional";
 
 const LANGUAGE_INSTRUCTION: Record<Language, string> = {
   en: "Write in English.",
   hi: "",
+  mr: "",
+  bn: "",
+  te: "",
+  kn: "",
+  or: "",
+  pa: "",
   es: "Write entirely in Spanish. Use natural Latin American Spanish — conversational, warm, and authentic to the culture. Not formal Castilian Spanish.",
   pt: "Write entirely in Portuguese. Use natural Brazilian Portuguese — conversational, warm, and authentic. Not European Portuguese.",
   fr: "Write entirely in French. Use modern, conversational French — natural tone, not overly formal or literary.",
@@ -86,6 +93,11 @@ function languageFooter(platform: Platform, language: Language): string {
   if (language === "hi") {
     const override = HINDI_PLATFORM_OVERRIDES[platform] ?? "";
     return `${getHindiStreamLanguageInstruction()}${getHindiPlatformSupplementForStream(platform)}${override ? `\n\n${override}` : ""}`;
+  }
+  const regional = getRegionalPrompts(language);
+  if (regional) {
+    const override = regional.platformOverrides[platform] ?? "";
+    return `${regional.getStreamLanguageInstruction()}${regional.getPlatformSupplementForStream(platform)}${override ? `\n\n${override}` : ""}`;
   }
   return LANGUAGE_INSTRUCTION[language];
 }

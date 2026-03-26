@@ -4,6 +4,8 @@ import type { AiTier } from "@/lib/billing/plan-entitlements";
 import type { VisionAnalysis } from "@/lib/ai/photo-vision";
 import { buildCaptionBriefFromVision } from "@/lib/ai/photo-vision";
 import { HINDI_PHOTO_CAPTION_HINT, getHindiPhotoCaptionSystemPrompt } from "@/lib/prompts/hindi";
+import { isIndianLanguage } from "@/lib/ai/types";
+import { getRegionalPrompts } from "@/lib/prompts/regional";
 
 export type PhotoPostPlatform = "instagram" | "facebook" | "twitter" | "linkedin";
 
@@ -35,14 +37,19 @@ export async function generatePhotoCaptionsForPlatforms(
   analysis: VisionAnalysis,
   platforms: PhotoPostPlatform[],
   tier: AiTier,
-  outputLanguage: "en" | "hi",
+  outputLanguage: string,
   userContext?: string
 ): Promise<Record<string, string>> {
   const brief = buildCaptionBriefFromVision(analysis, userContext);
-  const langNote =
-    outputLanguage === "hi"
-      ? `Write in natural Hinglish for Indian social media. ${HINDI_PHOTO_CAPTION_HINT}`
-      : "Write in English.";
+  let langNote = "Write in English.";
+  if (outputLanguage === "hi") {
+    langNote = `Write in natural Hinglish for Indian social media. ${HINDI_PHOTO_CAPTION_HINT}`;
+  } else {
+    const regional = getRegionalPrompts(outputLanguage);
+    if (regional) {
+      langNote = `Write in natural ${outputLanguage.toUpperCase()} code-switched style for Indian social media. ${regional.photoCaptionHint}`;
+    }
+  }
 
   const tasks = platforms
     .map(
@@ -54,9 +61,15 @@ export async function generatePhotoCaptionsForPlatforms(
   const baseSystem = `You write platform-native social captions from a structured image brief.
 Return valid JSON only. Keys must be exactly the platform ids requested. Values are plain caption strings only (no markdown).`;
 
-  const system = outputLanguage === "hi"
-    ? `${baseSystem}\n\n${getHindiPhotoCaptionSystemPrompt()}`
-    : baseSystem;
+  let system = baseSystem;
+  if (outputLanguage === "hi") {
+    system = `${baseSystem}\n\n${getHindiPhotoCaptionSystemPrompt()}`;
+  } else {
+    const regional = getRegionalPrompts(outputLanguage);
+    if (regional) {
+      system = `${baseSystem}\n\n${regional.getPhotoCaptionSystemPrompt()}`;
+    }
+  }
 
   const user = `${langNote}
 
@@ -70,18 +83,18 @@ ${tasks}
 
 Return a JSON object like: {"instagram":"...","facebook":"..."} with only these keys: ${platforms.map((p) => `"${p}"`).join(", ")}.`;
 
-  const useClaudeForHindi = outputLanguage === "hi";
-  if (tier === "premium" || useClaudeForHindi) {
+  const useClaudeForRegional = isIndianLanguage(outputLanguage);
+  if (tier === "premium" || useClaudeForRegional) {
     const client = getAnthropicClient();
     if (client) {
       const hindiModel = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
       const premiumModel = process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() || "claude-sonnet-4-20250514";
-      const model = useClaudeForHindi ? hindiModel : premiumModel;
+      const model = useClaudeForRegional ? hindiModel : premiumModel;
       try {
         const msg = await client.messages.create({
           model,
           max_tokens: 4096,
-          temperature: useClaudeForHindi ? 0.75 : undefined,
+          temperature: useClaudeForRegional ? 0.75 : undefined,
           system,
           messages: [{ role: "user", content: user }],
         });

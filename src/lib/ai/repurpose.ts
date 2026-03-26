@@ -15,6 +15,8 @@ import {
 } from "@/lib/ai/prompts/platforms";
 import { buildBatchQualityCheckerPrompt } from "@/lib/ai/prompts/quality-checker";
 import { getHindiStreamSystemPrompt, getHindiPlatformSupplementForStream } from "@/lib/prompts/hindi";
+import { isIndianLanguage } from "@/lib/ai/types";
+import { getRegionalPrompts } from "@/lib/prompts/regional";
 import type {
   Platform,
   Language,
@@ -27,7 +29,7 @@ import type {
 import { captureError } from "@/lib/sentry";
 
 const MODEL = "gpt-4o-mini";
-const CLAUDE_HINDI_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+const CLAUDE_REGIONAL_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
 
 export async function extractBrief(content: string, outputLanguage?: string): Promise<ContentBrief> {
   const response = await openai.chat.completions.create({
@@ -94,16 +96,22 @@ async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, v
   if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
   const promptBuilders = getPromptBuilders(brief, voice, language);
 
-  const systemPrompt = language === "hi"
-    ? `${SYSTEM_MSG}\n\n${getHindiStreamSystemPrompt()}`
-    : SYSTEM_MSG;
+  let systemPrompt = SYSTEM_MSG;
+  let userPrompt = promptBuilders[platform]();
 
-  const userPrompt = language === "hi"
-    ? `${promptBuilders[platform]()}${getHindiPlatformSupplementForStream(platform)}`
-    : promptBuilders[platform]();
+  if (language === "hi") {
+    systemPrompt = `${SYSTEM_MSG}\n\n${getHindiStreamSystemPrompt()}`;
+    userPrompt = `${promptBuilders[platform]()}${getHindiPlatformSupplementForStream(platform)}`;
+  } else {
+    const regional = getRegionalPrompts(language);
+    if (regional) {
+      systemPrompt = `${SYSTEM_MSG}\n\n${regional.getStreamSystemPrompt()}`;
+      userPrompt = `${promptBuilders[platform]()}${regional.getPlatformSupplementForStream(platform)}`;
+    }
+  }
 
   const msg = await anthropic.messages.create({
-    model: CLAUDE_HINDI_MODEL,
+    model: CLAUDE_REGIONAL_MODEL,
     max_tokens: 2048,
     temperature: TEMPERATURES[platform],
     system: systemPrompt,
@@ -115,7 +123,7 @@ async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, v
 }
 
 async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
-  if (language === "hi" && getAnthropicClient()) {
+  if (isIndianLanguage(language) && getAnthropicClient()) {
     return runPlatformAgentClaude(platform, brief, voice, language);
   }
   const promptBuilders = getPromptBuilders(brief, voice, language);

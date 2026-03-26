@@ -7,6 +7,12 @@ import type { ContentBrief, Language } from "@/lib/ai/types";
 const LANGUAGE_INSTRUCTION: Record<Language, string> = {
   en: "Write in English.",
   hi: "Write entirely in Hindi (हिन्दी).",
+  mr: "Write entirely in Marathi (मराठी).",
+  bn: "Write entirely in Bengali (বাংলা).",
+  te: "Write entirely in Telugu (తెలుగు).",
+  kn: "Write entirely in Kannada (ಕನ್ನಡ).",
+  or: "Write entirely in Odia (ଓଡ଼ିଆ).",
+  pa: "Write entirely in Punjabi (ਪੰਜਾਬੀ).",
   es: "Write entirely in Spanish.",
   pt: "Write entirely in Portuguese (Português).",
   fr: "Write entirely in French (Français).",
