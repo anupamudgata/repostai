@@ -213,6 +213,23 @@ html { scroll-behavior: smooth; }
   background-size: 60px 60px;
 }
 
+/*
+ * Repurpose / stream output body: must NOT use Georgia/serif — those fonts lack Odia/Kannada/etc.
+ * and the browser may pick the wrong fallback so Odia looks like another script.
+ */
+.ro-repurpose-text {
+  font-family: var(--font-inter), var(--font-noto-devanagari), var(--font-noto-bengali),
+    var(--font-noto-kannada), var(--font-noto-gurmukhi), var(--font-noto-telugu),
+    var(--font-noto-oriya), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Native script in language pickers (ಕನ್ನಡ, বাংলা, …): Indic fonts before Inter so glyphs are not skipped. */
+.font-native-script {
+  font-family: var(--font-noto-devanagari), var(--font-noto-bengali), var(--font-noto-kannada),
+    var(--font-noto-gurmukhi), var(--font-noto-telugu), var(--font-noto-oriya),
+    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
 /* English (default): Latin-first; regional native names still resolve via Noto fallbacks. */
 .font-app-en {
   font-family: var(--font-inter), var(--font-noto-devanagari), var(--font-noto-bengali),

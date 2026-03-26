@@ -1125,11 +1125,14 @@ export default function DashboardPage() {
               </SelectTrigger>
               <SelectContent>
                 {SUPPORTED_LANGUAGES.map((lang) => (
-                  <SelectItem key={lang.id} value={lang.id}>
+                  <SelectItem key={lang.id} value={lang.id} lang={lang.id}>
                     <span className="flex items-center gap-2">
                       <span>{lang.flag}</span>
                       <span>{lang.name}</span>
-                      <span className="text-muted-foreground text-xs">
+                      <span
+                        lang={lang.id}
+                        className="font-native-script text-muted-foreground text-xs"
+                      >
                         ({lang.nativeName})
                       </span>
                     </span>
@@ -1460,7 +1463,7 @@ export default function DashboardPage() {
                             </div>
                           </CardHeader>
                           <CardContent className="space-y-2">
-                            <div className="bg-muted/50 rounded-lg p-4 text-sm whitespace-pre-wrap max-h-80 overflow-y-auto">
+                            <div className="bg-muted/50 rounded-lg p-4 text-sm font-sans whitespace-pre-wrap max-h-80 overflow-y-auto">
                               {output.content}
                             </div>
                             {platformInfo && <CharacterCount content={output.content} platformId={output.platform} maxLength={platformInfo.maxLength} platformName={platformInfo.name} />}
@@ -1587,7 +1590,7 @@ export default function DashboardPage() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <div className="bg-muted/50 rounded-lg p-4 text-sm whitespace-pre-wrap max-h-80 overflow-y-auto">
+                    <div className="bg-muted/50 rounded-lg p-4 text-sm font-sans whitespace-pre-wrap max-h-80 overflow-y-auto">
                       {output.content}
                     </div>
                     {platformInfo && (

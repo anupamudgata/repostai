@@ -118,7 +118,8 @@ OUTPUT LANGUAGE: Kannada mode = natural KANGLISH (see REGIONAL MASTER BLOCK belo
   or: `
 OUTPUT LANGUAGE: Odia mode = natural ODIANGLISH (see REGIONAL MASTER BLOCK below).
 - JSON keys stay English. Each value = full post text in natural Odianglish (Odia + English mix).
-- Use Odia script for Odia words. English tech/platform terms stay in Latin script.`,
+- Use Odia script (Oriya Unicode range) for Odia words — e.g. ଓଡ଼ିଆ-style glyphs. English tech/platform terms stay in Latin script.
+- SCRIPT LOCK: Do NOT write native words in Kannada script (ಕನ್ನಡ), Telugu, Bengali, or Gurmukhi. If output language is Odia (or), every native word must be Odia script only.`,
 
   pa: `
 OUTPUT LANGUAGE: Punjabi mode = natural PUNGLISH (see REGIONAL MASTER BLOCK below).

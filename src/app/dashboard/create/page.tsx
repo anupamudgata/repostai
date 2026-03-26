@@ -498,10 +498,16 @@ export default function CreatePage() {
                     </SelectTrigger>
                     <SelectContent>
                       {SUPPORTED_LANGUAGES.map((lang) => (
-                        <SelectItem key={lang.id} value={lang.id}>
+                        <SelectItem key={lang.id} value={lang.id} lang={lang.id}>
                           <span className="flex items-center gap-2">
                             <span>{lang.flag}</span>
                             <span>{lang.name}</span>
+                            <span
+                              lang={lang.id}
+                              className="font-native-script text-muted-foreground text-xs"
+                            >
+                              ({lang.nativeName})
+                            </span>
                           </span>
                         </SelectItem>
                       ))}
@@ -787,7 +793,7 @@ export default function CreatePage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="bg-muted/50 rounded-lg p-4 text-sm whitespace-pre-wrap max-h-80 overflow-y-auto">
+                    <div className="bg-muted/50 rounded-lg p-4 text-sm font-sans whitespace-pre-wrap max-h-80 overflow-y-auto">
                       {output.content}
                     </div>
                   </CardContent>

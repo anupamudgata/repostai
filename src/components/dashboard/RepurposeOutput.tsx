@@ -95,7 +95,10 @@ function PlatformCard({ state, index }: { state: PlatformState; index: number })
         {isWaiting && <div style={{ opacity: 0.5 }}><SkeletonLine width="90%" delay={0} /><SkeletonLine width="70%" delay={100} /><SkeletonLine width="85%" delay={200} /><SkeletonLine width="40%" delay={300} /></div>}
 
         {(isStreaming || isDone) && (
-          <div style={{ fontSize: "13px", lineHeight: 1.75, color: "var(--ro-text-body)", whiteSpace: "pre-wrap", wordBreak: "break-word", fontFamily: "'Georgia','Times New Roman',serif" }}>
+          <div
+            className="ro-repurpose-text"
+            style={{ fontSize: "13px", lineHeight: 1.75, color: "var(--ro-text-body)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}
+          >
             {state.platform === "twitter_thread" && state.tweets?.length ? (
               <div>
                 {state.tweets.map((tweet, i) => (

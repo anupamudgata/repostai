@@ -203,7 +203,9 @@ export default function ContentAgentPage() {
                       }}
                     >
                       <span style={{ marginRight: "4px" }}>{lang.flag}</span>
-                      {lang.nativeName}
+                      <span lang={lang.id} className="font-native-script">
+                        {lang.nativeName}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -244,7 +246,7 @@ export default function ContentAgentPage() {
             </div>
             <div style={{ background: "#FFFFFF", border: "1px solid #E5E7EB", borderRadius: "12px", padding: "20px" }}>
               <p style={{ fontSize: "11px", fontWeight: 700, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: ".06em", marginBottom: "10px" }}>Generated draft</p>
-              <pre style={{ fontSize: "13px", lineHeight: 1.75, color: "#1E293B", whiteSpace: "pre-wrap", fontFamily: "Georgia, serif", margin: 0 }}>
+              <pre className="font-sans" style={{ fontSize: "13px", lineHeight: 1.75, color: "#1E293B", whiteSpace: "pre-wrap", margin: 0 }}>
                 {result.draft}
               </pre>
               <div style={{ marginTop: "16px", paddingTop: "16px", borderTop: "0.5px solid #F3F4F6" }}>

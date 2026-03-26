@@ -124,13 +124,14 @@ Save କର 📌
   qcRules: `
 ODIA/ODIANGLISH QUALITY RULES:
 - Odia script consistency: Odia words MUST be in Odia script. Romanized = CRITICAL FAIL.
+- NEVER use Kannada (ಕನ್ನಡ), Telugu, Bengali, or Gurmukhi letters for Odia — they are different scripts; mixing them is a CRITICAL FAIL.
 - Code-switching: English tech terms OK, full English sentences = FAIL.
 - Must sound like a real Odia creator.
 - LinkedIn = ଆପଣ professional. Instagram = casual ତୁ/ତୁମେ.`,
 
   extractorGuard: `
 ODIA OUTPUT CONTEXT:
-- The brief will generate Odianglish content.
+- The brief will generate Odianglish content in Odia script — NOT Kannada, NOT Telugu.
 - Preserve Odia idioms, cultural references (Jagannath, Rath Yatra, ପଖାଳ).
 - Keep JSON keys in English. Values can be in Odianglish.`,
 
