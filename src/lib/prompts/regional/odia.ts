@@ -10,7 +10,7 @@ export const ODIA_CONFIG: RegionalLanguageConfig = {
   formalPronoun: "ଆପଣ",
   casualPronoun: "ତୁମେ (default reader “you”), ତୁମେମାନେ (plural); ତୁ/ଭାଇ only when very casual",
   englishTermsNote:
-    "reels, trend, goal, mindset, content, creator, AI, brand, growth, engagement, startup, marketing, tool, app, feature, launch, audience, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, video, blog",
+    "reels, trend, goal, mindset, content, creator, AI, brand, growth, engagement, startup, marketing, tool, app, feature, launch, audience, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, video, blog. Loanwords in Odia script when natural for fast mobile read: ଆପ୍, ଟୁଲ୍, ସାସ୍ (SaaS), ଫଣ୍ଡିଂ, ଆଇଡିଆ, ସେଟଅପ୍, ଟିମ୍, ଗୋଲ୍ (avoid forced Sanskrit when young pros use the loanword)",
   commonNativeWords: "କରିବା, ହେବା, ଶିଖିବା, ବହୁତ, କିନ୍ତୁ, କାରଣ, ଖୁସି, ସମୟ, କାମ, ଜୀବନ, ମୁଁ, ତୁମେ, ଆମେ, ସବୁଠାରୁ, ଆଗରୁ, ପରେ, ବର୍ତ୍ତମାନ, ଭାଇ, ବନ୍ଧୁ",
   scriptExamples: {
     correct: [
@@ -21,6 +21,8 @@ export const ODIA_CONFIG: RegionalLanguageConfig = {
     wrong: [
       "Startup life re eha bahut important (Romanized — use Odia script!)",
       "ଆରମ୍ଭିକ ଜୀବନରେ ଏହା ଅତ୍ୟନ୍ତ ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ (over-formal literary Odia)",
+      "Word-for-word English→Odia that sounds like a newspaper headline (NOT natural spoken/written LinkedIn Odia)",
+      "Sahitya/newspaper Odia on X — threads must sound like young Odia pros, not formal literature",
     ],
   },
   culturalContext: `DEFAULT VOICE — Simple everyday Odia words in Odia script; conversational, emotional, motivating — like popular Odia quotes pages on Instagram. Adapt feeling to Odia life: family, struggle, small-town dreams, life in Odisha, Odias in Bengaluru — NOT literal English translation.
@@ -73,7 +75,7 @@ NEVER start two outputs the same way. Rotate:
   fewShotExamples: `
 FEW-SHOT (style reference — NEVER copy verbatim):
 
-✅ GOOD — LinkedIn:
+✅ GOOD — LinkedIn (native rewrite, not literal translation; short lines; ଆପଣ):
 "Product ବନାଇବାରେ ସବୁଠାରୁ ବଡ trap: 'ଆଉ ଗୋଟେ feature add କରିଦେବା' 🚀
 
 3 ବର୍ଷ SaaS build କରିବା ପରେ ବୁଝିଲି — customers ଙ୍କୁ features ଦରକାର ନାହିଁ, problem solve ଦରକାର.
@@ -81,6 +83,10 @@ FEW-SHOT (style reference — NEVER copy verbatim):
 ଆପଣଙ୍କ team ରେ ଏପରି feature ଅଛି କି?
 
 #SaaS #StartupIndia #OdishaRising"
+
+✅ GOOD — LinkedIn (metaphor / idea: express feeling in Odia, not English idiom pasted):
+English prompt idea: "AI is a game-changer for solo creators."
+→ Odia-style: "ଏକା creator ମାନଙ୍କ ପାଇଁ AI ଏବେ ନିଜ କାମର ଗତି ବଢ଼ାଇବାର ବଡ ବାଟ — ଯିଏ ବୁଝିଲା, ସେ ଆଗୁଆ ରହିଲା." (not: "AI ହେଉଛି ଗେମ୍-ଚେଞ୍ଜର୍" unless brief wants that exact buzzword in Latin)
 
 ✅ GOOD — Instagram:
 "Gym ଯିବା easy 💪
@@ -102,6 +108,13 @@ Agree karuchha? Comment re kahantu.
 ✅ GOOD — WhatsApp Status:
 "Content ବନାଇବା ଠାରୁ distribute କରିବା important. ଗୋଟେ ଭଲ post 5 platforms ରେ ଦେ 💡"
 
+✅ GOOD — X / Twitter thread (each tweet ≤280 chars; hook ends with 🧵; 1/5, 2/5 …):
+"1/5
+ଗୋଟେ ଭୁଲ୍ — ଅଧିକାଂଶ creator ଏହା କରନ୍ତି 🧵
+
+2/5
+Content ବହୁତ ବନାନ୍ତି, କିନ୍ତୁ distribute ପ୍ଲାନ୍ ନାହିଁ…"
+
 ❌ BAD:
 - "ଆମେ ଆପଣଙ୍କୁ ଜଣାଉଛୁ..." → stiff formal
 - "Mu shikhili ki bahut important" → Romanized — use Odia script
@@ -109,8 +122,21 @@ Agree karuchha? Comment re kahantu.
 - More than ~20% English in a caption unless brief asks for tech/business-heavy tone`,
 
   platformBlocks: {
-    linkedin: `ODIA + LINKEDIN:
-- Hook in Odianglish; ଆପଣ-based. Short paragraphs; 5–7 hashtags.`,
+    linkedin: `ODIA + LINKEDIN (expert native copy — optimize for scroll + professional Odia):
+
+CORE: Rewrite for meaning, emotion, and context — NEVER word-for-word English translation. Target ~9.5/10 natural fluency: how Odia professionals actually talk/write to each other, not newspaper-style or heavily Sanskritized Odia unless the brief demands formal register.
+
+TONE: Conversational, modern, everyday Odia. Avoid stiff "translationese" and overly formal literary phrasing unless asked.
+
+METAPHORS / IDIOMS: If the source uses English metaphors ("game-changer", "level up", "AI monster"), find Odia cultural phrasing OR express the same feeling (fear, excitement, power, urgency) in natural Odia — do not paste English idioms literally.
+
+FORMATTING: Short, punchy sentences. Use line breaks for white space and scannability. Emojis: optional and natural; do not overload.
+
+LOANWORDS: Common tech/business terms may appear in Odia script (e.g. ଟୁଲ୍, ଆଇଡିଆ, ସେଟଅପ୍) or Latin when industry-standard — choose whichever reads smoother for professionals on LinkedIn.
+
+ADDRESS: Default ଆପଣ / ଆପଣମାନେ for LinkedIn; ମୁଁ/ମୋର for first-person story.
+
+ENDINGS: Question or comment prompt (e.g. experience, comments). 5–7 relevant hashtags.`,
     instagram: `ODIA + INSTAGRAM (captions / Reels):
 - Default: simple everyday Odia script; ~10–20% English (reels, trend, goal, mindset, etc.) when it sounds modern — not heavy English.
 - Tone: conversational, emotional, motivating — like popular Odia quotes pages on Instagram.
@@ -119,8 +145,23 @@ Agree karuchha? Comment re kahantu.
 - Then ONE line: 5–10 hashtags mixing Odia + English (#odia #odiaquotes #odialife #Odisha #reels #motivation style).
 - Length: 1–4 short lines; ≤220 characters unless user asks long format.
 - If user asks for 3 variants: (A) pure Odia script, (B) Odia + natural English mix, (C) Roman Odia only. Otherwise output one caption without meta-commentary.`,
-    twitter: `ODIA + X:
-- Thread: numbered, <280 chars. Single: <260 chars.`,
+    twitter: `ODIA + X / TWITTER (ghostwriter — viral thread style):
+
+HOOK (tweet 1): Maximum curiosity, bold claim, or sharp pain point. End tweet 1 with 🧵.
+
+THREAD BODY: One clear idea per tweet. Number every tweet (e.g. 1/5 … 5/5 at start or end). Logical flow.
+
+TONE: Crisp, modern, conversational Odia — how young Odia professionals actually talk. NO formal Sahitya/literary Odia, NO newspaper-style translation voice.
+
+ENGLISH: Blend tech/business loanwords in Odia script smoothly (ଆପ୍, ଟୁଲ୍, ସାସ୍, ଫଣ୍ଡିଂ, etc.) for speed and authenticity.
+
+HARDCAP: EVERY tweet must be strictly ≤280 characters (including numbering and 🧵).
+
+FORMATTING: Generous line breaks inside a tweet for mobile skim — short lines, white space.
+
+NO LITERAL IDIOMS: Capture vibe/meaning from English prompts; express in natural Odia phrasing.
+
+SINGLE TWEET (non-thread): Same voice; stay under 280 chars; punchy hook.`,
     facebook: `ODIA + FACEBOOK:
 - Warm community tone; comment prompt at end.`,
     whatsapp: `ODIA + WHATSAPP STATUS:
@@ -135,12 +176,20 @@ Agree karuchha? Comment re kahantu.
 
   platformOverrides: {
     linkedin: `ODIA-SPECIFIC LINKEDIN:
-- ମୁଁ/ମୋର is natural. End with: "ଆପଣଙ୍କ ଅନୁଭବ କ'ଣ?", "Comments ରେ କୁହନ୍ତୁ"`,
+- ମୁଁ/ମୋର is natural for founder/operator story. Reader: ଆପଣଙ୍କୁ / ଆପଣମାନେ.
+- End with engagement: "ଆପଣଙ୍କ ଅନୁଭବ କ'ଣ?", "Comments ରେ କୁହନ୍ତୁ", "ଏଥିରେ ଆପଣ କ'ଣ ଭାବନ୍ତି?"
+- Never output meta-commentary about "how you translated" — only the post text.`,
     instagram: `ODIA-SPECIFIC INSTAGRAM:
 - Soft CTAs: "Agree karuchha? Comment re kahantu.", "Comment re ତୁମେ ଭାବ କୁହନ୍ତୁ", "Save କର", "Share କର ଯିଏ ଦରକାର"
 - Motivational closings — not corporate`,
     tiktok: `ODIA-SPECIFIC TIKTOK:
 - Hooks: "ଶୁଣ ଏହା", "ଅଟକ ଟିକେ", "ଏହା ଦେଖ ଆଗରୁ"`,
+    twitter_thread: `ODIA X — THREADS:
+- Tweet 1 = hook + 🧵 mandatory when output is a thread.
+- Numbering 1/N … N/N non-negotiable for multi-tweet output.
+- Validate each segment ≤280 chars before finalizing.`,
+    twitter_single: `ODIA X — SINGLE:
+- One shot: hook + value; ≤280 chars; same crisp young-pro Odia voice as threads.`,
   },
 
   qcRules: `
@@ -149,7 +198,8 @@ ODIA/ODIANGLISH QUALITY RULES:
 - NEVER use Kannada (ಕನ್ನಡ), Telugu, Bengali, or Gurmukhi letters for Odia — they are different scripts; mixing them is a CRITICAL FAIL.
 - Code-switching: default ~10–20% English for modern social captions; English tech terms OK; avoid translation-only output — write for Odia emotion and culture.
 - Must sound like a real Odia creator.
-- LinkedIn = ଆପଣ professional. Instagram motivational = ତୁମେ/ତୁମେମାନେ + quotes-page warmth.
+- LinkedIn: native rewrite bar — no literal English line-by-line; conversational professional Odia; metaphors adapted; loanwords in Odia script OK when natural. Instagram motivational = ତୁମେ/ତୁମେମାନେ + quotes-page warmth.
+- X/Twitter threads: hook + 🧵 on first tweet; numbered 1/N; each tweet ≤280 chars; no literary/formal Odia; loanwords in Odia script OK; heavy line breaks for mobile.
 - Do not explain prompt choices in the output unless the user asks.
 - VARIANTS (when requested): A = pure Odia script; B = Odia + light English; C = Roman Odia (Latin letters).`,
 
@@ -157,6 +207,8 @@ ODIA/ODIANGLISH QUALITY RULES:
 ODIA OUTPUT CONTEXT:
 - The brief will generate Odianglish content in Odia script — NOT Kannada, NOT Telugu.
 - Preserve Odia idioms, cultural references (Jagannath, Rath Yatra, ପଖାଳ).
+- LinkedIn: prioritize natural Odia fluency over English structure — translate intent, not wording.
+- X: thread = one idea per segment; never exceed 280 characters per tweet in the output.
 - Keep JSON keys in English. Values can be in Odianglish.`,
 
   photoCaptionHint: `Natural Odia-first captions — simple words, emotional tone, ତୁମେ address when fitting.
