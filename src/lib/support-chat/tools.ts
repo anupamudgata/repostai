@@ -21,8 +21,12 @@ export function buildSupportChatTools(ctx: {
           .string()
           .optional()
           .describe("Short reason, e.g. user_requested_human, billing_dispute, technical_unresolved"),
+        urgency: z
+          .enum(["low", "medium", "high"])
+          .optional()
+          .describe("How urgent this feels: billing/security → high; general help → medium; FYI → low"),
       }),
-      execute: async ({ reason }) => {
+      execute: async ({ reason, urgency }) => {
         const { supabase, sessionId, userId, userEmail } = ctx;
 
         const { data: rows } = await supabase
@@ -32,6 +36,8 @@ export function buildSupportChatTools(ctx: {
           .order("created_at", { ascending: true });
 
         const transcript_snapshot = rows ?? [];
+        const transcript = JSON.stringify(transcript_snapshot);
+        const urgencyLevel = urgency ?? "medium";
 
         const { data: ticketRow, error: ticketError } = await supabase
           .from("support_tickets")
@@ -40,8 +46,10 @@ export function buildSupportChatTools(ctx: {
             session_id: sessionId,
             reason: reason ?? "ai_escalation",
             transcript_snapshot,
+            transcript,
+            urgency: urgencyLevel,
             user_email: userEmail,
-            status: "open",
+            status: "needs_human",
           })
           .select("id")
           .single();
