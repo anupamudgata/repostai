@@ -254,43 +254,87 @@ export function SupportChatWidget() {
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<SessionPayload | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /** Bumps when user hits Retry so we refetch without toggling `open`. */
+  const [sessionRetryKey, setSessionRetryKey] = useState(0);
 
   /** Open panel + no payload yet + no error ⇒ session fetch in progress (avoids setState in effect). */
   const loadingSession = open && !session && !loadError;
 
   useEffect(() => {
-    if (!open || session || loadError) return;
+    if (!open) return;
+
     let cancelled = false;
-    fetch("/api/support/chat/session", { credentials: "include" })
+    const ac = new AbortController();
+    const timeoutMs = 25_000;
+    const tid = setTimeout(() => ac.abort(), timeoutMs);
+
+    fetch("/api/support/chat/session", {
+      credentials: "include",
+      signal: ac.signal,
+    })
       .then(async (r) => {
+        const text = await r.text();
+        let j: unknown;
+        try {
+          j = text ? JSON.parse(text) : {};
+        } catch {
+          throw new Error("Invalid response from server");
+        }
         if (!r.ok) {
-          const j = await r.json().catch(() => ({}));
-          throw new Error((j as { error?: string }).error || "Could not load chat");
+          const msg =
+            (j as { error?: string }).error ||
+            (r.status === 401
+              ? "Sign in to use support chat."
+              : "Could not load chat");
+          throw new Error(msg);
         }
-        return r.json() as Promise<SessionPayload>;
-      })
-      .then((j) => {
-        if (!cancelled) {
-          setSession({
-            sessionId: j.sessionId,
-            status: j.status,
-            messages: j.messages,
-            supportChatAvailable: j.supportChatAvailable !== false,
-          });
+        const data = j as Partial<SessionPayload>;
+        if (!data.sessionId || typeof data.sessionId !== "string") {
+          throw new Error("Could not start support session (missing session id). Is the chat migration applied?");
         }
+        return {
+          sessionId: data.sessionId,
+          status: typeof data.status === "string" ? data.status : "open",
+          messages: Array.isArray(data.messages) ? data.messages : [],
+          supportChatAvailable: data.supportChatAvailable !== false,
+        } satisfies SessionPayload;
       })
-      .catch((e: Error) => {
-        if (!cancelled) setLoadError(e.message);
+      .then((payload) => {
+        if (!cancelled) setSession(payload);
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return;
+        const err = e instanceof Error ? e : new Error(String(e));
+        if (err.name === "AbortError") {
+          setLoadError(
+            `Request timed out after ${timeoutMs / 1000}s. Check your network and that Supabase env vars are set.`
+          );
+          return;
+        }
+        setLoadError(err.message || "Could not load chat");
+      })
+      .finally(() => {
+        clearTimeout(tid);
       });
+
     return () => {
       cancelled = true;
+      ac.abort();
+      clearTimeout(tid);
     };
-  }, [open, session, loadError]);
+  }, [open, sessionRetryKey]);
 
   const close = () => {
     setOpen(false);
     setSession(null);
     setLoadError(null);
+  };
+
+  const openPanel = () => {
+    setSession(null);
+    setLoadError(null);
+    setSessionRetryKey((k) => k + 1);
+    setOpen(true);
   };
 
   return (
@@ -315,7 +359,15 @@ export function SupportChatWidget() {
           {loadError && !loadingSession && (
             <div className="flex h-48 w-[min(100vw-1.5rem,400px)] flex-col items-center justify-center gap-2 rounded-2xl border bg-card px-4 text-center text-sm text-muted-foreground">
               {loadError}
-              <Button type="button" size="sm" variant="outline" onClick={() => setLoadError(null)}>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setLoadError(null);
+                  setSessionRetryKey((k) => k + 1);
+                }}
+              >
                 Retry
               </Button>
             </div>
@@ -333,7 +385,7 @@ export function SupportChatWidget() {
       )}
       <Button
         type="button"
-        onClick={() => (open ? close() : setOpen(true))}
+        onClick={() => (open ? close() : openPanel())}
         className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition hover:scale-[1.02] active:scale-[0.98]"
         aria-expanded={open}
         aria-haspopup="dialog"

@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Inter, Noto_Sans_Devanagari } from "next/font/google";
+import {
+  Inter,
+  Noto_Sans_Bengali,
+  Noto_Sans_Devanagari,
+  Noto_Sans_Gurmukhi,
+  Noto_Sans_Kannada,
+  Noto_Sans_Oriya,
+  Noto_Sans_Telugu,
+} from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { I18nProvider } from "@/contexts/i18n-provider";
@@ -23,10 +31,50 @@ const inter = Inter({
 });
 
 const notoSansDevanagari = Noto_Sans_Devanagari({
-  subsets: ["devanagari"],
+  subsets: ["devanagari", "latin", "latin-ext"],
   variable: "--font-noto-devanagari",
   display: "swap",
 });
+
+const notoSansBengali = Noto_Sans_Bengali({
+  subsets: ["bengali", "latin", "latin-ext"],
+  variable: "--font-noto-bengali",
+  display: "swap",
+});
+
+const notoSansKannada = Noto_Sans_Kannada({
+  subsets: ["kannada", "latin", "latin-ext"],
+  variable: "--font-noto-kannada",
+  display: "swap",
+});
+
+const notoSansGurmukhi = Noto_Sans_Gurmukhi({
+  subsets: ["gurmukhi", "latin", "latin-ext"],
+  variable: "--font-noto-gurmukhi",
+  display: "swap",
+});
+
+const notoSansTelugu = Noto_Sans_Telugu({
+  subsets: ["telugu", "latin", "latin-ext"],
+  variable: "--font-noto-telugu",
+  display: "swap",
+});
+
+const notoSansOriya = Noto_Sans_Oriya({
+  subsets: ["oriya", "latin", "latin-ext"],
+  variable: "--font-noto-oriya",
+  display: "swap",
+});
+
+const fontVariables = [
+  inter.variable,
+  notoSansDevanagari.variable,
+  notoSansBengali.variable,
+  notoSansKannada.variable,
+  notoSansGurmukhi.variable,
+  notoSansTelugu.variable,
+  notoSansOriya.variable,
+] as const;
 
 const CATALOG: Record<Locale, Messages> = { en, hi };
 
@@ -71,12 +119,14 @@ export default async function RootLayout({
   const messages = CATALOG[locale];
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html
+      lang={locale}
+      className={cn(...fontVariables, locale === "hi" && "locale-hi")}
+      suppressHydrationWarning
+    >
       <body
         className={cn(
-          inter.variable,
-          notoSansDevanagari.variable,
-          locale === "hi" ? "font-app-hi" : inter.className,
+          locale === "hi" ? "font-app-hi" : "font-app-en",
           "antialiased"
         )}
         suppressHydrationWarning
