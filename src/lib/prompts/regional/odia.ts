@@ -6,10 +6,11 @@ export const ODIA_CONFIG: RegionalLanguageConfig = {
   nativeName: "ଓଡ଼ିଆ",
   script: "Odia",
   mixName: "Odianglish",
-  codeSwitchRatio: "~55% Odia / ~45% English",
+  codeSwitchRatio: "~80–90% Odia script / ~10–20% English (modern words only when natural)",
   formalPronoun: "ଆପଣ",
-  casualPronoun: "ତୁ/ତୁମେ",
-  englishTermsNote: "startup, content, marketing, AI, tool, app, brand, growth, ROI, sales, product, feature, launch, audience, engagement, creator, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, video, blog",
+  casualPronoun: "ତୁମେ (default reader “you”), ତୁମେମାନେ (plural); ତୁ/ଭାଇ only when very casual",
+  englishTermsNote:
+    "reels, trend, goal, mindset, content, creator, AI, brand, growth, engagement, startup, marketing, tool, app, feature, launch, audience, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, video, blog",
   commonNativeWords: "କରିବା, ହେବା, ଶିଖିବା, ବହୁତ, କିନ୍ତୁ, କାରଣ, ଖୁସି, ସମୟ, କାମ, ଜୀବନ, ମୁଁ, ତୁମେ, ଆମେ, ସବୁଠାରୁ, ଆଗରୁ, ପରେ, ବର୍ତ୍ତମାନ, ଭାଇ, ବନ୍ଧୁ",
   scriptExamples: {
     correct: [
@@ -22,7 +23,11 @@ export const ODIA_CONFIG: RegionalLanguageConfig = {
       "ଆରମ୍ଭିକ ଜୀବନରେ ଏହା ଅତ୍ୟନ୍ତ ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ (over-formal literary Odia)",
     ],
   },
-  culturalContext: `CULTURAL AUTHENTICITY — Think like a popular Odia creator:
+  culturalContext: `DEFAULT VOICE — Simple everyday Odia words in Odia script; conversational, emotional, motivating — like popular Odia quotes pages on Instagram. Adapt feeling to Odia life: family, struggle, small-town dreams, life in Odisha, Odias in Bengaluru — NOT literal English translation.
+
+ADDRESS: Prefer ତୁମେ / ତୁମେମାନେ for motivational/caption style; ଆପଣ when professional/formal surface demands it.
+
+CULTURAL AUTHENTICITY — Think like a popular Odia creator:
 
 1) CULTURAL REFERENCES:
    - Odisha: Jagannath Puri pride, Konark Sun Temple, Chilika Lake beauty, Bhubaneswar modern city
@@ -85,19 +90,35 @@ Save କର 📌
 
 #FitnessMotivation #OdiaCreator"
 
+✅ GOOD — Instagram motivational / quotes-page style (structure: hook → 2–3 lines emotion/story → soft Odia CTA → one hashtag line):
+"AI ରେ content ବଢ଼ିଗଲେ ମଧ୍ୟ ତୁମେ କିପରି ଆଲଗା ରହିବ?
+
+ହାର ମାନିବା ନାହିଁ — ନିଜ ଗପ କୁ ବିଶ୍ୱାସ କର. ଛୋଟ ସହର ସ୍ଵପ୍ନ ମଧ୍ୟ ବଡ଼ ହୋଇପାରେ.
+
+Agree karuchha? Comment re kahantu.
+
+#odia #odiaquotes #odialife #Odisha #reels #motivation"
+
 ✅ GOOD — WhatsApp Status:
 "Content ବନାଇବା ଠାରୁ distribute କରିବା important. ଗୋଟେ ଭଲ post 5 platforms ରେ ଦେ 💡"
 
 ❌ BAD:
 - "ଆମେ ଆପଣଙ୍କୁ ଜଣାଉଛୁ..." → stiff formal
-- "Mu shikhili ki bahut important" → Romanized — use Odia script`,
+- "Mu shikhili ki bahut important" → Romanized — use Odia script
+- Word-for-word translation from English with no Odia emotional rhythm
+- More than ~20% English in a caption unless brief asks for tech/business-heavy tone`,
 
   platformBlocks: {
     linkedin: `ODIA + LINKEDIN:
 - Hook in Odianglish; ଆପଣ-based. Short paragraphs; 5–7 hashtags.`,
-    instagram: `ODIA + INSTAGRAM:
-- Energetic Odia hook. Structure: [HOOK] → [Story/value] → [CTA: Save କର/Share କର/Comment ରେ କହ].
-- 8–15 hashtags. Casual ତୁ/ତୁମେ tone.`,
+    instagram: `ODIA + INSTAGRAM (captions / Reels):
+- Default: simple everyday Odia script; ~10–20% English (reels, trend, goal, mindset, etc.) when it sounds modern — not heavy English.
+- Tone: conversational, emotional, motivating — like popular Odia quotes pages on Instagram.
+- Address reader as ତୁମେ or ତୁମେମାନେ by context.
+- Structure: Line 1 = strong hook (question or bold line). Lines 2–3 = support, emotion, mini story. Last line = soft Odia CTA (e.g. “Agree karuchha? Comment re kahantu.” / “Comment re ତୁମେ ଭାବ କୁହନ୍ତୁ”).
+- Then ONE line: 5–10 hashtags mixing Odia + English (#odia #odiaquotes #odialife #Odisha #reels #motivation style).
+- Length: 1–4 short lines; ≤220 characters unless user asks long format.
+- If user asks for 3 variants: (A) pure Odia script, (B) Odia + natural English mix, (C) Roman Odia only. Otherwise output one caption without meta-commentary.`,
     twitter: `ODIA + X:
 - Thread: numbered, <280 chars. Single: <260 chars.`,
     facebook: `ODIA + FACEBOOK:
@@ -116,18 +137,21 @@ Save କର 📌
     linkedin: `ODIA-SPECIFIC LINKEDIN:
 - ମୁଁ/ମୋର is natural. End with: "ଆପଣଙ୍କ ଅନୁଭବ କ'ଣ?", "Comments ରେ କୁହନ୍ତୁ"`,
     instagram: `ODIA-SPECIFIC INSTAGRAM:
-- CTA: "Save କର", "Tag କର", "Comment ରେ କହ"`,
+- Soft CTAs: "Agree karuchha? Comment re kahantu.", "Comment re ତୁମେ ଭାବ କୁହନ୍ତୁ", "Save କର", "Share କର ଯିଏ ଦରକାର"
+- Motivational closings — not corporate`,
     tiktok: `ODIA-SPECIFIC TIKTOK:
 - Hooks: "ଶୁଣ ଏହା", "ଅଟକ ଟିକେ", "ଏହା ଦେଖ ଆଗରୁ"`,
   },
 
   qcRules: `
 ODIA/ODIANGLISH QUALITY RULES:
-- Odia script consistency: Odia words MUST be in Odia script. Romanized = CRITICAL FAIL.
+- Odia script consistency: Odia words MUST be in Odia script. Romanized = CRITICAL FAIL (except when user explicitly requests Variant C Roman Odia).
 - NEVER use Kannada (ಕನ್ನಡ), Telugu, Bengali, or Gurmukhi letters for Odia — they are different scripts; mixing them is a CRITICAL FAIL.
-- Code-switching: English tech terms OK, full English sentences = FAIL.
+- Code-switching: default ~10–20% English for modern social captions; English tech terms OK; avoid translation-only output — write for Odia emotion and culture.
 - Must sound like a real Odia creator.
-- LinkedIn = ଆପଣ professional. Instagram = casual ତୁ/ତୁମେ.`,
+- LinkedIn = ଆପଣ professional. Instagram motivational = ତୁମେ/ତୁମେମାନେ + quotes-page warmth.
+- Do not explain prompt choices in the output unless the user asks.
+- VARIANTS (when requested): A = pure Odia script; B = Odia + light English; C = Roman Odia (Latin letters).`,
 
   extractorGuard: `
 ODIA OUTPUT CONTEXT:
@@ -135,7 +159,8 @@ ODIA OUTPUT CONTEXT:
 - Preserve Odia idioms, cultural references (Jagannath, Rath Yatra, ପଖାଳ).
 - Keep JSON keys in English. Values can be in Odianglish.`,
 
-  photoCaptionHint: `Natural Odianglish — write like Odia creators post.
-- Odia words in Odia script. English tech terms stay Latin.
-- Use Odia cultural refs: Jagannath, Puri, ପଖାଳ, Rath Yatra.`,
+  photoCaptionHint: `Natural Odia-first captions — simple words, emotional tone, ତୁମେ address when fitting.
+- Odia words in Odia script; mix ~10–20% English (reels, trend, goal, mindset) when natural.
+- Hook line + 2–3 feeling lines + soft CTA + hashtags; ≤220 chars for short Instagram unless long requested.
+- Use Odia cultural refs: Jagannath, Puri, ପଖାଳ, Rath Yatra, family, small-town dreams, Odisha–Bengaluru life.`,
 };

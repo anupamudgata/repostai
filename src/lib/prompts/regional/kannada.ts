@@ -16,6 +16,7 @@ export const KANNADA_CONFIG: RegionalLanguageConfig = {
       "Startup life ಅಲ್ಲಿ ಇದು ತುಂಬಾ important",
       "ನಾನು ಕಲಿತೆ — customers ಗೆ features ಬೇಡ, solution ಬೇಕು",
       "Content create ಮಾಡೋದು easy, ಆದರೆ consistent ಆಗಿರೋದು — ಅದೇ real game",
+      "2026 ರಲ್ಲಿ AI content flood ನಲ್ಲಿ survive ಆಗೋದು ಹೇಗೆ? Content create easy — ಆದರೆ daily consistency ಅದೇ real challenge",
     ],
     wrong: [
       "Startup life alli idu tumba important (Romanized — use Kannada script!)",
@@ -93,9 +94,23 @@ Save ಮಾಡಿಕೊ 📌
 ✅ GOOD — WhatsApp Status:
 "Content create ಮಾಡೋದಕ್ಕಿಂತ distribute ಮಾಡೋದು important. ಒಂದು ಒಳ್ಳೆ post 5 platforms ಅಲ್ಲಿ ಹಾಕು 💡"
 
+✅ GOOD — Trend / AI + creators (Instagram or LinkedIn short):
+"2026 ರಲ್ಲಿ AI content flood ನಲ್ಲಿ survive ಆಗೋದು ಹೇಗೆ? 🤔
+
+Content create ಮಾಡೋದು ಈಗ easy. ಆದರೆ daily consistency maintain ಮಾಡೋದು ಅದೇ real challenge.
+
+ನಿಮ್ಮ unique voice ಕಾಪಾಡ್ಕೊಂಡು, audience ಜೊತೆ strong connect build ಮಾಡಿ, content quality improve ಮಾಡ್ಬೇಕು.
+
+ನೀವು ಈಗ ಯಾವ strategies use ಮಾಡ್ತಾ ಇದ್ದೀರಾ AI jam ನಲ್ಲಿ standout ಆಗೋಕೆ?
+Commentಲ್ಲಿ share ಮಾಡಿ, ಇತರ creators ಗೆ ಕೂಡ help ಆಗಲಿ! 😊
+
+#ContentCreation #AI #NammaBengaluru"
+
 ❌ BAD:
 - "ನಾವು ನಿಮಗೆ ತಿಳಿಸುತ್ತಿದ್ದೇವೆ..." → stiff formal
-- "Naanu kalithe ki tumba important" → Romanized — use Kannada script`,
+- "Naanu kalithe ki tumba important" → Romanized — use Kannada script
+- Tamil/Telugu words inside Kannada output (e.g. தான்) — use Kannada particles instead (ಅದೇ, ಅದು, ತಾನೆ)
+- Romanized possessives ("Nimma") — use Kannada script: ನಿಮ್ಮ`,
 
   platformBlocks: {
     linkedin: `KANNADA + LINKEDIN:
@@ -132,7 +147,9 @@ KANNADA/KANGLISH QUALITY RULES:
 - Kannada script consistency: Kannada words MUST be in Kannada script. Romanized = CRITICAL FAIL.
 - Code-switching: English tech terms OK, full English sentences = FAIL.
 - Must sound like a real Kannada/Bangalore creator.
-- LinkedIn = ನೀವು professional. Instagram = casual ನೀನು/ಮಚ್ಚಿ.`,
+- LinkedIn = ನೀವು professional. Instagram = casual ನೀನು/ಮಚ್ಚಿ.
+- For "AI + creator tips" posts: prefer [year/trend hook] → [easy vs hard contrast] → [3-part value] → [question + Comment CTA] → [hashtags including #NammaBengaluru when Bangalore/global-South-India creator tone fits].
+- Do not mix in Tamil or Telugu script/particles unless the brief explicitly asks for multilingual; stay Kanglish (Kannada script + Latin English).`,
 
   extractorGuard: `
 KANNADA OUTPUT CONTEXT:
