@@ -12,9 +12,54 @@ const LANGUAGE_INSTRUCTION: Record<Language, string> = {
   fr: "Write entirely in French. Use modern, conversational French — natural tone, not overly formal or literary.",
 };
 
+const HINDI_PLATFORM_OVERRIDES: Partial<Record<Platform, string>> = {
+  linkedin: `HINDI-SPECIFIC LINKEDIN RULES (override English defaults where they conflict):
+- "Never start with I" does NOT apply — Hindi first-person "मैंने" or "मेरा" is natural
+- End with Hindi engagement: "आपका अनुभव क्या रहा?", "Comments में बताइए", "क्या आप agree करते हैं?" — NOT "What do you think?"
+- Use आप-based professional Hinglish, not stiff Shuddh Hindi
+- Indian professional references > Western ones (IIT/IIM, Infosys, Indian startup ecosystem)`,
+
+  twitter_thread: `HINDI-SPECIFIC X THREAD RULES:
+- Hook tweet must work in Hinglish — punchy, desi flavor
+- "Thread:" or 🧵 is fine in English; numbering "2/", "3/" stays
+- Mix conversational Hindi connectors: "बात ये है", "सबसे बड़ी बात", "अब ध्यान से सुनो"`,
+
+  twitter_single: `HINDI-SPECIFIC SINGLE TWEET:
+- Under 260 chars including Devanagari (Devanagari chars count as 1 each on Twitter)
+- Punchy Hinglish one-liner: observation, hot take, or witty remark
+- Indian context when natural: "Monday morning metro vibes" → "Monday सुबह metro में ये realisation आई"`,
+
+  instagram: `HINDI-SPECIFIC INSTAGRAM:
+- CTA in Hindi: "Save करो", "Tag करो उस दोस्त को", "Comment में बताओ" — NOT English CTAs
+- Hashtags: mix Hindi + English (#HindiContent #CreatorLife #SocialMedia #ContentCreator)
+- Emojis as Hinglish bullets work well; casual तुम/यार tone for relatability`,
+
+  reddit: `HINDI-SPECIFIC REDDIT:
+- Title formulas in Hinglish: "X साल Y करने के बाद ये सीखा" or "Unpopular opinion: [Hindi hot take]"
+- "Happy to answer questions" → "कुछ पूछना हो तो बताओ" or just end naturally
+- Value-first, no marketing voice — just sound like a helpful desi Redditor`,
+
+  tiktok: `HINDI-SPECIFIC TIKTOK SCRIPT:
+- Spoken Hinglish: "सुनो ये ज़रूरी है", "रुको ज़रा", "ये देखो पहले"
+- Hooks: "कोई नहीं बोलता ये...", "ये सुनो पहले...", "3 seconds दो, फिर scroll करना"
+- End CTA: "Follow करो", "Save करो", "Comment में बताओ" — Hindi verbal CTAs`,
+
+  whatsapp_status: `HINDI-SPECIFIC WHATSAPP:
+- Ultra short: 3-5 lines max, texting-a-friend vibe
+- "DM करो", "Forward करो", "बताओ तुम्हारा experience" — Hindi micro-CTAs
+- Zero hashtags, zero links, zero formatting — just punchy Hinglish text`,
+
+  email: `HINDI-SPECIFIC EMAIL:
+- Subject line can be Hinglish: curiosity gap in mixed script
+- "Hi [Name]," is fine — then switch to warm Hinglish
+- Avoid "आशा है यह ईमेल आपको अच्छा लगे" — just start with the hook
+- CTA: "Reply करो", "इस link पर जाओ" — natural Hinglish`,
+};
+
 function languageFooter(platform: Platform, language: Language): string {
   if (language === "hi") {
-    return `${getHindiStreamLanguageInstruction()}${getHindiPlatformSupplementForStream(platform)}`;
+    const override = HINDI_PLATFORM_OVERRIDES[platform] ?? "";
+    return `${getHindiStreamLanguageInstruction()}${getHindiPlatformSupplementForStream(platform)}${override ? `\n\n${override}` : ""}`;
   }
   return LANGUAGE_INSTRUCTION[language];
 }
@@ -264,7 +309,8 @@ YOUR TASK: Write a TikTok video script (talking-head / voiceover style).
 
 CRITICAL RULES:
 1. HOOK (first 2 lines): Pattern interrupt that makes people STOP SCROLLING.
-   Good hooks: "Nobody talks about this..." / "Stop scrolling if you..." / "I tried X for 6 months — here's what happened" / "This one thing changed everything"
+   Good hooks (English): "Nobody talks about this..." / "Stop scrolling if you..." / "I tried X for 6 months — here's what happened"
+   Good hooks (Hinglish): "कोई नहीं बोलता ये..." / "रुको, ये सुनो पहले..." / "मैंने 6 महीने ये try किया — result देखो"
 2. BODY: MAX 5-7 short sentences. One idea per line. Say it out loud — if it takes more than 45-60 seconds, it's too long.
 3. Use [TEXT ON SCREEN: ...] for key visual overlays (2-3 max).
 4. Use [PAUSE] sparingly for dramatic effect (1-2 max).
@@ -304,8 +350,10 @@ CRITICAL RULES:
 9. Think: what would make someone screenshot this and send it to a friend?
 
 EXAMPLES OF GOOD WhatsApp Status:
-- "AI se ek blog post 9 platform-ready posts mein convert ho gayi. 60 seconds. Maine khud try kiya 🤯 DM karo agar tumhe bhi chahiye"
-- "6 months ki building se ek lesson: perfect ka wait mat karo, ship karo. Baaki sab feedback se aata hai."
+- "AI से एक blog post 9 platforms के लिए ready हो गई। 60 seconds में। मैंने खुद try किया 🤯 DM करो अगर तुम्हें भी चाहिए"
+- "6 महीने की building से एक lesson: perfect का wait मत करो, ship करो। बाकी सब feedback से आता है।"
+
+IMPORTANT: If outputting Hindi/Hinglish, ALL Hindi words MUST be in Devanagari script. This applies to examples too. Never use Romanized Hindi (e.g. "maine" → "मैंने").
 
 ${languageFooter("whatsapp_status" as Platform, language)}
 

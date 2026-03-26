@@ -15,6 +15,7 @@ import {
   buildInstagramPrompt, buildFacebookPrompt, buildRedditPrompt, buildEmailPrompt,
   buildTikTokPrompt, buildWhatsAppStatusPrompt,
 } from "@/lib/ai/prompts/platforms";
+import { getHindiStreamSystemPrompt, getHindiPlatformSupplementForStream } from "@/lib/prompts/hindi";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
 
 const CLAUDE_HINDI_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
@@ -67,12 +68,21 @@ async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrie
   const anthropic = getAnthropicClient();
   if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
   const promptBuilders = getPromptBuilders(brief, voice, language);
+
+  const hindiSystemPrompt = language === "hi"
+    ? `${SYSTEM_MSG}\n\n${getHindiStreamSystemPrompt()}`
+    : SYSTEM_MSG;
+
+  const userPrompt = language === "hi"
+    ? `${promptBuilders[platform]()}${getHindiPlatformSupplementForStream(platform)}`
+    : promptBuilders[platform]();
+
   const stream = anthropic.messages.stream({
     model: CLAUDE_HINDI_MODEL,
     max_tokens: 2048,
     temperature: TEMPERATURES[platform],
-    system: SYSTEM_MSG,
-    messages: [{ role: "user", content: promptBuilders[platform]() }],
+    system: hindiSystemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
   });
   for await (const event of stream) {
     if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
@@ -192,7 +202,7 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const brief = await extractBrief(content);
+        const brief = await extractBrief(content, language);
         brief.rawContent = content;
         send({ type: "brief_ready", brief });
 

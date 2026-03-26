@@ -14,6 +14,7 @@ import {
   buildWhatsAppStatusPrompt,
 } from "@/lib/ai/prompts/platforms";
 import { buildBatchQualityCheckerPrompt } from "@/lib/ai/prompts/quality-checker";
+import { getHindiStreamSystemPrompt, getHindiPlatformSupplementForStream } from "@/lib/prompts/hindi";
 import type {
   Platform,
   Language,
@@ -28,10 +29,10 @@ import { captureError } from "@/lib/sentry";
 const MODEL = "gpt-4o-mini";
 const CLAUDE_HINDI_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
 
-export async function extractBrief(content: string): Promise<ContentBrief> {
+export async function extractBrief(content: string, outputLanguage?: string): Promise<ContentBrief> {
   const response = await openai.chat.completions.create({
     model: MODEL, temperature: 0.3,
-    messages: [{ role: "user", content: buildExtractorPrompt(content) }],
+    messages: [{ role: "user", content: buildExtractorPrompt(content, outputLanguage) }],
   });
   const raw = response.choices[0]?.message?.content ?? "{}";
   try {
@@ -92,12 +93,21 @@ async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, v
   const anthropic = getAnthropicClient();
   if (!anthropic) throw new Error("ANTHROPIC_API_KEY not configured");
   const promptBuilders = getPromptBuilders(brief, voice, language);
+
+  const systemPrompt = language === "hi"
+    ? `${SYSTEM_MSG}\n\n${getHindiStreamSystemPrompt()}`
+    : SYSTEM_MSG;
+
+  const userPrompt = language === "hi"
+    ? `${promptBuilders[platform]()}${getHindiPlatformSupplementForStream(platform)}`
+    : promptBuilders[platform]();
+
   const msg = await anthropic.messages.create({
     model: CLAUDE_HINDI_MODEL,
     max_tokens: 2048,
     temperature: TEMPERATURES[platform],
-    system: SYSTEM_MSG,
-    messages: [{ role: "user", content: promptBuilders[platform]() }],
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
   });
   const block = msg.content.find((b) => b.type === "text");
   const raw = block && block.type === "text" ? block.text : "";
@@ -121,7 +131,8 @@ async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: 
 }
 
 async function batchQualityCheck(
-  items: { platform: Platform; output: PlatformOutput }[]
+  items: { platform: Platform; output: PlatformOutput }[],
+  language?: Language
 ): Promise<Map<Platform, { passed: boolean; fixInstruction: string }>> {
   if (items.length === 0) return new Map();
   const promptItems = items.map(({ platform, output }) => ({
@@ -130,7 +141,7 @@ async function batchQualityCheck(
   }));
   const response = await openai.chat.completions.create({
     model: MODEL, temperature: 0.1,
-    messages: [{ role: "user", content: buildBatchQualityCheckerPrompt(promptItems) }],
+    messages: [{ role: "user", content: buildBatchQualityCheckerPrompt(promptItems, language) }],
   });
   const raw = response.choices[0]?.message?.content ?? "{}";
   const map = new Map<Platform, { passed: boolean; fixInstruction: string }>();
@@ -150,7 +161,7 @@ async function batchQualityCheck(
 
 export async function repurposeContent(req: RepurposeRequest): Promise<RepurposeResult> {
   const startTime = Date.now();
-  const brief = await extractBrief(req.content);
+  const brief = await extractBrief(req.content, req.language);
   brief.rawContent = req.content;
 
   let voicePersona: string | null = null;
@@ -178,7 +189,7 @@ export async function repurposeContent(req: RepurposeRequest): Promise<Repurpose
   }
 
   const qcMap = successfulOutputs.length > 0
-    ? await batchQualityCheck(successfulOutputs)
+    ? await batchQualityCheck(successfulOutputs, req.language)
     : new Map<Platform, { passed: boolean; fixInstruction: string }>();
 
   for (const { platform, output: initialOutput } of successfulOutputs) {

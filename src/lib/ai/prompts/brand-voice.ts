@@ -18,7 +18,8 @@ Rules:
 - Write in second person addressed to the downstream model ("Write as someone who…", "Prefer…", "Avoid…").
 - Infer concrete patterns: sentence length, vocabulary register, punctuation habits, use of questions, I/you/we balance, energy (calm vs hype), structure (story vs list vs punchy one-liners), repeated phrases, and clear anti-patterns ("never sounds like a press release").
 - Do not invent biographical facts not supported by the samples. Stay faithful to the text.
-- If samples are short or mixed, say what is uncertain and default to the strongest consistent signals.`;
+- If samples are short or mixed, say what is uncertain and default to the strongest consistent signals.
+- CROSS-LINGUAL GUARD: The downstream model may produce content in Hindi/Hinglish (not just English). When describing this voice, focus on personality, energy, and structural patterns that transfer across languages. Do NOT lock the voice to English-specific idioms or sentence structures. Instead, describe the SPIRIT of the voice (e.g. "punchy, direct, uses humor to make serious points") so it adapts naturally to Hinglish output without sounding like a translation of English writing.`;
 }
 
 function buildPreferencesHint(prefs?: BrandVoicePersonaPreferences): string {

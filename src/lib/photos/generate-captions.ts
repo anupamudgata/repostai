@@ -3,7 +3,7 @@ import { openai } from "@/lib/ai/client";
 import type { AiTier } from "@/lib/billing/plan-entitlements";
 import type { VisionAnalysis } from "@/lib/ai/photo-vision";
 import { buildCaptionBriefFromVision } from "@/lib/ai/photo-vision";
-import { HINDI_PHOTO_CAPTION_HINT } from "@/lib/prompts/hindi";
+import { HINDI_PHOTO_CAPTION_HINT, getHindiPhotoCaptionSystemPrompt } from "@/lib/prompts/hindi";
 
 export type PhotoPostPlatform = "instagram" | "facebook" | "twitter" | "linkedin";
 
@@ -51,8 +51,12 @@ export async function generatePhotoCaptionsForPlatforms(
     )
     .join("\n\n");
 
-  const system = `You write platform-native social captions from a structured image brief.
+  const baseSystem = `You write platform-native social captions from a structured image brief.
 Return valid JSON only. Keys must be exactly the platform ids requested. Values are plain caption strings only (no markdown).`;
+
+  const system = outputLanguage === "hi"
+    ? `${baseSystem}\n\n${getHindiPhotoCaptionSystemPrompt()}`
+    : baseSystem;
 
   const user = `${langNote}
 
@@ -77,6 +81,7 @@ Return a JSON object like: {"instagram":"...","facebook":"..."} with only these 
         const msg = await client.messages.create({
           model,
           max_tokens: 4096,
+          temperature: useClaudeForHindi ? 0.75 : undefined,
           system,
           messages: [{ role: "user", content: user }],
         });

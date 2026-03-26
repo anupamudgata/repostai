@@ -109,6 +109,7 @@ export async function repurposeContentClaude(
   const msg = await client.messages.create({
     model,
     max_tokens: 8192,
+    temperature: outputLanguage === "hi" ? 0.75 : undefined,
     system: SYSTEM_JSON,
     messages: [{ role: "user", content: prompt }],
   });
