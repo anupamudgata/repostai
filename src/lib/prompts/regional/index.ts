@@ -7,7 +7,6 @@ import { KANNADA_CONFIG } from "./kannada";
 import { ODIA_CONFIG } from "./odia";
 import { PUNJABI_CONFIG } from "./punjabi";
 import type { Platform as StreamPlatform } from "@/lib/ai/types";
-import type { Platform as AppPlatform } from "@/types";
 import {
   HINDI_SYSTEM_PROMPT,
   HINDI_SLANG_VOCABULARY,

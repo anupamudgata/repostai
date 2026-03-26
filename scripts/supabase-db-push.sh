@@ -20,4 +20,5 @@ if [[ -z "${SUPABASE_DB_PASSWORD:-}" ]]; then
 fi
 
 # --include-all: remote history may omit short-dated versions; applies any pending local files
-exec npx supabase db push --linked --include-all "$@"
+# supabase@latest: project config uses Postgres 17; older global CLI rejects major_version 17
+exec npx supabase@latest db push --linked --include-all "$@"

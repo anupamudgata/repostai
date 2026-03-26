@@ -46,7 +46,7 @@ export function buildRegionalModule(cfg: RegionalLanguageConfig): RegionalPrompt
 
 JSON keys for platforms stay ENGLISH (linkedin, instagram, …). Only the string VALUES are post text in ${cfg.mixName}.`;
 
-  const module: RegionalPromptModule = {
+  const regionalModule: RegionalPromptModule = {
     systemPrompt,
     slangVocabulary: cfg.slangVocabulary,
     culturalContext: cfg.culturalContext,
@@ -113,5 +113,5 @@ PHOTO CAPTIONS — write captions that feel like an Indian creator naturally pos
     },
   };
 
-  return module;
+  return regionalModule;
 }

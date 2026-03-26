@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SUPERUSER_EMAIL } from "@/config/constants";
 import { DashboardNav } from "@/components/dashboard/nav";
+import { SupportChatWidget } from "@/components/support/SupportChatWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +40,7 @@ export default async function DashboardLayout({
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {children}
       </main>
+      <SupportChatWidget />
     </div>
   );
 }
