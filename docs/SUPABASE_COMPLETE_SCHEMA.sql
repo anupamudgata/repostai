@@ -128,9 +128,8 @@ create table if not exists public.connected_accounts (
   unique (user_id, platform)
 );
 
--- Second unique constraint for Twitter OAuth (uses provider column)
-create unique index if not exists idx_connected_accounts_user_provider
-  on public.connected_accounts(user_id, provider);
+-- NOTE: idx_connected_accounts_user_provider index is created after ALTER TABLE
+-- section (section 2) to ensure the provider column exists first.
 
 create table if not exists public.scheduled_posts (
   id uuid primary key default uuid_generate_v4(),
@@ -533,6 +532,8 @@ create index if not exists idx_created_posts_created_at on public.created_posts(
 
 -- Connected accounts & scheduling
 create index if not exists idx_connected_accounts_user_id on public.connected_accounts(user_id);
+create unique index if not exists idx_connected_accounts_user_provider
+  on public.connected_accounts(user_id, provider);
 create index if not exists idx_scheduled_posts_user_id on public.scheduled_posts(user_id);
 create index if not exists idx_scheduled_posts_scheduled_at_status on public.scheduled_posts(scheduled_at, status);
 
