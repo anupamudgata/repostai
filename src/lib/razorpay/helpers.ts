@@ -16,22 +16,30 @@ export function getRazorpayPlanId(plan: Plan, billing?: "monthly" | "annual"): s
   return PLAN_IDS[key];
 }
 
-export function getPlanFromRazorpayPlanId(planId: string): Plan {
+/** Map Razorpay plan_id to app plan. Env entries must be non-empty; unknown IDs → free. */
+export function getPlanFromRazorpayPlanId(
+  planId: string | undefined | null
+): Plan {
+  if (planId == null || typeof planId !== "string") return "free";
+  const id = planId.trim();
+  if (!id) return "free";
+
   const starterIds = [
     process.env.RAZORPAY_PLAN_STARTER_MONTHLY,
     process.env.RAZORPAY_PLAN_STARTER_ANNUAL,
-  ];
+  ].filter((x): x is string => Boolean(x));
   const proIds = [
     process.env.RAZORPAY_PLAN_PRO_MONTHLY,
     process.env.RAZORPAY_PLAN_PRO_ANNUAL,
-  ];
+  ].filter((x): x is string => Boolean(x));
   const agencyIds = [
     process.env.RAZORPAY_PLAN_AGENCY_MONTHLY,
     process.env.RAZORPAY_PLAN_AGENCY_ANNUAL,
-  ];
-  if (agencyIds.includes(planId)) return "agency";
-  if (proIds.includes(planId)) return "pro";
-  if (starterIds.includes(planId)) return "starter";
+  ].filter((x): x is string => Boolean(x));
+
+  if (agencyIds.includes(id)) return "agency";
+  if (proIds.includes(id)) return "pro";
+  if (starterIds.includes(id)) return "starter";
   return "free";
 }
 
@@ -58,8 +66,12 @@ export function verifyPaymentSignature(
   subscriptionId: string,
   signature: string
 ): boolean {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+  if (!secret || !paymentId || !subscriptionId || !signature) {
+    return false;
+  }
   const expected = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+    .createHmac("sha256", secret)
     .update(`${paymentId}|${subscriptionId}`)
     .digest("hex");
   try {
@@ -68,6 +80,41 @@ export function verifyPaymentSignature(
       Buffer.from(signature, "hex")
     );
   } catch {
+    return false;
+  }
+}
+
+/**
+ * Confirm with Razorpay that the subscription payment is captured and tied to this subscription.
+ * Do not grant paid features without this (redirect URL alone is insufficient).
+ */
+export async function verifySubscriptionPaymentCaptured(
+  paymentId: string,
+  subscriptionId: string
+): Promise<boolean> {
+  try {
+    const payment = (await getRazorpay().payments.fetch(paymentId)) as {
+      status: string;
+      subscription_id?: string | null;
+    };
+    if (payment.status !== "captured") {
+      console.warn(
+        "[razorpay] Subscription payment not captured:",
+        payment.status
+      );
+      return false;
+    }
+    if (
+      payment.subscription_id != null &&
+      payment.subscription_id !== "" &&
+      payment.subscription_id !== subscriptionId
+    ) {
+      console.warn("[razorpay] Payment subscription_id does not match callback");
+      return false;
+    }
+    return true;
+  } catch (e) {
+    console.error("[razorpay] payments.fetch failed:", e);
     return false;
   }
 }
