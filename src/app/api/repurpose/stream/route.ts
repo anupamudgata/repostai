@@ -67,7 +67,12 @@ const TEMPERATURES: Record<Platform, number> = {
 
 const SYSTEM_MSG = "You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly.";
 
-async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
+async function* streamClaudeSinglePass(
+  platform: Platform,
+  brief: ContentBrief,
+  voice: string | null,
+  language: Language
+): AsyncGenerator<string> {
   const anthropic = getAnthropicClient();
   if (!anthropic) throw new Error(ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES);
   const promptBuilders = getPromptBuilders(brief, voice, language);
@@ -104,6 +109,10 @@ async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrie
       yield event.delta.text;
     }
   }
+}
+
+async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
+  yield* streamClaudeSinglePass(platform, brief, voice, language);
 }
 
 async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {

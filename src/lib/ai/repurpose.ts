@@ -92,7 +92,12 @@ function parseRawOutput(platform: Platform, raw: string): PlatformOutput {
   return { platform, content: raw, charCount: raw.length };
 }
 
-async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
+async function runClaudeSinglePass(
+  platform: Platform,
+  brief: ContentBrief,
+  voice: string | null,
+  language: Language
+): Promise<PlatformOutput> {
   const anthropic = getAnthropicClient();
   if (!anthropic) throw new Error(ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES);
   const promptBuilders = getPromptBuilders(brief, voice, language);
@@ -127,6 +132,10 @@ async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, v
   const block = msg.content.find((b) => b.type === "text");
   const raw = block && block.type === "text" ? block.text : "";
   return parseRawOutput(platform, raw);
+}
+
+async function runPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
+  return runClaudeSinglePass(platform, brief, voice, language);
 }
 
 async function runPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): Promise<PlatformOutput> {
