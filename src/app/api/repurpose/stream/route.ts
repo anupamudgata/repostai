@@ -294,7 +294,11 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        send({ type: "all_done", durationMs: Date.now() - startTime, remaining: streamRemaining });
+        send({
+          type: "all_done",
+          durationMs: Date.now() - startTime,
+          remaining: streamRemaining ?? undefined,
+        });
       } catch (err) {
         captureError(err, { action: "repurpose_stream" });
         send({ type: "error", error: "Unexpected error. Please try again." });
