@@ -18,32 +18,66 @@ import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 /** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
 function messageForRepurposeJobInsertError(err: {
   message?: string;
-  code?: string;
+  code?: string | number;
   details?: string;
   hint?: string;
 } | null): string {
-  if (!err?.message && !err?.code) {
+  if (!err?.message && err?.code == null) {
     return "Failed to create job. Please try again.";
   }
   const msg = err.message ?? "";
-  const code = err.code ?? "";
-  const detail = `${msg} ${(err as { details?: string }).details ?? ""} ${(err as { hint?: string }).hint ?? ""}`.toLowerCase();
+  const code = String(err.code ?? "");
+  const raw = `${msg} ${(err as { details?: string }).details ?? ""} ${(err as { hint?: string }).hint ?? ""}`;
+  const detail = raw.toLowerCase();
+
   if (/row-level security|RLS/i.test(msg) || code === "42501") {
     return "Could not save your repurpose. Try signing out and signing in again.";
   }
-  if (/foreign key|violates foreign key/i.test(msg) || code === "23503") {
-    if (detail.includes("user_id") && detail.includes("profile")) {
+
+  // FK: message often only has constraint name, e.g. repurpose_jobs_user_id_fkey (no "profiles" text)
+  const isFk =
+    code === "23503" ||
+    /foreign key|violates foreign key/i.test(msg) ||
+    /_fkey/i.test(msg);
+  if (isFk) {
+    const isUserProfileFk =
+      detail.includes("user_id_fkey") ||
+      detail.includes("repurpose_jobs_user_id") ||
+      (detail.includes("user_id") &&
+        (detail.includes("profiles") || detail.includes("profile")));
+    if (isUserProfileFk) {
       return "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.";
     }
-    if (detail.includes("brand_voice")) {
+    const isBrandVoiceFk =
+      detail.includes("brand_voice_id_fkey") ||
+      detail.includes("brand_voice_id") ||
+      (detail.includes("brand_voice") && detail.includes("not present"));
+    if (isBrandVoiceFk) {
       return "That brand voice is no longer available. Clear the selection or choose another.";
     }
     return "Could not save this repurpose. Try again or clear the brand voice.";
   }
+
   if (/check constraint|violates check/i.test(msg) || code === "23514") {
     return "Could not save this repurpose. Check your content and try again.";
   }
   return "Failed to create job. Please try again.";
+}
+
+/** Postgres often omits table names; constraint name is e.g. repurpose_jobs_user_id_fkey */
+function isLikelyUserProfileFkError(err: {
+  message?: string;
+  details?: string;
+} | null): boolean {
+  if (!err) return false;
+  const s = `${err.message ?? ""} ${err.details ?? ""}`.toLowerCase();
+  if (s.includes("brand_voice")) return false;
+  return (
+    s.includes("user_id_fkey") ||
+    s.includes("repurpose_jobs_user_id_fkey") ||
+    (s.includes("user_id") &&
+      (s.includes("profiles") || s.includes("profile")))
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -224,18 +258,27 @@ export async function POST(request: NextRequest) {
       : null;
     if (cachedOutputs && Object.keys(cachedOutputs).length > 0) {
       const outputsToUse = isFreePlan ? addFreeTierWatermark(cachedOutputs) : cachedOutputs;
-      const { data: job, error: cachedJobError } = await supabase
+      const jobInsertPayload = {
+        user_id: user.id,
+        input_type: inputType,
+        input_content: contentToSave,
+        input_url: url || null,
+        brand_voice_id: brandVoiceId || null,
+        output_language: outputLanguage,
+      };
+      let { data: job, error: cachedJobError } = await supabase
         .from("repurpose_jobs")
-        .insert({
-          user_id: user.id,
-          input_type: inputType,
-          input_content: contentToSave,
-          input_url: url || null,
-          brand_voice_id: brandVoiceId || null,
-          output_language: outputLanguage,
-        })
+        .insert(jobInsertPayload)
         .select("id")
         .single();
+      if (cachedJobError && isLikelyUserProfileFkError(cachedJobError)) {
+        await ensureProfileForUser(user);
+        ({ data: job, error: cachedJobError } = await supabase
+          .from("repurpose_jobs")
+          .insert(jobInsertPayload)
+          .select("id")
+          .single());
+      }
       if (cachedJobError || !job) {
         console.error("repurpose_jobs insert (cached path):", cachedJobError);
         captureError(cachedJobError ?? new Error("repurpose job insert returned no row"), {
@@ -304,18 +347,27 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert job first (status: pending), then generate
-    const { data: job, error: jobInsertError } = await supabase
+    const jobInsertPayloadMain = {
+      user_id: user.id,
+      input_type: inputType,
+      input_content: contentToSave,
+      input_url: url || null,
+      brand_voice_id: brandVoiceId || null,
+      output_language: outputLanguage,
+    };
+    let { data: job, error: jobInsertError } = await supabase
       .from("repurpose_jobs")
-      .insert({
-        user_id: user.id,
-        input_type: inputType,
-        input_content: resolvedContent.slice(0, 10000),
-        input_url: url || null,
-        brand_voice_id: brandVoiceId || null,
-        output_language: outputLanguage,
-      })
+      .insert(jobInsertPayloadMain)
       .select("id")
       .single();
+    if (jobInsertError && isLikelyUserProfileFkError(jobInsertError)) {
+      await ensureProfileForUser(user);
+      ({ data: job, error: jobInsertError } = await supabase
+        .from("repurpose_jobs")
+        .insert(jobInsertPayloadMain)
+        .select("id")
+        .single());
+    }
 
     if (jobInsertError || !job) {
       console.error("repurpose_jobs insert:", jobInsertError);
