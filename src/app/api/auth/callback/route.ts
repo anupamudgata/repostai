@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { sendWelcomeEmail } from "@/lib/email/send";
+import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 
 function getBaseUrl(request: NextRequest): string {
   const allowed = process.env.NEXT_PUBLIC_APP_URL;
@@ -24,8 +25,17 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        try {
+          await ensureProfileForUser(user);
+        } catch (ensureErr) {
+          console.error("[auth callback] ensureProfileForUser failed:", ensureErr);
+        }
+      }
       try {
-        const { data: { user } } = await supabase.auth.getUser();
         if (user?.email) {
           const fullName = (user.user_metadata?.full_name as string) ?? "";
           const firstName = fullName.split(" ")[0] || user.email.split("@")[0];

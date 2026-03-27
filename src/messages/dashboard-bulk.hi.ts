@@ -17,6 +17,9 @@ export const dashboardBulkHi: DashboardBulk = {
     "Pro: 60/माह, सभी प्लेटफ़ॉर्म, Claude। Agency: असीमित रीपर्पज़।",
   limitModalCta: "मूल्य देखें",
   upgrade: "अपग्रेड",
+  profileSyncBanner:
+    "आपका खाता प्रोफ़ाइल सिंक नहीं हो सका। फिर कोशिश करें या पेज रीफ़्रेश करें।",
+  profileSyncRetry: "फिर कोशिश करें",
   contentAgentTitle: "कंटेंट एजेंट — पूरा कंटेंट सप्ताह प्लान करें",
   contentAgentSubtitle:
     "ब्लॉग URL चिपकाएँ → AI प्लेटफ़ॉर्म, सही समय सुझाता है, सभी वेरिएशन बनाता है और शेड्यूल करता है।",

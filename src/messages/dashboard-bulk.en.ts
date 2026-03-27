@@ -15,6 +15,9 @@ export const dashboardBulkEn = {
     "Pro: 60/mo, all platforms, Claude. Agency: unlimited repurposes.",
   limitModalCta: "View pricing",
   upgrade: "Upgrade",
+  profileSyncBanner:
+    "We couldn’t sync your account profile. Try again or refresh the page.",
+  profileSyncRetry: "Retry",
   contentAgentTitle: "Content Agent — Plan your entire content week",
   contentAgentSubtitle:
     "Paste a blog URL → AI suggests platforms, optimal times, generates all variations, and schedules them.",

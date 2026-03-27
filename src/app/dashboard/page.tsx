@@ -261,6 +261,7 @@ export default function DashboardPage() {
     { platform: string; score: number; reason: string; recommendation: "post" | "consider" | "skip" }[]
   >([]);
   const [platformFitLoading, setPlatformFitLoading] = useState(false);
+  const [profileSyncFailed, setProfileSyncFailed] = useState(false);
 
   const clearRepurposeResults = useCallback(() => {
     setOutputs([]);
@@ -305,8 +306,15 @@ export default function DashboardPage() {
   const refreshMe = useCallback(async () => {
     try {
       const res = await fetch("/api/me", { cache: "no-store" });
-      const data = await res.json();
+      const data = (await res.json().catch(() => ({}))) as {
+        plan?: string;
+        repurposeCount?: number;
+        repurposeLimit?: number | null;
+        daysUntilUsageReset?: number;
+        code?: string;
+      };
       if (res.ok) {
+        setProfileSyncFailed(false);
         setPlan(data.plan ?? "free");
         setUsage({
           count: data.repurposeCount ?? 0,
@@ -315,9 +323,15 @@ export default function DashboardPage() {
           daysUntilReset: data.daysUntilUsageReset ?? 0,
         });
       } else {
-        setPlan("free");
+        if (data.code === "PROFILE_SYNC_FAILED") {
+          setProfileSyncFailed(true);
+        } else {
+          setProfileSyncFailed(false);
+          setPlan("free");
+        }
       }
     } catch {
+      setProfileSyncFailed(false);
       setPlan("free");
     }
   }, []);
@@ -763,6 +777,23 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8 pb-8">
       <OnboardingBanner />
+      {profileSyncFailed && (
+        <div
+          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          role="alert"
+        >
+          <p className="text-sm text-foreground">{d.profileSyncBanner}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => void refreshMe()}
+          >
+            {d.profileSyncRetry}
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">{d.title}</h1>
