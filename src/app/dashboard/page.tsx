@@ -64,6 +64,7 @@ import {
   CONTENT_ANGLES,
   HOOK_MODES,
 } from "@/config/constants";
+import { cn } from "@/lib/utils";
 
 const INPUT_TABS = [
   { id: "text" as InputType, icon: Type },
@@ -980,31 +981,55 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Brand Voice (Pro/Agency only) */}
+      {/* Brand voice: native select on free plan (avoids Radix scroll-lock on some devices). */}
       <Card>
           <CardHeader>
             <CardTitle className="text-lg">{d.brandVoiceCardTitle}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {d.brandVoiceCardSubtitle}
+              {isFreePlan
+                ? d.freeBrandVoiceCardSubtitle
+                : d.brandVoiceCardSubtitle}
             </p>
           </CardHeader>
           <CardContent>
-            <Select
-              value={brandVoiceId || "none"}
-              onValueChange={(v) => setBrandVoiceId(v === "none" ? "" : v)}
-            >
-              <SelectTrigger className="w-full max-w-sm">
-                <SelectValue placeholder={d.noBrandVoice} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{d.noBrandVoice}</SelectItem>
+            {isFreePlan ? (
+              <select
+                id="brand-voice-select-free"
+                className={cn(
+                  "flex h-9 w-full max-w-sm rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-xs",
+                  "focus-visible:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                )}
+                value={brandVoiceId || "none"}
+                onChange={(e) =>
+                  setBrandVoiceId(e.target.value === "none" ? "" : e.target.value)
+                }
+                aria-label={d.brandVoiceCardTitle}
+              >
+                <option value="none">{d.noBrandVoice}</option>
                 {brandVoices.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
+                  <option key={v.id} value={v.id}>
                     {v.name}
-                  </SelectItem>
+                  </option>
                 ))}
-              </SelectContent>
-            </Select>
+              </select>
+            ) : (
+              <Select
+                value={brandVoiceId || "none"}
+                onValueChange={(v) => setBrandVoiceId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger className="w-full max-w-sm">
+                  <SelectValue placeholder={d.noBrandVoice} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{d.noBrandVoice}</SelectItem>
+                  {brandVoices.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <p className="mt-3 text-xs text-muted-foreground">
               <Link
                 href="/dashboard/brand-voice"

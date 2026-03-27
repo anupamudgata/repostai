@@ -68,6 +68,8 @@ export const dashboardBulkHi: DashboardBulk = {
   pdfChars: "{count} वर्ण निकाले गए",
   brandVoiceCardTitle: "ब्रांड वॉइस",
   brandVoiceCardSubtitle: "अपनी लेखन शैली से मिलाएँ (वैकल्पिक)",
+  freeBrandVoiceCardSubtitle:
+    "वैकल्पिक — डिफ़ॉल्ट टोन पर रीपर्पज़ करें या सेव की हुई वॉइस चुनें। फ्री प्लान में 1 ब्रांड वॉइस।",
   noBrandVoice: "कोई ब्रांड वॉइस नहीं",
   addVoiceLink: "वॉइस ट्रेनिंग जोड़ें या एडिट करें",
   addVoiceSuffix: "— लेखन के नमूने चिपकाएँ और प्रामाणिकता ठीक करें।",

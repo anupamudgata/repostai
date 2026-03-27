@@ -66,6 +66,9 @@ export const dashboardBulkEn = {
   pdfChars: "{count} characters extracted",
   brandVoiceCardTitle: "Brand Voice",
   brandVoiceCardSubtitle: "Match your writing style (optional)",
+  /** Shown on free plan instead of Radix Select (native menu avoids scroll issues on mobile). */
+  freeBrandVoiceCardSubtitle:
+    "Optional — repurpose with default tone, or pick your saved voice. Free plan includes 1 brand voice.",
   noBrandVoice: "No brand voice",
   addVoiceLink: "Add or edit voice training",
   addVoiceSuffix: "— paste writing samples and tune authenticity.",
