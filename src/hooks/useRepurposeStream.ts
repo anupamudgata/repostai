@@ -96,9 +96,26 @@ export function useRepurposeStream() {
           const platform = payload.platform as Platform | undefined;
 
           switch (type) {
-            case "brief_ready":
-              setState((prev) => ({ ...prev, status: "streaming", brief: payload.brief as ContentBrief, progress: 15 }));
+            case "brief_ready": {
+              const resolved = payload.platforms as Platform[] | undefined;
+              if (resolved?.length) {
+                totalRef.current = resolved.length;
+                doneRef.current = new Set();
+                const nextPlatforms = Object.fromEntries(
+                  resolved.map((p) => [p, { ...DEFAULT_PLATFORM_STATE(p), status: "waiting" as PlatformStatus }])
+                ) as Record<Platform, PlatformState>;
+                setState((prev) => ({
+                  ...prev,
+                  status: "streaming",
+                  brief: payload.brief as ContentBrief,
+                  platforms: nextPlatforms,
+                  progress: 15,
+                }));
+              } else {
+                setState((prev) => ({ ...prev, status: "streaming", brief: payload.brief as ContentBrief, progress: 15 }));
+              }
               break;
+            }
             case "platform_start":
               if (platform) updatePlatform(platform, { status: "streaming", content: "" });
               break;

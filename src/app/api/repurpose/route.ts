@@ -15,7 +15,7 @@ import {
 import { captureError } from "@/lib/sentry";
 import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 import {
-  insertRepurposeJobAdmin,
+  insertRepurposeJobWithFallback,
   isLikelyUserProfileFkError,
 } from "@/lib/supabase/insert-repurpose-job";
 
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureProfileForUser(user);
+      await ensureProfileForUser(user, supabase);
     } catch {
       return NextResponse.json(
         { error: "Could not prepare your account. Try again in a moment." },
@@ -255,11 +255,11 @@ export async function POST(request: NextRequest) {
         output_language: outputLanguage,
       };
       let { data: job, error: cachedJobError } =
-        await insertRepurposeJobAdmin(jobInsertPayload);
+        await insertRepurposeJobWithFallback(supabase, jobInsertPayload);
       if (cachedJobError && isLikelyUserProfileFkError(cachedJobError)) {
-        await ensureProfileForUser(user);
+        await ensureProfileForUser(user, supabase);
         ({ data: job, error: cachedJobError } =
-          await insertRepurposeJobAdmin(jobInsertPayload));
+          await insertRepurposeJobWithFallback(supabase, jobInsertPayload));
       }
       if (cachedJobError || !job) {
         console.error("repurpose_jobs insert (cached path):", cachedJobError);
@@ -338,11 +338,11 @@ export async function POST(request: NextRequest) {
       output_language: outputLanguage,
     };
     let { data: job, error: jobInsertError } =
-      await insertRepurposeJobAdmin(jobInsertPayloadMain);
+      await insertRepurposeJobWithFallback(supabase, jobInsertPayloadMain);
     if (jobInsertError && isLikelyUserProfileFkError(jobInsertError)) {
-      await ensureProfileForUser(user);
+      await ensureProfileForUser(user, supabase);
       ({ data: job, error: jobInsertError } =
-        await insertRepurposeJobAdmin(jobInsertPayloadMain));
+        await insertRepurposeJobWithFallback(supabase, jobInsertPayloadMain));
     }
 
     if (jobInsertError || !job) {

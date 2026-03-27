@@ -1,44 +1,82 @@
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /**
- * `brand_voices`, `repurpose_jobs`, etc. reference `profiles(id)`. Users created before
- * `handle_new_user` existed (or if the trigger failed) have no profile row — inserts then
- * fail with repurpose_jobs_user_id_fkey. Idempotent upsert so the row always exists.
+ * `brand_voices`, `repurpose_jobs`, etc. reference `profiles(id)`. Ensures a row exists.
  *
- * Uses `ignoreDuplicates` so an existing row (and `plan`) is never overwritten.
+ * 1) When `userSupabase` is passed (server client with the user's session), calls
+ *    `ensure_profile_from_auth` (DB migration) so profile creation works even if
+ *    `SUPABASE_SERVICE_ROLE_KEY` is missing or misconfigured in an environment.
+ * 2) Falls back to service-role insert when needed.
  */
-export async function ensureProfileForUser(user: User): Promise<void> {
-  const admin = getSupabaseAdmin();
+export async function ensureProfileForUser(
+  user: User,
+  userSupabase?: SupabaseClient
+): Promise<void> {
   const meta = user.user_metadata ?? {};
+  const emailRaw = user.email?.trim() ?? "";
   const row = {
     id: user.id,
-    email: user.email?.trim() ?? "",
+    email: emailRaw || `${user.id.replace(/-/g, "")}@users.repostai.local`,
     name: (meta.full_name as string) ?? (meta.name as string) ?? null,
     avatar_url: (meta.avatar_url as string) ?? null,
     market_region: (meta.market_region as string) ?? null,
   };
 
-  const { error } = await admin.from("profiles").upsert(row, {
-    onConflict: "id",
-    ignoreDuplicates: true,
-  });
-
-  if (error) {
-    console.error("[ensureProfileForUser]", error);
-    throw error;
+  async function hasProfile(client: SupabaseClient): Promise<boolean> {
+    const { data } = await client
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    return Boolean(data);
   }
 
-  const { data: exists } = await admin
+  if (userSupabase) {
+    if (await hasProfile(userSupabase)) return;
+
+    const { error: rpcErr } = await userSupabase.rpc("ensure_profile_from_auth");
+    if (!rpcErr && (await hasProfile(userSupabase))) return;
+    if (rpcErr) {
+      console.warn("[ensureProfileForUser] ensure_profile_from_auth", rpcErr.message);
+    }
+  }
+
+  let admin: ReturnType<typeof getSupabaseAdmin>;
+  try {
+    admin = getSupabaseAdmin();
+  } catch (e) {
+    console.error("[ensureProfileForUser] service role unavailable", e);
+    if (userSupabase && (await hasProfile(userSupabase))) return;
+    throw new Error(
+      "Could not create your profile. Apply the latest Supabase migration (ensure_profile_from_auth) and set SUPABASE_SERVICE_ROLE_KEY."
+    );
+  }
+
+  const { data: existing } = await admin
     .from("profiles")
     .select("id")
     .eq("id", user.id)
     .maybeSingle();
-  if (!exists) {
-    const { error: insErr } = await admin.from("profiles").insert(row);
-    if (insErr && insErr.code !== "23505") {
-      console.error("[ensureProfileForUser] insert fallback", insErr);
-      throw insErr;
-    }
+
+  if (existing) return;
+
+  const { error: insertErr } = await admin.from("profiles").insert(row);
+  if (!insertErr) return;
+
+  if (insertErr.code === "23505") {
+    return;
   }
+
+  const { data: race } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (race) return;
+
+  if (userSupabase && (await hasProfile(userSupabase))) return;
+
+  console.error("[ensureProfileForUser] insert failed", insertErr);
+  throw insertErr;
 }

@@ -11,7 +11,7 @@ import {
 } from "@/lib/billing/plan-entitlements";
 import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 import {
-  insertRepurposeJobAdmin,
+  insertRepurposeJobWithFallback,
   isLikelyUserProfileFkError,
 } from "@/lib/supabase/insert-repurpose-job";
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureProfileForUser(user);
+      await ensureProfileForUser(user, supabase);
     } catch {
       return NextResponse.json(
         { error: "Could not prepare your account. Try again in a moment." },
@@ -240,11 +240,11 @@ export async function POST(request: NextRequest) {
         output_language: outputLanguage,
       };
       let { data: job, error: jobInsertErr } =
-        await insertRepurposeJobAdmin(jobPayload);
+        await insertRepurposeJobWithFallback(supabase, jobPayload);
       if (jobInsertErr && isLikelyUserProfileFkError(jobInsertErr)) {
-        await ensureProfileForUser(user);
+        await ensureProfileForUser(user, supabase);
         ({ data: job, error: jobInsertErr } =
-          await insertRepurposeJobAdmin(jobPayload));
+          await insertRepurposeJobWithFallback(supabase, jobPayload));
       }
       if (jobInsertErr || !job) {
         console.error("bulk repurpose_jobs insert:", jobInsertErr);

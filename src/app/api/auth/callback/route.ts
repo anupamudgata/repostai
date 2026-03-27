@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       } = await supabase.auth.getUser();
       if (user) {
         try {
-          await ensureProfileForUser(user);
+          await ensureProfileForUser(user, supabase);
         } catch (ensureErr) {
           console.error("[auth callback] ensureProfileForUser failed:", ensureErr);
         }

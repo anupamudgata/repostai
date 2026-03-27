@@ -1,12 +1,13 @@
 import { NextRequest }                   from "next/server";
 import { createClient }                  from "@/lib/supabase/server";
+import { ensureProfileForUser }          from "@/lib/supabase/ensure-profile";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
-import { burstLimiter, freeTierLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
+import { burstLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
 import { captureError }                  from "@/lib/sentry";
 import { openai } from "@/lib/ai/client";
 import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
@@ -36,6 +37,8 @@ interface SSEPayload {
   title?:      string;
   hashtags?:   string[];
   brief?:      ContentBrief;
+  /** Resolved platform list after plan filtering (may be shorter than the client request). */
+  platforms?:  Platform[];
   durationMs?: number;
   error?:      string;
   remaining?:  number;
@@ -159,6 +162,18 @@ export async function POST(req: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) { send({ type: "error", error: "Unauthorized." }); close(); return; }
 
+        try {
+          await ensureProfileForUser(user, supabase);
+        } catch {
+          send({
+            type: "error",
+            error:
+              "Could not prepare your account profile. Refresh the page, or sign out and sign in again.",
+          });
+          close();
+          return;
+        }
+
         const burst = await burstLimiter.limit(user.id);
         if (!burst.success) { send({ type: "error", error: "Too many requests. Please slow down." }); close(); return; }
 
@@ -175,7 +190,7 @@ export async function POST(req: NextRequest) {
           .select("repurpose_count")
           .eq("user_id", user.id)
           .eq("month", currentMonth)
-          .single();
+          .maybeSingle();
         const used = usageRow?.repurpose_count ?? 0;
         if (!isSuperUser && entitlements.repurposesPerMonth != null) {
           if (used >= entitlements.repurposesPerMonth) {
@@ -188,38 +203,48 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const limiter =
-          effectivePlan === "agency"
-            ? agencyTierLimiter
-            : effectivePlan === "pro" ||
-                effectivePlan === "starter"
-              ? proTierLimiter
-              : freeTierLimiter;
-        const tierResult = await limiter.limit(user.id);
-        if (!tierResult.success) {
-          send({
-            type: "error",
-            error:
-              effectivePlan === "free"
-                ? "Too many streaming requests. Please wait or upgrade to Starter or Pro."
-                : "Daily streaming limit reached. Resets at midnight UTC.",
-          });
-          close();
-          return;
+        /** Free tier: enforce monthly cap only (above). Do not apply Redis `freeTierLimiter` — it duplicated policy and could block valid users (Upstash / id edge cases). Paid tiers keep daily streaming limits. */
+        let streamRemaining: number | null = null;
+        if (effectivePlan === "free") {
+          streamRemaining =
+            entitlements.repurposesPerMonth != null
+              ? Math.max(0, entitlements.repurposesPerMonth - used - 1)
+              : null;
+        } else {
+          const limiter =
+            effectivePlan === "agency"
+              ? agencyTierLimiter
+              : proTierLimiter;
+          const tierResult = await limiter.limit(user.id);
+          if (!tierResult.success) {
+            send({
+              type: "error",
+              error:
+                effectivePlan === "agency"
+                  ? "Streaming limit reached. Please try again later."
+                  : "Daily streaming limit reached. Resets at midnight UTC.",
+            });
+            close();
+            return;
+          }
+          streamRemaining = tierResult.remaining;
         }
 
         const body = await req.json();
         const { content, platforms, language = "en", brandVoiceId } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string };
         if (!content?.trim() || !platforms?.length) { send({ type: "error", error: "Content and platforms are required." }); close(); return; }
+        if (content.length > 50000) { send({ type: "error", error: "Content is too long (max 50,000 characters)." }); close(); return; }
 
+        /** Match POST /api/repurpose: filter to plan-allowed platforms instead of failing the whole request when one ID is out of plan. */
+        let platformsToRun = platforms;
         if (entitlements.allowedPlatformIds) {
           const allow = entitlements.allowedPlatformIds as readonly string[];
-          const ok = platforms.every((p) => allow.includes(p));
-          if (!ok) {
+          platformsToRun = platforms.filter((p) => allow.includes(p));
+          if (platformsToRun.length === 0) {
             send({
               type: "error",
               error:
-                "Your plan includes LinkedIn, Twitter/X, and Instagram only. Upgrade for all platforms.",
+                "Your plan includes LinkedIn, Twitter/X, and Instagram only. Upgrade to Starter or Pro for all platforms.",
             });
             close();
             return;
@@ -228,7 +253,7 @@ export async function POST(req: NextRequest) {
 
         const brief = await extractBrief(content, language);
         brief.rawContent = content;
-        send({ type: "brief_ready", brief });
+        send({ type: "brief_ready", brief, platforms: platformsToRun });
 
         let voicePersona: string | null = null;
         if (brandVoiceId) {
@@ -236,7 +261,7 @@ export async function POST(req: NextRequest) {
         }
 
         const startTime = Date.now();
-        await Promise.allSettled(platforms.map(async (platform) => {
+        await Promise.allSettled(platformsToRun.map(async (platform) => {
           const platformStart = Date.now();
           send({ type: "platform_start", platform });
           try {
@@ -259,13 +284,17 @@ export async function POST(req: NextRequest) {
         }));
 
         if (!isSuperUser) {
-          await supabase.rpc("increment_usage", {
-            p_user_id: user.id,
-            p_month: currentMonth,
-          });
+          try {
+            await supabase.rpc("increment_usage", {
+              p_user_id: user.id,
+              p_month: currentMonth,
+            });
+          } catch (usageErr) {
+            captureError(usageErr, { userId: user.id, action: "increment_usage_stream" });
+          }
         }
 
-        send({ type: "all_done", durationMs: Date.now() - startTime, remaining: tierResult.remaining });
+        send({ type: "all_done", durationMs: Date.now() - startTime, remaining: streamRemaining });
       } catch (err) {
         captureError(err, { action: "repurpose_stream" });
         send({ type: "error", error: "Unexpected error. Please try again." });

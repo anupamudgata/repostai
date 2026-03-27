@@ -18,7 +18,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await ensureProfileForUser(user);
+    await ensureProfileForUser(user, supabase);
 
     let profile: { zapier_webhook_url: string | null } | null = null;
     for (let attempt = 0; attempt < 2; attempt++) {
@@ -34,7 +34,7 @@ export async function GET() {
           code: error.code,
           message: error.message,
         });
-        if (attempt === 0) await ensureProfileForUser(user);
+        if (attempt === 0) await ensureProfileForUser(user, supabase);
         continue;
       }
       if (data) {
@@ -42,7 +42,7 @@ export async function GET() {
         break;
       }
       console.warn("[me] no profile row for user", { userId: user.id, attempt });
-      if (attempt === 0) await ensureProfileForUser(user);
+      if (attempt === 0) await ensureProfileForUser(user, supabase);
     }
     if (!profile) {
       console.error("[me] profile still missing after ensure+retry", {
