@@ -9,6 +9,7 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
+import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 
 const MAX_BULK_URLS = 5;
 const MIN_BULK_URLS = 2;
@@ -38,6 +39,15 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      await ensureProfileForUser(user);
+    } catch {
+      return NextResponse.json(
+        { error: "Could not prepare your account. Try again in a moment." },
+        { status: 503 }
+      );
     }
 
     const body = await request.json();
@@ -128,9 +138,23 @@ export async function POST(request: NextRequest) {
         .select("samples, humanization_level, imperfection_mode, personal_story_injection")
         .eq("id", brandVoiceId)
         .eq("user_id", user.id)
-        .single();
-      brandVoiceSample = voice?.samples;
-      if (voice && (voice.humanization_level || voice.imperfection_mode || voice.personal_story_injection)) {
+        .maybeSingle();
+      if (!voice) {
+        return NextResponse.json(
+          {
+            error:
+              "That brand voice no longer exists or isn’t yours. Clear the selection or pick another.",
+            code: "BRAND_VOICE_NOT_FOUND",
+          },
+          { status: 400 }
+        );
+      }
+      brandVoiceSample = voice.samples;
+      if (
+        voice.humanization_level ||
+        voice.imperfection_mode ||
+        voice.personal_story_injection
+      ) {
         authenticityTuning = {
           humanizationLevel: voice.humanization_level ?? undefined,
           imperfectionMode: voice.imperfection_mode ?? false,

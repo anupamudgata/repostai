@@ -13,22 +13,32 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { captureError } from "@/lib/sentry";
+import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 
 /** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
 function messageForRepurposeJobInsertError(err: {
   message?: string;
   code?: string;
+  details?: string;
+  hint?: string;
 } | null): string {
   if (!err?.message && !err?.code) {
     return "Failed to create job. Please try again.";
   }
   const msg = err.message ?? "";
   const code = err.code ?? "";
+  const detail = `${msg} ${(err as { details?: string }).details ?? ""} ${(err as { hint?: string }).hint ?? ""}`.toLowerCase();
   if (/row-level security|RLS/i.test(msg) || code === "42501") {
     return "Could not save your repurpose. Try signing out and signing in again.";
   }
   if (/foreign key|violates foreign key/i.test(msg) || code === "23503") {
-    return "Invalid brand voice. Clear the brand voice or choose another.";
+    if (detail.includes("user_id") && detail.includes("profile")) {
+      return "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.";
+    }
+    if (detail.includes("brand_voice")) {
+      return "That brand voice is no longer available. Clear the selection or choose another.";
+    }
+    return "Could not save this repurpose. Try again or clear the brand voice.";
   }
   if (/check constraint|violates check/i.test(msg) || code === "23514") {
     return "Could not save this repurpose. Check your content and try again.";
@@ -45,6 +55,15 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    try {
+      await ensureProfileForUser(user);
+    } catch {
+      return NextResponse.json(
+        { error: "Could not prepare your account. Try again in a moment." },
+        { status: 503 }
+      );
     }
 
     const body = await request.json();
@@ -166,9 +185,23 @@ export async function POST(request: NextRequest) {
         .select("samples, humanization_level, imperfection_mode, personal_story_injection")
         .eq("id", brandVoiceId)
         .eq("user_id", user.id)
-        .single();
-      brandVoiceSample = voice?.samples;
-      if (voice && (voice.humanization_level || voice.imperfection_mode || voice.personal_story_injection)) {
+        .maybeSingle();
+      if (!voice) {
+        return NextResponse.json(
+          {
+            error:
+              "That brand voice no longer exists or isn’t yours. Clear the selection or pick another.",
+            code: "BRAND_VOICE_NOT_FOUND",
+          },
+          { status: 400 }
+        );
+      }
+      brandVoiceSample = voice.samples;
+      if (
+        voice.humanization_level ||
+        voice.imperfection_mode ||
+        voice.personal_story_injection
+      ) {
         authenticityTuning = {
           humanizationLevel: voice.humanization_level ?? undefined,
           imperfectionMode: voice.imperfection_mode ?? false,

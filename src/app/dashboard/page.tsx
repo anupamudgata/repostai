@@ -227,7 +227,8 @@ export default function DashboardPage() {
     useState<Platform | null>(null);
   const [loading, setLoading] = useState(false);
   const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
-  const [plan, setPlan] = useState<string>("free");
+  /** null until first /api/me — avoids treating paid users as free on first paint */
+  const [plan, setPlan] = useState<string | null>(null);
   const [usage, setUsage] = useState<{
     count: number;
     limit: number | null;
@@ -280,6 +281,9 @@ export default function DashboardPage() {
   }, [pathname, clearRepurposeResults]);
 
   const isFreePlan = plan === "free";
+  const hasPaidPlan = plan !== null && plan !== "free";
+  /** Native select while loading or on free tier (avoids Radix scroll-lock on some devices). */
+  const useNativeBrandVoiceSelect = plan === null || plan === "free";
 
   /** Map repurpose platform to connected_account platform for "Post now" */
   const platformProvider = (p: Platform): string | null => {
@@ -298,31 +302,45 @@ export default function DashboardPage() {
     fetchConnections();
   }, []);
 
-  async function refreshMe() {
-    const res = await fetch("/api/me");
-    const data = await res.json();
-    if (res.ok) {
-      setPlan(data.plan);
-      setUsage({
-        count: data.repurposeCount ?? 0,
-        limit:
-          data.repurposeLimit === undefined ? null : data.repurposeLimit,
-        daysUntilReset: data.daysUntilUsageReset ?? 0,
-      });
+  const refreshMe = useCallback(async () => {
+    try {
+      const res = await fetch("/api/me", { cache: "no-store" });
+      const data = await res.json();
+      if (res.ok) {
+        setPlan(data.plan ?? "free");
+        setUsage({
+          count: data.repurposeCount ?? 0,
+          limit:
+            data.repurposeLimit === undefined ? null : data.repurposeLimit,
+          daysUntilReset: data.daysUntilUsageReset ?? 0,
+        });
+      } else {
+        setPlan("free");
+      }
+    } catch {
+      setPlan("free");
     }
-  }
-
-  useEffect(() => {
-    refreshMe();
   }, []);
 
   useEffect(() => {
-    if (isFreePlan) {
+    void (async () => {
+      await refreshMe();
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("upgraded") === "true") {
+        await refreshMe();
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    })();
+  }, [refreshMe]);
+
+  useEffect(() => {
+    if (plan === "free") {
       setSelectedPlatforms((prev) =>
         prev.filter((p) => FREE_PLATFORMS_SET.has(p))
       );
     }
-  }, [isFreePlan]);
+  }, [plan]);
 
   useEffect(() => {
     async function fetchVoices() {
@@ -342,7 +360,7 @@ export default function DashboardPage() {
   }, []);
 
   function togglePlatform(platform: Platform) {
-    if (isFreePlan && !FREE_PLATFORMS_SET.has(platform)) return;
+    if (plan === "free" && !FREE_PLATFORMS_SET.has(platform)) return;
     setSelectedPlatforms((prev) =>
       prev.includes(platform)
         ? prev.filter((p) => p !== platform)
@@ -426,7 +444,10 @@ export default function DashboardPage() {
         if (data.code === "LIMIT_REACHED" || data.code === "PLAN_LIMIT") {
           setLimitModalCode(data.code);
           setLimitModalOpen(true);
-          track(AnalyticsEvent.FREE_LIMIT_HIT, { code: data.code, plan });
+          track(AnalyticsEvent.FREE_LIMIT_HIT, {
+            code: data.code,
+            plan: plan ?? "unknown",
+          });
         }
         toastT.errorFromApi(
           { error: data.error, code: data.code },
@@ -476,7 +497,10 @@ export default function DashboardPage() {
         if (data.code === "LIMIT_REACHED" || data.code === "PLAN_LIMIT") {
           setLimitModalCode(data.code);
           setLimitModalOpen(true);
-          track(AnalyticsEvent.FREE_LIMIT_HIT, { code: data.code, plan });
+          track(AnalyticsEvent.FREE_LIMIT_HIT, {
+            code: data.code,
+            plan: plan ?? "unknown",
+          });
         }
         toastT.errorFromApi(
           { error: data.error, code: data.code },
@@ -565,9 +589,14 @@ export default function DashboardPage() {
 
   function openScheduleModal(platform: Platform, jobId?: string) {
     const provider = platformProvider(platform);
-    const acc = provider
-      ? connectedAccounts.find((a) => a.platform === provider)
-      : null;
+    if (!provider) {
+      const info = SUPPORTED_PLATFORMS.find((p) => p.id === platform);
+      toastT.error("toast.postInAppNotSupported", {
+        platform: info?.name ?? platform,
+      });
+      return;
+    }
+    const acc = connectedAccounts.find((a) => a.platform === provider);
     const jid = jobId ?? lastJobId;
     if (!acc) {
       toastT.error("toast.connectToSchedule", {
@@ -662,7 +691,7 @@ export default function DashboardPage() {
   }
 
   async function handlePostAllConnected() {
-    if (isFreePlan) {
+    if (!hasPaidPlan) {
       toastT.error("toast.bulkPostProOnly");
       return;
     }
@@ -986,13 +1015,13 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="text-lg">{d.brandVoiceCardTitle}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {isFreePlan
+              {useNativeBrandVoiceSelect
                 ? d.freeBrandVoiceCardSubtitle
                 : d.brandVoiceCardSubtitle}
             </p>
           </CardHeader>
           <CardContent>
-            {isFreePlan ? (
+            {useNativeBrandVoiceSelect ? (
               <select
                 id="brand-voice-select-free"
                 className={cn(
@@ -1262,7 +1291,7 @@ export default function DashboardPage() {
                 {d.clearResults}
               </Button>
             </div>
-            {!isFreePlan && bulkSources.length === 0 && (
+            {hasPaidPlan && bulkSources.length === 0 && (
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Button
                   size="sm"
@@ -1369,7 +1398,7 @@ export default function DashboardPage() {
                     >
                       {source.sourceUrl}
                     </a>
-                    {!isFreePlan && (
+                    {hasPaidPlan && (
                       <Button
                         size="sm"
                         variant="outline"

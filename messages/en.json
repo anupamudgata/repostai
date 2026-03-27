@@ -116,7 +116,8 @@
       "NOT_FOUND": "We couldn't find that.",
       "VALIDATION_ERROR": "Please check your input and try again.",
       "RATE_LIMITED": "Too many requests. Please wait a moment.",
-      "INTERNAL": "Something went wrong on our end. Please try again."
+      "INTERNAL": "Something went wrong on our end. Please try again.",
+      "BRAND_VOICE_NOT_FOUND": "That brand voice isn’t available anymore. Clear it or pick another from Brand voice."
     }
   },
   "toast": {
@@ -182,6 +183,7 @@
     "regenerationFailed": "Regeneration failed",
     "regenerateFirst": "Cannot regenerate. Repurpose again first.",
     "connectToSchedule": "Connect {provider} to schedule posts",
+    "postInAppNotSupported": "In-app post and schedule aren’t available for {platform} yet. Copy the text and publish from the app.",
     "cannotSchedule": "Cannot schedule. Generate content again first.",
     "postScheduled": "Post scheduled!",
     "failedSchedule": "Failed to schedule",
