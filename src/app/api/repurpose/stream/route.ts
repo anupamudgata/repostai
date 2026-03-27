@@ -7,7 +7,7 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
-import { burstLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
+import { burstLimiter } from "@/lib/ratelimit";
 import { captureError }                  from "@/lib/sentry";
 import { openai } from "@/lib/ai/client";
 import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
@@ -203,32 +203,11 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        /** Free tier: enforce monthly cap only (above). Do not apply Redis `freeTierLimiter` — it duplicated policy and could block valid users (Upstash / id edge cases). Paid tiers keep daily streaming limits. */
-        let streamRemaining: number | null = null;
-        if (effectivePlan === "free") {
-          streamRemaining =
-            entitlements.repurposesPerMonth != null
-              ? Math.max(0, entitlements.repurposesPerMonth - used - 1)
-              : null;
-        } else {
-          const limiter =
-            effectivePlan === "agency"
-              ? agencyTierLimiter
-              : proTierLimiter;
-          const tierResult = await limiter.limit(user.id);
-          if (!tierResult.success) {
-            send({
-              type: "error",
-              error:
-                effectivePlan === "agency"
-                  ? "Streaming limit reached. Please try again later."
-                  : "Daily streaming limit reached. Resets at midnight UTC.",
-            });
-            close();
-            return;
-          }
-          streamRemaining = tierResult.remaining;
-        }
+        /** Remaining count for UI. Do not use Redis daily streaming caps (pro/agency/free) — they duplicate monthly `usage` and caused false blocks when Upstash mis-keyed or limits exhausted mid-session. */
+        const streamRemaining: number | null =
+          !isSuperUser && entitlements.repurposesPerMonth != null
+            ? Math.max(0, entitlements.repurposesPerMonth - used - 1)
+            : null;
 
         const body = await req.json();
         const { content, platforms, language = "en", brandVoiceId } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string };

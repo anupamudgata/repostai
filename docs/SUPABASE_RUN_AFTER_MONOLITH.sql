@@ -13,6 +13,28 @@
 
 create extension if not exists pgcrypto;
 
+-- Must run BEFORE adding CHECK: existing rows with unknown codes cause ERROR 23514.
+-- Inspect first: select distinct output_language from public.repurpose_jobs order by 1;
+update public.repurpose_jobs
+set output_language = lower(trim(output_language))
+where output_language is not null and output_language <> lower(trim(output_language));
+
+update public.created_posts
+set output_language = lower(trim(output_language))
+where output_language is not null and output_language <> lower(trim(output_language));
+
+update public.repurpose_jobs
+set output_language = 'en'
+where output_language is null
+   or trim(output_language) = ''
+   or output_language not in ('en', 'hi', 'mr', 'bn', 'te', 'kn', 'or', 'pa', 'es', 'pt', 'fr');
+
+update public.created_posts
+set output_language = 'en'
+where output_language is null
+   or trim(output_language) = ''
+   or output_language not in ('en', 'hi', 'mr', 'bn', 'te', 'kn', 'or', 'pa', 'es', 'pt', 'fr');
+
 -- Align with OUTPUT_LANGUAGE_VALUES in src/lib/validators/output-language.ts
 alter table public.repurpose_jobs drop constraint if exists repurpose_jobs_output_language_check;
 alter table public.repurpose_jobs add constraint repurpose_jobs_output_language_check
