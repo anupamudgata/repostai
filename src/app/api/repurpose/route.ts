@@ -14,6 +14,10 @@ import {
 } from "@/lib/billing/plan-entitlements";
 import { captureError } from "@/lib/sentry";
 import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
+import {
+  insertRepurposeJobAdmin,
+  isLikelyUserProfileFkError,
+} from "@/lib/supabase/insert-repurpose-job";
 
 /** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
 function messageForRepurposeJobInsertError(err: {
@@ -62,22 +66,6 @@ function messageForRepurposeJobInsertError(err: {
     return "Could not save this repurpose. Check your content and try again.";
   }
   return "Failed to create job. Please try again.";
-}
-
-/** Postgres often omits table names; constraint name is e.g. repurpose_jobs_user_id_fkey */
-function isLikelyUserProfileFkError(err: {
-  message?: string;
-  details?: string;
-} | null): boolean {
-  if (!err) return false;
-  const s = `${err.message ?? ""} ${err.details ?? ""}`.toLowerCase();
-  if (s.includes("brand_voice")) return false;
-  return (
-    s.includes("user_id_fkey") ||
-    s.includes("repurpose_jobs_user_id_fkey") ||
-    (s.includes("user_id") &&
-      (s.includes("profiles") || s.includes("profile")))
-  );
 }
 
 export async function POST(request: NextRequest) {
@@ -266,18 +254,12 @@ export async function POST(request: NextRequest) {
         brand_voice_id: brandVoiceId || null,
         output_language: outputLanguage,
       };
-      let { data: job, error: cachedJobError } = await supabase
-        .from("repurpose_jobs")
-        .insert(jobInsertPayload)
-        .select("id")
-        .single();
+      let { data: job, error: cachedJobError } =
+        await insertRepurposeJobAdmin(jobInsertPayload);
       if (cachedJobError && isLikelyUserProfileFkError(cachedJobError)) {
         await ensureProfileForUser(user);
-        ({ data: job, error: cachedJobError } = await supabase
-          .from("repurpose_jobs")
-          .insert(jobInsertPayload)
-          .select("id")
-          .single());
+        ({ data: job, error: cachedJobError } =
+          await insertRepurposeJobAdmin(jobInsertPayload));
       }
       if (cachedJobError || !job) {
         console.error("repurpose_jobs insert (cached path):", cachedJobError);
@@ -355,18 +337,12 @@ export async function POST(request: NextRequest) {
       brand_voice_id: brandVoiceId || null,
       output_language: outputLanguage,
     };
-    let { data: job, error: jobInsertError } = await supabase
-      .from("repurpose_jobs")
-      .insert(jobInsertPayloadMain)
-      .select("id")
-      .single();
+    let { data: job, error: jobInsertError } =
+      await insertRepurposeJobAdmin(jobInsertPayloadMain);
     if (jobInsertError && isLikelyUserProfileFkError(jobInsertError)) {
       await ensureProfileForUser(user);
-      ({ data: job, error: jobInsertError } = await supabase
-        .from("repurpose_jobs")
-        .insert(jobInsertPayloadMain)
-        .select("id")
-        .single());
+      ({ data: job, error: jobInsertError } =
+        await insertRepurposeJobAdmin(jobInsertPayloadMain));
     }
 
     if (jobInsertError || !job) {

@@ -28,4 +28,17 @@ export async function ensureProfileForUser(user: User): Promise<void> {
     console.error("[ensureProfileForUser]", error);
     throw error;
   }
+
+  const { data: exists } = await admin
+    .from("profiles")
+    .select("id")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (!exists) {
+    const { error: insErr } = await admin.from("profiles").insert(row);
+    if (insErr && insErr.code !== "23505") {
+      console.error("[ensureProfileForUser] insert fallback", insErr);
+      throw insErr;
+    }
+  }
 }

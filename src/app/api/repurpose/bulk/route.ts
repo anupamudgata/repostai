@@ -10,6 +10,10 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
+import {
+  insertRepurposeJobAdmin,
+  isLikelyUserProfileFkError,
+} from "@/lib/supabase/insert-repurpose-job";
 
 const MAX_BULK_URLS = 5;
 const MIN_BULK_URLS = 2;
@@ -227,48 +231,61 @@ export async function POST(request: NextRequest) {
         outputs = addFreeTierWatermark(outputs);
       }
 
-      const { data: job } = await supabase
-        .from("repurpose_jobs")
-        .insert({
-          user_id: user.id,
-          input_type: "url",
-          input_content: resolvedContent.slice(0, 10000),
-          input_url: sourceUrl,
-          brand_voice_id: brandVoiceId || null,
-          output_language: outputLanguage,
-        })
-        .select("id")
-        .single();
-
-      if (job) {
-        const outputRows = Object.entries(outputs).map(([platform, generatedContent]) => ({
-          job_id: job.id,
-          platform,
-          generated_content: generatedContent,
-        }));
-        await supabase.from("repurpose_outputs").insert(outputRows);
-
-        await supabase.rpc("increment_usage", {
-          p_user_id: user.id,
-          p_month: currentMonth,
-        });
-
-        notifyZapier(profile?.zapier_webhook_url, {
-          jobId: job.id,
-          sourceUrl,
-          outputs: Object.entries(outputs).map(([platform, generatedContent]) => ({
-            platform,
-            content: generatedContent,
-          })),
-          createdAt: new Date().toISOString(),
-        });
-
-        sources.push({
-          sourceUrl,
-          jobId: job.id,
-          outputs: Object.entries(outputs).map(([platform, content]) => ({ platform, content })),
-        });
+      const jobPayload = {
+        user_id: user.id,
+        input_type: "url",
+        input_content: resolvedContent.slice(0, 10000),
+        input_url: sourceUrl,
+        brand_voice_id: brandVoiceId || null,
+        output_language: outputLanguage,
+      };
+      let { data: job, error: jobInsertErr } =
+        await insertRepurposeJobAdmin(jobPayload);
+      if (jobInsertErr && isLikelyUserProfileFkError(jobInsertErr)) {
+        await ensureProfileForUser(user);
+        ({ data: job, error: jobInsertErr } =
+          await insertRepurposeJobAdmin(jobPayload));
       }
+      if (jobInsertErr || !job) {
+        console.error("bulk repurpose_jobs insert:", jobInsertErr);
+        return NextResponse.json(
+          {
+            error:
+              jobInsertErr?.message ??
+              "Could not save repurpose job. Try again.",
+            code: "JOB_INSERT_FAILED",
+          },
+          { status: 500 }
+        );
+      }
+
+      const outputRows = Object.entries(outputs).map(([platform, generatedContent]) => ({
+        job_id: job.id,
+        platform,
+        generated_content: generatedContent,
+      }));
+      await supabase.from("repurpose_outputs").insert(outputRows);
+
+      await supabase.rpc("increment_usage", {
+        p_user_id: user.id,
+        p_month: currentMonth,
+      });
+
+      notifyZapier(profile?.zapier_webhook_url, {
+        jobId: job.id,
+        sourceUrl,
+        outputs: Object.entries(outputs).map(([platform, generatedContent]) => ({
+          platform,
+          content: generatedContent,
+        })),
+        createdAt: new Date().toISOString(),
+      });
+
+      sources.push({
+        sourceUrl,
+        jobId: job.id,
+        outputs: Object.entries(outputs).map(([platform, content]) => ({ platform, content })),
+      });
     }
 
     const totalOutputs = sources.reduce((sum, s) => sum + s.outputs.length, 0);
