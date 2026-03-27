@@ -5,6 +5,7 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
+import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 
 export async function GET() {
   try {
@@ -16,6 +17,8 @@ export async function GET() {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    await ensureProfileForUser(user);
 
     const { plan, isSuperUser } = await getEffectivePlan(
       supabase,

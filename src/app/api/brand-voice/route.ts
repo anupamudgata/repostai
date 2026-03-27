@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 import { invalidateBrandVoiceCache, warmBrandVoiceCache } from "@/lib/ai/brand-voice-cache";
 import { brandVoiceWritingFields } from "@/lib/brand-voice-db";
 import {
@@ -37,6 +38,15 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    try {
+      await ensureProfileForUser(user);
+    } catch (e) {
+      console.error("[brand-voice] ensure profile:", e);
+      return NextResponse.json(
+        { error: "Could not prepare your account. Please try again or contact support." },
+        { status: 500 }
+      );
+    }
     const { plan } = await getEffectivePlan(supabase, user.id, user.email);
     const limit = getBrandVoiceLimit(plan);
     const { count } = await supabaseAdmin.from("brand_voices").select("id", { count: "exact", head: true }).eq("user_id", user.id);

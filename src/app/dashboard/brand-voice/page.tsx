@@ -88,6 +88,12 @@ export default function BrandVoicePage() {
     } = await supabase.auth.getUser();
     if (!user) return;
 
+    const me = await fetch("/api/me", { credentials: "include" });
+    if (!me.ok) {
+      toastT.error("toast.genericError");
+      return;
+    }
+
     const { error } = await supabase.from("brand_voices").insert({
       user_id: user.id,
       name: payload.name,
