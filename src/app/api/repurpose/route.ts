@@ -12,6 +12,29 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
+import { captureError } from "@/lib/sentry";
+
+/** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
+function messageForRepurposeJobInsertError(err: {
+  message?: string;
+  code?: string;
+} | null): string {
+  if (!err?.message && !err?.code) {
+    return "Failed to create job. Please try again.";
+  }
+  const msg = err.message ?? "";
+  const code = err.code ?? "";
+  if (/row-level security|RLS/i.test(msg) || code === "42501") {
+    return "Could not save your repurpose. Try signing out and signing in again.";
+  }
+  if (/foreign key|violates foreign key/i.test(msg) || code === "23503") {
+    return "Invalid brand voice. Clear the brand voice or choose another.";
+  }
+  if (/check constraint|violates check/i.test(msg) || code === "23514") {
+    return "Could not save this repurpose. Check your content and try again.";
+  }
+  return "Failed to create job. Please try again.";
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -168,7 +191,7 @@ export async function POST(request: NextRequest) {
       : null;
     if (cachedOutputs && Object.keys(cachedOutputs).length > 0) {
       const outputsToUse = isFreePlan ? addFreeTierWatermark(cachedOutputs) : cachedOutputs;
-      const { data: job } = await supabase
+      const { data: job, error: cachedJobError } = await supabase
         .from("repurpose_jobs")
         .insert({
           user_id: user.id,
@@ -180,22 +203,35 @@ export async function POST(request: NextRequest) {
         })
         .select("id")
         .single();
-      if (job) {
-        const outputRows = Object.entries(outputsToUse).map(([platform, generatedContent]) => ({
-          job_id: job.id,
-          platform,
-          generated_content: generatedContent,
-        }));
-        await supabase.from("repurpose_outputs").insert(outputRows);
-        await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
-        notifyZapier(profile?.zapier_webhook_url, {
-          jobId: job.id,
-          outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
-          createdAt: new Date().toISOString(),
+      if (cachedJobError || !job) {
+        console.error("repurpose_jobs insert (cached path):", cachedJobError);
+        captureError(cachedJobError ?? new Error("repurpose job insert returned no row"), {
+          action: "repurpose_job_insert",
+          userId: user.id,
+          extra: { cached: true, plan: effectivePlan },
         });
+        return NextResponse.json(
+          {
+            error: messageForRepurposeJobInsertError(cachedJobError),
+            code: "JOB_INSERT_FAILED",
+          },
+          { status: 500 }
+        );
       }
+      const outputRows = Object.entries(outputsToUse).map(([platform, generatedContent]) => ({
+        job_id: job.id,
+        platform,
+        generated_content: generatedContent,
+      }));
+      await supabase.from("repurpose_outputs").insert(outputRows);
+      await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
+      notifyZapier(profile?.zapier_webhook_url, {
+        jobId: job.id,
+        outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
+        createdAt: new Date().toISOString(),
+      });
       return NextResponse.json({
-        jobId: job?.id,
+        jobId: job.id,
         outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
       });
     }
@@ -235,7 +271,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert job first (status: pending), then generate
-    const { data: job } = await supabase
+    const { data: job, error: jobInsertError } = await supabase
       .from("repurpose_jobs")
       .insert({
         user_id: user.id,
@@ -248,9 +284,18 @@ export async function POST(request: NextRequest) {
       .select("id")
       .single();
 
-    if (!job) {
+    if (jobInsertError || !job) {
+      console.error("repurpose_jobs insert:", jobInsertError);
+      captureError(jobInsertError ?? new Error("repurpose job insert returned no row"), {
+        action: "repurpose_job_insert",
+        userId: user.id,
+        extra: { plan: effectivePlan },
+      });
       return NextResponse.json(
-        { error: "Failed to create job. Please try again." },
+        {
+          error: messageForRepurposeJobInsertError(jobInsertError),
+          code: "JOB_INSERT_FAILED",
+        },
         { status: 500 }
       );
     }

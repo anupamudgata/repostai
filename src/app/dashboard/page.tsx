@@ -460,7 +460,7 @@ export default function DashboardPage() {
                 ? content
                 : inputType === "pdf"
                   ? pdfExtractedText
-                  : d.fetchingFromUrl,
+                  : url,
             url: inputType !== "text" && inputType !== "pdf" ? url : undefined,
             platforms: selectedPlatforms,
           outputLanguage,
