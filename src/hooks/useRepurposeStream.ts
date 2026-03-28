@@ -34,6 +34,7 @@ interface StartParams {
   platforms:     Platform[];
   language?:     Language;
   brandVoiceId?: string;
+  inputType?:    string;
 }
 
 const DEFAULT_PLATFORM_STATE = (platform: Platform): PlatformState => ({ platform, status: "idle", content: "" });
@@ -96,6 +97,9 @@ export function useRepurposeStream() {
           const platform = payload.platform as Platform | undefined;
 
           switch (type) {
+            case "extracting":
+              // Keep status as "extracting" — already set; no state change needed
+              break;
             case "brief_ready": {
               const resolved = payload.platforms as Platform[] | undefined;
               if (resolved?.length) {

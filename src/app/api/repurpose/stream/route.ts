@@ -27,6 +27,8 @@ import { applyOdiaSocialMediaGuards } from "@/lib/ai/odia-social-prompt";
 import { isIndianLanguage } from "@/lib/ai/types";
 import { getRegionalPrompts } from "@/lib/prompts/regional";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
+import { scrapeUrl }             from "@/lib/scrapers/url-scraper";
+import { getYouTubeTranscript }  from "@/lib/scrapers/youtube-scraper";
 
 const CLAUDE_REGIONAL_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
 const CLAUDE_ENHANCED_MODEL = process.env.ANTHROPIC_ENHANCED_MODEL?.trim() || "claude-haiku-4-5-20251001";
@@ -40,7 +42,7 @@ function resolveStreamClaudeModel(aiTier: AiTier, language: Language): string {
 }
 
 
-type SSEEventType = "brief_ready" | "platform_start" | "platform_chunk" | "platform_done" | "platform_error" | "all_done" | "error";
+type SSEEventType = "extracting" | "brief_ready" | "platform_start" | "platform_chunk" | "platform_done" | "platform_error" | "all_done" | "error";
 
 interface SSEPayload {
   type:        SSEEventType;
@@ -57,6 +59,7 @@ interface SSEPayload {
   durationMs?: number;
   error?:      string;
   remaining?:  number;
+  message?:    string;
 }
 
 function sseEvent(payload: SSEPayload): string {
@@ -280,7 +283,24 @@ export async function POST(req: NextRequest) {
             : null;
 
         const body = await req.json();
-        const { content, platforms, language = "en", brandVoiceId } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string };
+        const { content: bodyContent, platforms, language = "en", brandVoiceId, inputType = "text" } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string; inputType?: string };
+
+        let content = bodyContent;
+        if (inputType === "url" || inputType === "youtube") {
+          if (!bodyContent?.trim()) { send({ type: "error", error: "Please enter a valid URL." }); close(); return; }
+          send({ type: "extracting", message: inputType === "youtube" ? "Extracting YouTube transcript..." : "Extracting content from URL..." });
+          try {
+            content = inputType === "youtube"
+              ? await getYouTubeTranscript(bodyContent)
+              : await scrapeUrl(bodyContent);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "Could not fetch URL";
+            send({ type: "error", error: `Failed to extract content: ${msg}` });
+            close();
+            return;
+          }
+        }
+
         if (!content?.trim() || !platforms?.length) { send({ type: "error", error: "Content and platforms are required." }); close(); return; }
         if (content.length > 50000) { send({ type: "error", error: "Content is too long (max 50,000 characters)." }); close(); return; }
 
@@ -345,9 +365,9 @@ export async function POST(req: NextRequest) {
           try {
             const jobPayload = {
               user_id: user.id,
-              input_type: "text" as const,
+              input_type: (inputType === "url" || inputType === "youtube" ? inputType : "text") as "text" | "url" | "youtube",
               input_content: content.slice(0, 10000),
-              input_url: null,
+              input_url: (inputType === "url" || inputType === "youtube") ? bodyContent : null,
               brand_voice_id: brandVoiceId || null,
               output_language: language,
             };

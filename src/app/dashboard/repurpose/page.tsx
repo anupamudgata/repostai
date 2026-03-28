@@ -49,7 +49,7 @@ export default function RepurposePage() {
 
   async function handleSubmit() {
     if (!content.trim() || selectedPlatforms.length === 0) return;
-    await start({ content, platforms: selectedPlatforms, language });
+    await start({ content, platforms: selectedPlatforms, language, inputType });
   }
 
   return (
