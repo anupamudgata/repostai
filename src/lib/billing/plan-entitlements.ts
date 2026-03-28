@@ -63,8 +63,14 @@ export function getBrandVoiceLimit(plan: PaidPlan): number {
 }
 
 /**
- * Single source of truth: active/trialing subscription overrides profile when present;
- * otherwise profiles.plan. Superuser → pro for limits (existing behavior).
+ * Single source of truth: ONLY an active/trialing subscription grants a paid plan.
+ * profiles.plan is treated as a display cache — never trusted for entitlement checks.
+ * Superuser → pro for limits (existing behavior).
+ *
+ * SECURITY: Previously this function fell back to profiles.plan, which meant a
+ * stale/manipulated profile row could grant Pro without payment. Now only the
+ * subscriptions table (written exclusively by verified Razorpay webhooks/callbacks)
+ * can grant paid features.
  */
 export async function getEffectivePlan(
   supabase: SupabaseClient,
@@ -75,21 +81,18 @@ export async function getEffectivePlan(
     return { plan: "pro", isSuperUser: true };
   }
 
-  // Fetch subscription and profile in parallel to reduce latency
-  const [subResult, profileResult] = await Promise.all([
-    supabase
-      .from("subscriptions")
-      .select("plan, status")
-      .eq("user_id", userId)
-      .maybeSingle(),
-    supabase
-      .from("profiles")
-      .select("plan")
-      .eq("id", userId)
-      .maybeSingle(),
-  ]);
+  const { data: sub, error: subError } = await supabase
+    .from("subscriptions")
+    .select("plan, status")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  const sub = subResult.data;
+  if (subError) {
+    console.error("[getEffectivePlan] subscription query failed:", subError.message);
+    // On error, default to free — never grant paid features on uncertainty
+    return { plan: "free", isSuperUser: false };
+  }
+
   const subOk = sub?.status === "active" || sub?.status === "trialing";
   if (
     subOk &&
@@ -101,10 +104,7 @@ export async function getEffectivePlan(
     return { plan: sub.plan as PaidPlan, isSuperUser: false };
   }
 
-  const p = profileResult.data?.plan;
-  if (p === "agency" || p === "pro" || p === "starter") {
-    return { plan: p, isSuperUser: false };
-  }
+  // No active subscription → always free, regardless of what profiles.plan says
   return { plan: "free", isSuperUser: false };
 }
 
