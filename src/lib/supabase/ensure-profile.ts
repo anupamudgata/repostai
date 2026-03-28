@@ -62,9 +62,24 @@ export async function ensureProfileForUser(
   if (existing) return;
 
   const { error: insertErr } = await admin.from("profiles").insert(row);
-  if (!insertErr) return;
+  if (!insertErr) {
+    // Verify the profile actually landed — some edge cases silently drop inserts
+    const { data: verify } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (verify) return;
+    console.warn("[ensureProfileForUser] insert reported success but profile not found — retrying");
+    // Retry once with upsert
+    const { error: upsertErr } = await admin
+      .from("profiles")
+      .upsert(row, { onConflict: "id" });
+    if (!upsertErr) return;
+    console.error("[ensureProfileForUser] upsert also failed", upsertErr);
+  }
 
-  if (insertErr.code === "23505") {
+  if (insertErr?.code === "23505") {
     return;
   }
 
@@ -77,6 +92,23 @@ export async function ensureProfileForUser(
 
   if (userSupabase && (await hasProfile(userSupabase))) return;
 
-  console.error("[ensureProfileForUser] insert failed", insertErr);
-  throw insertErr;
+  // Last resort: try user-session insert (works if INSERT RLS policy exists)
+  if (userSupabase) {
+    const { error: userInsertErr } = await userSupabase.from("profiles").upsert(row, { onConflict: "id" });
+    if (!userInsertErr && (await hasProfile(userSupabase))) return;
+    if (userInsertErr) {
+      console.warn("[ensureProfileForUser] user-session upsert failed", userInsertErr.message);
+    }
+
+    // Final attempt: try RPC if available
+    try {
+      await userSupabase.rpc("ensure_profile_from_auth");
+      if (await hasProfile(userSupabase)) return;
+    } catch {
+      // RPC might not exist yet
+    }
+  }
+
+  console.error("[ensureProfileForUser] all attempts failed", insertErr);
+  throw insertErr ?? new Error("Profile creation failed after all attempts");
 }
