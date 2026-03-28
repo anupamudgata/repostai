@@ -7,7 +7,9 @@ import {
 
 /**
  * Returns effective billing plan + AI routing hints.
- * Pro/Agency → aiTier "premium" (Claude when ANTHROPIC_API_KEY is set; else GPT‑4o‑mini fallback).
+ * - Free/Starter → aiTier "standard"  (GPT-4o-mini)
+ * - Pro          → aiTier "enhanced"  (Claude Haiku 4.5 when ANTHROPIC_API_KEY set)
+ * - Agency       → aiTier "premium"   (Claude Sonnet 4 when ANTHROPIC_API_KEY set)
  */
 export async function GET() {
   try {
@@ -27,15 +29,15 @@ export async function GET() {
     const { plan } = await getEffectivePlan(supabase, user.id, user.email);
     const entitlements = getEntitlements(plan);
     const claudeConfigured = Boolean(process.env.ANTHROPIC_API_KEY?.trim());
-    const usesClaudeForPremium =
-      entitlements.aiTier === "premium" && claudeConfigured;
+    const usesClaude =
+      (entitlements.aiTier === "premium" || entitlements.aiTier === "enhanced") && claudeConfigured;
 
     return NextResponse.json({
       plan,
       aiTier: entitlements.aiTier,
       claudeConfigured,
       /** True when this request would use Claude for repurpose / photo captions (barring runtime API errors). */
-      premiumUsesClaude: usesClaudeForPremium,
+      premiumUsesClaude: usesClaude,
     });
   } catch {
     return NextResponse.json({

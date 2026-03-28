@@ -1,9 +1,14 @@
 // src/lib/social/types.ts
-export type Platform = "linkedin" | "twitter" | "instagram" | "facebook" | "reddit";
+
+/** Platforms that have social posting / OAuth integration. */
+export type SocialPlatform = "linkedin" | "twitter" | "instagram" | "facebook" | "reddit";
+
+/** Re-export for backward compat — social module uses SocialPlatform internally. */
+export type Platform = SocialPlatform;
 
 export interface ConnectedAccount {
   id:               string;
-  platform:         Platform;
+  platform:         SocialPlatform;
   platformUserId:   string;
   platformUsername: string;
   platformAvatar:   string | null;
@@ -11,5 +16,5 @@ export interface ConnectedAccount {
   meta:             Record<string, unknown> | null;
 }
 
-export interface PostPayload { platform: Platform; text: string; userId: string; }
-export interface PostResult  { platform: Platform; success: boolean; postId?: string; postUrl?: string; error?: string; }
+export interface PostPayload { platform: SocialPlatform; text: string; userId: string; }
+export interface PostResult  { platform: string; success: boolean; postId?: string; postUrl?: string; error?: string; }

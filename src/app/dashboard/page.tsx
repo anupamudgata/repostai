@@ -64,6 +64,7 @@ import {
   CONTENT_ANGLES,
   HOOK_MODES,
 } from "@/config/constants";
+import { cn } from "@/lib/utils";
 
 const INPUT_TABS = [
   { id: "text" as InputType, icon: Type },
@@ -226,7 +227,8 @@ export default function DashboardPage() {
     useState<Platform | null>(null);
   const [loading, setLoading] = useState(false);
   const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
-  const [plan, setPlan] = useState<string>("free");
+  /** null until first /api/me — avoids treating paid users as free on first paint */
+  const [plan, setPlan] = useState<string | null>(null);
   const [usage, setUsage] = useState<{
     count: number;
     limit: number | null;
@@ -259,6 +261,7 @@ export default function DashboardPage() {
     { platform: string; score: number; reason: string; recommendation: "post" | "consider" | "skip" }[]
   >([]);
   const [platformFitLoading, setPlatformFitLoading] = useState(false);
+  const [profileSyncFailed, setProfileSyncFailed] = useState(false);
 
   const clearRepurposeResults = useCallback(() => {
     setOutputs([]);
@@ -279,6 +282,9 @@ export default function DashboardPage() {
   }, [pathname, clearRepurposeResults]);
 
   const isFreePlan = plan === "free";
+  const hasPaidPlan = plan !== null && plan !== "free";
+  /** Native select while loading or on free tier (avoids Radix scroll-lock on some devices). */
+  const useNativeBrandVoiceSelect = plan === null || plan === "free";
 
   /** Map repurpose platform to connected_account platform for "Post now" */
   const platformProvider = (p: Platform): string | null => {
@@ -297,31 +303,58 @@ export default function DashboardPage() {
     fetchConnections();
   }, []);
 
-  async function refreshMe() {
-    const res = await fetch("/api/me");
-    const data = await res.json();
-    if (res.ok) {
-      setPlan(data.plan);
-      setUsage({
-        count: data.repurposeCount ?? 0,
-        limit:
-          data.repurposeLimit === undefined ? null : data.repurposeLimit,
-        daysUntilReset: data.daysUntilUsageReset ?? 0,
-      });
+  const refreshMe = useCallback(async () => {
+    try {
+      const res = await fetch("/api/me", { cache: "no-store" });
+      const data = (await res.json().catch(() => ({}))) as {
+        plan?: string;
+        repurposeCount?: number;
+        repurposeLimit?: number | null;
+        daysUntilUsageReset?: number;
+        code?: string;
+      };
+      if (res.ok) {
+        setProfileSyncFailed(false);
+        setPlan(data.plan ?? "free");
+        setUsage({
+          count: data.repurposeCount ?? 0,
+          limit:
+            data.repurposeLimit === undefined ? null : data.repurposeLimit,
+          daysUntilReset: data.daysUntilUsageReset ?? 0,
+        });
+      } else {
+        if (data.code === "PROFILE_SYNC_FAILED") {
+          setProfileSyncFailed(true);
+        } else {
+          setProfileSyncFailed(false);
+          setPlan("free");
+        }
+      }
+    } catch {
+      setProfileSyncFailed(false);
+      setPlan("free");
     }
-  }
-
-  useEffect(() => {
-    refreshMe();
   }, []);
 
   useEffect(() => {
-    if (isFreePlan) {
+    void (async () => {
+      await refreshMe();
+      if (typeof window === "undefined") return;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("upgraded") === "true") {
+        await refreshMe();
+        window.history.replaceState({}, "", window.location.pathname);
+      }
+    })();
+  }, [refreshMe]);
+
+  useEffect(() => {
+    if (plan === "free") {
       setSelectedPlatforms((prev) =>
         prev.filter((p) => FREE_PLATFORMS_SET.has(p))
       );
     }
-  }, [isFreePlan]);
+  }, [plan]);
 
   useEffect(() => {
     async function fetchVoices() {
@@ -341,7 +374,7 @@ export default function DashboardPage() {
   }, []);
 
   function togglePlatform(platform: Platform) {
-    if (isFreePlan && !FREE_PLATFORMS_SET.has(platform)) return;
+    if (plan === "free" && !FREE_PLATFORMS_SET.has(platform)) return;
     setSelectedPlatforms((prev) =>
       prev.includes(platform)
         ? prev.filter((p) => p !== platform)
@@ -425,7 +458,10 @@ export default function DashboardPage() {
         if (data.code === "LIMIT_REACHED" || data.code === "PLAN_LIMIT") {
           setLimitModalCode(data.code);
           setLimitModalOpen(true);
-          track(AnalyticsEvent.FREE_LIMIT_HIT, { code: data.code, plan });
+          track(AnalyticsEvent.FREE_LIMIT_HIT, {
+            code: data.code,
+            plan: plan ?? "unknown",
+          });
         }
         toastT.errorFromApi(
           { error: data.error, code: data.code },
@@ -460,7 +496,7 @@ export default function DashboardPage() {
                 ? content
                 : inputType === "pdf"
                   ? pdfExtractedText
-                  : d.fetchingFromUrl,
+                  : url,
             url: inputType !== "text" && inputType !== "pdf" ? url : undefined,
             platforms: selectedPlatforms,
           outputLanguage,
@@ -475,7 +511,10 @@ export default function DashboardPage() {
         if (data.code === "LIMIT_REACHED" || data.code === "PLAN_LIMIT") {
           setLimitModalCode(data.code);
           setLimitModalOpen(true);
-          track(AnalyticsEvent.FREE_LIMIT_HIT, { code: data.code, plan });
+          track(AnalyticsEvent.FREE_LIMIT_HIT, {
+            code: data.code,
+            plan: plan ?? "unknown",
+          });
         }
         toastT.errorFromApi(
           { error: data.error, code: data.code },
@@ -564,9 +603,14 @@ export default function DashboardPage() {
 
   function openScheduleModal(platform: Platform, jobId?: string) {
     const provider = platformProvider(platform);
-    const acc = provider
-      ? connectedAccounts.find((a) => a.platform === provider)
-      : null;
+    if (!provider) {
+      const info = SUPPORTED_PLATFORMS.find((p) => p.id === platform);
+      toastT.error("toast.postInAppNotSupported", {
+        platform: info?.name ?? platform,
+      });
+      return;
+    }
+    const acc = connectedAccounts.find((a) => a.platform === provider);
     const jid = jobId ?? lastJobId;
     if (!acc) {
       toastT.error("toast.connectToSchedule", {
@@ -661,7 +705,7 @@ export default function DashboardPage() {
   }
 
   async function handlePostAllConnected() {
-    if (isFreePlan) {
+    if (!hasPaidPlan) {
       toastT.error("toast.bulkPostProOnly");
       return;
     }
@@ -733,6 +777,23 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 sm:space-y-8 pb-8">
       <OnboardingBanner />
+      {profileSyncFailed && (
+        <div
+          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+          role="alert"
+        >
+          <p className="text-sm text-foreground">{d.profileSyncBanner}</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => void refreshMe()}
+          >
+            {d.profileSyncRetry}
+          </Button>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">{d.title}</h1>
@@ -980,31 +1041,55 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Brand Voice (Pro/Agency only) */}
+      {/* Brand voice: native select on free plan (avoids Radix scroll-lock on some devices). */}
       <Card>
           <CardHeader>
             <CardTitle className="text-lg">{d.brandVoiceCardTitle}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              {d.brandVoiceCardSubtitle}
+              {useNativeBrandVoiceSelect
+                ? d.freeBrandVoiceCardSubtitle
+                : d.brandVoiceCardSubtitle}
             </p>
           </CardHeader>
           <CardContent>
-            <Select
-              value={brandVoiceId || "none"}
-              onValueChange={(v) => setBrandVoiceId(v === "none" ? "" : v)}
-            >
-              <SelectTrigger className="w-full max-w-sm">
-                <SelectValue placeholder={d.noBrandVoice} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{d.noBrandVoice}</SelectItem>
+            {useNativeBrandVoiceSelect ? (
+              <select
+                id="brand-voice-select-free"
+                className={cn(
+                  "flex h-9 w-full max-w-sm rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-xs",
+                  "focus-visible:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                )}
+                value={brandVoiceId || "none"}
+                onChange={(e) =>
+                  setBrandVoiceId(e.target.value === "none" ? "" : e.target.value)
+                }
+                aria-label={d.brandVoiceCardTitle}
+              >
+                <option value="none">{d.noBrandVoice}</option>
                 {brandVoices.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>
+                  <option key={v.id} value={v.id}>
                     {v.name}
-                  </SelectItem>
+                  </option>
                 ))}
-              </SelectContent>
-            </Select>
+              </select>
+            ) : (
+              <Select
+                value={brandVoiceId || "none"}
+                onValueChange={(v) => setBrandVoiceId(v === "none" ? "" : v)}
+              >
+                <SelectTrigger className="w-full max-w-sm">
+                  <SelectValue placeholder={d.noBrandVoice} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{d.noBrandVoice}</SelectItem>
+                  {brandVoices.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <p className="mt-3 text-xs text-muted-foreground">
               <Link
                 href="/dashboard/brand-voice"
@@ -1237,7 +1322,7 @@ export default function DashboardPage() {
                 {d.clearResults}
               </Button>
             </div>
-            {!isFreePlan && bulkSources.length === 0 && (
+            {hasPaidPlan && bulkSources.length === 0 && (
               <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <Button
                   size="sm"
@@ -1344,7 +1429,7 @@ export default function DashboardPage() {
                     >
                       {source.sourceUrl}
                     </a>
-                    {!isFreePlan && (
+                    {hasPaidPlan && (
                       <Button
                         size="sm"
                         variant="outline"

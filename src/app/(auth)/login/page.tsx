@@ -27,6 +27,22 @@ function LoginForm() {
     if (searchParams.get("reset") === "success") {
       toastT.success("auth.passwordResetSuccess");
       router.replace("/login", { scroll: false });
+      return;
+    }
+    const err = searchParams.get("error");
+    if (err === "auth") {
+      toastT.error("auth.callbackFailed");
+      router.replace("/login", { scroll: false });
+      return;
+    }
+    if (err === "oauth") {
+      const detail = searchParams.get("detail");
+      if (detail) {
+        toastT.errorFromApi({ error: decodeURIComponent(detail) });
+      } else {
+        toastT.error("auth.oauthCancelled");
+      }
+      router.replace("/login", { scroll: false });
     }
   }, [searchParams, router, toastT]);
 

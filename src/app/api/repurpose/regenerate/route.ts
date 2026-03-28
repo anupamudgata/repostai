@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
       .select("repurpose_count")
       .eq("user_id", user.id)
       .eq("month", currentMonth)
-      .single();
+      .maybeSingle();
     const used = usage?.repurpose_count ?? 0;
     if (!isSuperUser && entitlements.repurposesPerMonth != null) {
       if (used >= entitlements.repurposesPerMonth) {
@@ -126,6 +126,12 @@ export async function POST(request: NextRequest) {
       if (!content || typeof content !== "string") {
         return NextResponse.json(
           { error: "originalContent is required when jobId is not provided" },
+          { status: 400 }
+        );
+      }
+      if (content.length > 50000) {
+        return NextResponse.json(
+          { error: "Content is too long (max 50,000 characters)." },
           { status: 400 }
         );
       }

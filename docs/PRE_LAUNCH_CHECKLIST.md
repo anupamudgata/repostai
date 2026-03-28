@@ -82,36 +82,31 @@ Set in Vercel (or your host) → Project → Settings → Environment Variables:
 | **Hobby** | **At most once per day.** Expressions like `0 * * * *` (hourly) **will fail deployment**. |
 | **Pro** | Hourly and more frequent schedules are allowed. |
 
-This repo’s `vercel.json` uses **`0 9 * * *`** — **once per day at 09:00 UTC** — so it **deploys on Hobby**. Vercel may run it anytime within that hour (not exact to the minute).
-
-**Trade-off on Hobby:** Posts are only picked up when the daily cron runs. If you need **hourly** checks, either **upgrade to Vercel Pro** and change the schedule back to hourly, or use an **external cron** (e.g. cron-job.org) to `GET` your endpoint more often (see below).
+This repo **does not** define `crons` in `vercel.json`, so **Hobby deploys are not blocked** by multi-run schedules. You **must** trigger `/api/cron/scheduled-posts` from outside Vercel (or add `crons` after upgrading to **Pro**). Full steps: **`docs/EXTERNAL_CRON_SCHEDULED_POSTS.md`**.
 
 ### Configure cron + `CRON_SECRET`
 
-1. **Repo already defines cron** in `vercel.json` → `/api/cron/scheduled-posts` at `0 9 * * *` (adjust the hour in that file if you want a different UTC window).
-2. In Vercel → **Settings** → **Environment Variables**:
+1. In Vercel → **Settings** → **Environment Variables**:
    - Add **`CRON_SECRET`** = long random string (e.g. `openssl rand -hex 32`).
    - Redeploy after saving.
-3. Vercel Cron will send **`Authorization: Bearer <CRON_SECRET>`** automatically when `CRON_SECRET` is set in the project — no manual header config in the dashboard is required for the built-in cron.
+2. **Hobby / until you use Vercel Cron:** Set up an external scheduler (e.g. **cron-job.org**) or the GitHub Action **`.github/workflows/scheduled-posts-cron.yml`** with the same secret and your production base URL.
+3. **Pro (optional):** Add a `crons` entry to `vercel.json`; Vercel Cron can send **`Authorization: Bearer <CRON_SECRET>`** when that env var is set.
 4. **Always set `CRON_SECRET` in production** so random callers cannot trigger the cron URL.
 
-### Manual / external trigger (optional)
+### Manual / external trigger
 
-Same endpoint, same auth:
+Preferred (header):
 
 ```bash
 curl -sS -H "Authorization: Bearer YOUR_CRON_SECRET" \
   "https://your-domain.com/api/cron/scheduled-posts"
 ```
 
-Or with query param (if your route supports it — this app uses **Bearer** in `Authorization`):
+Fallback (query — avoid sharing; may appear in logs):
 
 ```text
-GET https://your-domain.com/api/cron/scheduled-posts
-Header: Authorization: Bearer YOUR_CRON_SECRET
+GET https://your-domain.com/api/cron/scheduled-posts?secret=YOUR_CRON_SECRET
 ```
-
-Use an external scheduler (cron-job.org, GitHub Actions, etc.) for **more than once per day** while staying on **Hobby**.
 
 ### Vercel CLI (`The specified token is not valid`)
 

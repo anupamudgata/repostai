@@ -84,12 +84,13 @@ ${tasks}
 Return a JSON object like: {"instagram":"...","facebook":"..."} with only these keys: ${platforms.map((p) => `"${p}"`).join(", ")}.`;
 
   const useClaudeForRegional = isIndianLanguage(outputLanguage);
-  if (tier === "premium" || useClaudeForRegional) {
+  if (tier === "premium" || tier === "enhanced" || useClaudeForRegional) {
     const client = getAnthropicClient();
     if (client) {
       const hindiModel = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+      const enhancedModel = process.env.ANTHROPIC_ENHANCED_MODEL?.trim() || "claude-haiku-4-5-20251001";
       const premiumModel = process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() || "claude-sonnet-4-20250514";
-      const model = useClaudeForRegional ? hindiModel : premiumModel;
+      const model = useClaudeForRegional ? hindiModel : tier === "enhanced" ? enhancedModel : premiumModel;
       try {
         const msg = await client.messages.create({
           model,

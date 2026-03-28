@@ -353,7 +353,7 @@ export default function CreatePage() {
           </Button>
           <Button asChild>
             <a href="/dashboard/settings">
-              Upgrade to Pro — ${PLANS.PRO.monthlyPrice}/mo
+              Upgrade to Pro — ₹{PLANS.PRO.monthlyPrice}/mo
               <ArrowRight className="h-4 w-4 ml-2" />
             </a>
           </Button>

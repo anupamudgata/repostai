@@ -12,6 +12,62 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
+import { burstLimiter } from "@/lib/ratelimit";
+import { captureError } from "@/lib/sentry";
+import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
+import {
+  insertRepurposeJobWithFallback,
+  isLikelyUserProfileFkError,
+} from "@/lib/supabase/insert-repurpose-job";
+
+/** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
+function messageForRepurposeJobInsertError(err: {
+  message?: string;
+  code?: string | number;
+  details?: string;
+  hint?: string;
+} | null): string {
+  if (!err?.message && err?.code == null) {
+    return "Failed to create job. Please try again.";
+  }
+  const msg = err.message ?? "";
+  const code = String(err.code ?? "");
+  const raw = `${msg} ${(err as { details?: string }).details ?? ""} ${(err as { hint?: string }).hint ?? ""}`;
+  const detail = raw.toLowerCase();
+
+  if (/row-level security|RLS/i.test(msg) || code === "42501") {
+    return "Could not save your repurpose. Try signing out and signing in again.";
+  }
+
+  // FK: message often only has constraint name, e.g. repurpose_jobs_user_id_fkey (no "profiles" text)
+  const isFk =
+    code === "23503" ||
+    /foreign key|violates foreign key/i.test(msg) ||
+    /_fkey/i.test(msg);
+  if (isFk) {
+    const isUserProfileFk =
+      detail.includes("user_id_fkey") ||
+      detail.includes("repurpose_jobs_user_id") ||
+      (detail.includes("user_id") &&
+        (detail.includes("profiles") || detail.includes("profile")));
+    if (isUserProfileFk) {
+      return "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.";
+    }
+    const isBrandVoiceFk =
+      detail.includes("brand_voice_id_fkey") ||
+      detail.includes("brand_voice_id") ||
+      (detail.includes("brand_voice") && detail.includes("not present"));
+    if (isBrandVoiceFk) {
+      return "That brand voice is no longer available. Clear the selection or choose another.";
+    }
+    return "Could not save this repurpose. Try again or clear the brand voice.";
+  }
+
+  if (/check constraint|violates check/i.test(msg) || code === "23514") {
+    return "Could not save this repurpose. Check your content and try again.";
+  }
+  return "Failed to create job. Please try again.";
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +78,23 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const burst = await burstLimiter.limit(user.id);
+    if (!burst.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429 }
+      );
+    }
+
+    try {
+      await ensureProfileForUser(user, supabase);
+    } catch {
+      return NextResponse.json(
+        { error: "Could not prepare your account. Try again in a moment." },
+        { status: 503 }
+      );
     }
 
     const body = await request.json();
@@ -60,7 +133,7 @@ export async function POST(request: NextRequest) {
       .from("profiles")
       .select("zapier_webhook_url")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const currentMonth = new Date().toISOString().slice(0, 7);
     const { data: usage } = await supabase
@@ -68,7 +141,7 @@ export async function POST(request: NextRequest) {
       .select("repurpose_count")
       .eq("user_id", user.id)
       .eq("month", currentMonth)
-      .single();
+      .maybeSingle();
 
     const used = usage?.repurpose_count ?? 0;
     if (!isSuperUser && entitlements.repurposesPerMonth != null) {
@@ -99,7 +172,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const cacheTierKey = entitlements.aiTier === "premium" ? "prem" : "std";
+    const cacheTierKey = entitlements.aiTier === "premium" ? "prem" : entitlements.aiTier === "enhanced" ? "enh" : "std";
 
     // Resolve content from different input types
     let resolvedContent = content;
@@ -143,9 +216,23 @@ export async function POST(request: NextRequest) {
         .select("samples, humanization_level, imperfection_mode, personal_story_injection")
         .eq("id", brandVoiceId)
         .eq("user_id", user.id)
-        .single();
-      brandVoiceSample = voice?.samples;
-      if (voice && (voice.humanization_level || voice.imperfection_mode || voice.personal_story_injection)) {
+        .maybeSingle();
+      if (!voice) {
+        return NextResponse.json(
+          {
+            error:
+              "That brand voice no longer exists or isn’t yours. Clear the selection or pick another.",
+            code: "BRAND_VOICE_NOT_FOUND",
+          },
+          { status: 400 }
+        );
+      }
+      brandVoiceSample = voice.samples;
+      if (
+        voice.humanization_level ||
+        voice.imperfection_mode ||
+        voice.personal_story_injection
+      ) {
         authenticityTuning = {
           humanizationLevel: voice.humanization_level ?? undefined,
           imperfectionMode: voice.imperfection_mode ?? false,
@@ -168,34 +255,50 @@ export async function POST(request: NextRequest) {
       : null;
     if (cachedOutputs && Object.keys(cachedOutputs).length > 0) {
       const outputsToUse = isFreePlan ? addFreeTierWatermark(cachedOutputs) : cachedOutputs;
-      const { data: job } = await supabase
-        .from("repurpose_jobs")
-        .insert({
-          user_id: user.id,
-          input_type: inputType,
-          input_content: contentToSave,
-          input_url: url || null,
-          brand_voice_id: brandVoiceId || null,
-          output_language: outputLanguage,
-        })
-        .select("id")
-        .single();
-      if (job) {
-        const outputRows = Object.entries(outputsToUse).map(([platform, generatedContent]) => ({
-          job_id: job.id,
-          platform,
-          generated_content: generatedContent,
-        }));
-        await supabase.from("repurpose_outputs").insert(outputRows);
-        await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
-        notifyZapier(profile?.zapier_webhook_url, {
-          jobId: job.id,
-          outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
-          createdAt: new Date().toISOString(),
-        });
+      const jobInsertPayload = {
+        user_id: user.id,
+        input_type: inputType,
+        input_content: contentToSave,
+        input_url: url || null,
+        brand_voice_id: brandVoiceId || null,
+        output_language: outputLanguage,
+      };
+      let { data: job, error: cachedJobError } =
+        await insertRepurposeJobWithFallback(supabase, jobInsertPayload);
+      if (cachedJobError && isLikelyUserProfileFkError(cachedJobError)) {
+        await ensureProfileForUser(user, supabase);
+        ({ data: job, error: cachedJobError } =
+          await insertRepurposeJobWithFallback(supabase, jobInsertPayload));
       }
+      if (cachedJobError || !job) {
+        console.error("repurpose_jobs insert (cached path):", cachedJobError);
+        captureError(cachedJobError ?? new Error("repurpose job insert returned no row"), {
+          action: "repurpose_job_insert",
+          userId: user.id,
+          extra: { cached: true, plan: effectivePlan },
+        });
+        return NextResponse.json(
+          {
+            error: messageForRepurposeJobInsertError(cachedJobError),
+            code: "JOB_INSERT_FAILED",
+          },
+          { status: 500 }
+        );
+      }
+      const outputRows = Object.entries(outputsToUse).map(([platform, generatedContent]) => ({
+        job_id: job.id,
+        platform,
+        generated_content: generatedContent,
+      }));
+      await supabase.from("repurpose_outputs").insert(outputRows);
+      await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
+      notifyZapier(profile?.zapier_webhook_url, {
+        jobId: job.id,
+        outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
+        createdAt: new Date().toISOString(),
+      });
       return NextResponse.json({
-        jobId: job?.id,
+        jobId: job.id,
         outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
       });
     }
@@ -235,22 +338,34 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert job first (status: pending), then generate
-    const { data: job } = await supabase
-      .from("repurpose_jobs")
-      .insert({
-        user_id: user.id,
-        input_type: inputType,
-        input_content: resolvedContent.slice(0, 10000),
-        input_url: url || null,
-        brand_voice_id: brandVoiceId || null,
-        output_language: outputLanguage,
-      })
-      .select("id")
-      .single();
+    const jobInsertPayloadMain = {
+      user_id: user.id,
+      input_type: inputType,
+      input_content: contentToSave,
+      input_url: url || null,
+      brand_voice_id: brandVoiceId || null,
+      output_language: outputLanguage,
+    };
+    let { data: job, error: jobInsertError } =
+      await insertRepurposeJobWithFallback(supabase, jobInsertPayloadMain);
+    if (jobInsertError && isLikelyUserProfileFkError(jobInsertError)) {
+      await ensureProfileForUser(user, supabase);
+      ({ data: job, error: jobInsertError } =
+        await insertRepurposeJobWithFallback(supabase, jobInsertPayloadMain));
+    }
 
-    if (!job) {
+    if (jobInsertError || !job) {
+      console.error("repurpose_jobs insert:", jobInsertError);
+      captureError(jobInsertError ?? new Error("repurpose job insert returned no row"), {
+        action: "repurpose_job_insert",
+        userId: user.id,
+        extra: { plan: effectivePlan },
+      });
       return NextResponse.json(
-        { error: "Failed to create job. Please try again." },
+        {
+          error: messageForRepurposeJobInsertError(jobInsertError),
+          code: "JOB_INSERT_FAILED",
+        },
         { status: 500 }
       );
     }

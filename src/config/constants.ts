@@ -7,7 +7,7 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000
 export const SUPPORT_EMAIL = "support@repostai.com";
 
 /** Superuser email: bypasses free limits, gets Pro plan everywhere (repurpose, stream, create, nav). */
-export const SUPERUSER_EMAIL = "anupam.udgata@gmail.com";
+export const SUPERUSER_EMAIL = process.env.SUPERUSER_EMAIL || "";
 
 /** Zapier: app connect URL. When set, "Connect with Zapier" links here; otherwise show "Coming soon". */
 export const ZAPIER_APP_URL = process.env.NEXT_PUBLIC_ZAPIER_APP_URL || "";
@@ -23,7 +23,7 @@ export const LANDING_TESTIMONIALS = [
   { quote: "Paste a blog link, click once, get LinkedIn + Twitter + Instagram ready. No more copy-paste.", attribution: "What RepostAI does", beforeAfter: "1 click → 7 posts" },
   { quote: "Train the AI on your writing samples so every output matches your tone, not generic AI speak.", attribution: "Brand voice feature", beforeAfter: "Sounds like you" },
   { quote: "YouTube transcript in, platform-native posts out. Works with text, URLs, PDFs, and videos.", attribution: "Multi-input support", beforeAfter: "Any content → posts" },
-  { quote: "Free tier included. Pro starts at ₹499/mo — a fraction of what competitors charge.", attribution: "Built for India pricing", beforeAfter: "10x cheaper" },
+  { quote: "Free tier included. Starter at ₹299/mo — a fraction of what competitors charge.", attribution: "Built for India pricing", beforeAfter: "10x cheaper" },
 ] as const;
 
 /** Display pricing (INR). Enforcement lives in `lib/billing/plan-entitlements.ts`. */
@@ -32,22 +32,23 @@ export const PLANS = {
     name: "Free",
     monthlyPrice: 0,
     /** @deprecated Use plan-entitlements getEntitlements("free").repurposesPerMonth */
-    repurposesPerMonth: 10,
-    platforms: ["linkedin", "twitter_thread", "twitter_single", "instagram"],
+    repurposesPerMonth: 5,
+    platforms: ["linkedin", "twitter_thread", "instagram"],
     brandVoices: 1,
     features: [
-      "10 repurposes / month",
+      "5 repurposes / month",
       "LinkedIn, Twitter/X, Instagram",
       "GPT-4o-mini",
       "1 brand voice",
-      'Watermark: "Generated with RepostAI - repostai.com"',
+      "2 photo captions / month",
+      'Watermark: "Generated with RepostAI"',
     ],
   },
   STARTER: {
     name: "Starter",
-    monthlyPrice: 199,
-    annualPrice: 1899,
-    repurposesPerMonth: 10,
+    monthlyPrice: 299,
+    annualPrice: 2899,
+    repurposesPerMonth: 50,
     platforms: [
       "linkedin",
       "twitter_thread",
@@ -61,45 +62,19 @@ export const PLANS = {
     ],
     brandVoices: 1,
     features: [
-      "10 repurposes / month",
+      "50 repurposes / month",
       "All 9 platforms",
       "GPT-4o-mini",
       "No watermark",
       "1 brand voice",
+      "15 photo captions / month",
     ],
   },
   PRO: {
     name: "Pro",
-    monthlyPrice: 499,
-    annualPrice: 4999,
-    repurposesPerMonth: 60,
-    platforms: [
-      "linkedin",
-      "twitter_thread",
-      "twitter_single",
-      "instagram",
-      "facebook",
-      "email",
-      "reddit",
-      "tiktok",
-      "whatsapp_status",
-    ],
-    brandVoices: 3,
-    features: [
-      "60 repurposes / month",
-      "All 9 platforms",
-      "Claude Sonnet (premium AI)",
-      "No watermark",
-      "3 brand voices",
-      "AI Content Starter",
-      "Priority support & advanced analytics",
-    ],
-  },
-  AGENCY: {
-    name: "Agency",
-    monthlyPrice: 1499,
-    annualPrice: 14999,
-    repurposesPerMonth: -1,
+    monthlyPrice: 799,
+    annualPrice: 7999,
+    repurposesPerMonth: 150,
     platforms: [
       "linkedin",
       "twitter_thread",
@@ -113,10 +88,40 @@ export const PLANS = {
     ],
     brandVoices: 5,
     features: [
-      "Unlimited repurposes",
+      "150 repurposes / month",
       "All 9 platforms",
-      "Claude Sonnet",
+      "Claude Haiku (enhanced AI)",
+      "No watermark",
       "5 brand voices",
+      "50 photo captions / month",
+      "AI Content Starter",
+      "Priority support",
+    ],
+  },
+  AGENCY: {
+    name: "Agency",
+    monthlyPrice: 2499,
+    annualPrice: 24999,
+    repurposesPerMonth: 500,
+    platforms: [
+      "linkedin",
+      "twitter_thread",
+      "twitter_single",
+      "instagram",
+      "facebook",
+      "email",
+      "reddit",
+      "tiktok",
+      "whatsapp_status",
+    ],
+    brandVoices: 15,
+    features: [
+      "500 repurposes / month",
+      "All 9 platforms",
+      "Claude Sonnet (premium AI)",
+      "No watermark",
+      "15 brand voices",
+      "200 photo captions / month",
       "AI Content Starter",
       "Team & API (roadmap)",
       "Dedicated support",
@@ -128,16 +133,16 @@ export const PLANS = {
 export const PLANS_PRICING: Record<string, { monthly: Record<string, number>; annual: Record<string, number> }> = {
   Free: { monthly: { in: 0, global: 0, eu: 0, uk: 0, latam: 0 }, annual: { in: 0, global: 0, eu: 0, uk: 0, latam: 0 } },
   Starter: {
-    monthly: { in: 199, global: 4.99, eu: 4.99, uk: 3.99, latam: 4.99 },
-    annual:  { in: 1899, global: 49, eu: 49, uk: 39, latam: 49 },
+    monthly: { in: 299, global: 5.99, eu: 5.99, uk: 4.99, latam: 5.99 },
+    annual:  { in: 2899, global: 59, eu: 59, uk: 49, latam: 59 },
   },
   Pro: {
-    monthly: { in: 499, global: 9.99, eu: 9.99, uk: 7.99, latam: 9.99 },
-    annual:  { in: 4999, global: 99, eu: 99, uk: 79, latam: 99 },
+    monthly: { in: 799, global: 14.99, eu: 14.99, uk: 11.99, latam: 14.99 },
+    annual:  { in: 7999, global: 149, eu: 149, uk: 119, latam: 149 },
   },
   Agency: {
-    monthly: { in: 1499, global: 29.99, eu: 29.99, uk: 24.99, latam: 29.99 },
-    annual:  { in: 14999, global: 299, eu: 299, uk: 249, latam: 299 },
+    monthly: { in: 2499, global: 39.99, eu: 39.99, uk: 34.99, latam: 39.99 },
+    annual:  { in: 24999, global: 399, eu: 399, uk: 349, latam: 399 },
   },
 };
 
@@ -218,7 +223,7 @@ export const HUMANIZATION_LEVELS = [
 ] as const;
 
 /** Legacy export; real limits in `@/lib/billing/plan-entitlements`. */
-export const FREE_TIER_MONTHLY_LIMIT = 10;
+export const FREE_TIER_MONTHLY_LIMIT = 5;
 
 /** Watermark appended to free-tier outputs. Pro/Agency remove it. */
 export const FREE_TIER_WATERMARK =
@@ -226,10 +231,9 @@ export const FREE_TIER_WATERMARK =
 /** Short suffix for Twitter (280 char cap). */
 export const FREE_TIER_WATERMARK_SHORT = " repostai.com";
 
-/** Platform IDs allowed on Free plan (3 product surfaces: LI, Twitter, IG). */
+/** Platform IDs allowed on Free plan (3 platforms: LinkedIn, Twitter/X thread, Instagram). */
 export const FREE_PLATFORM_IDS = [
   "linkedin",
   "twitter_thread",
-  "twitter_single",
   "instagram",
 ] as const;

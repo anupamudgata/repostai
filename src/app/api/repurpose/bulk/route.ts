@@ -9,6 +9,12 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
+import { burstLimiter } from "@/lib/ratelimit";
+import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
+import {
+  insertRepurposeJobWithFallback,
+  isLikelyUserProfileFkError,
+} from "@/lib/supabase/insert-repurpose-job";
 
 const MAX_BULK_URLS = 5;
 const MIN_BULK_URLS = 2;
@@ -40,10 +46,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const burst = await burstLimiter.limit(user.id);
+    if (!burst.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429 }
+      );
+    }
+
+    try {
+      await ensureProfileForUser(user, supabase);
+    } catch {
+      return NextResponse.json(
+        { error: "Could not prepare your account. Try again in a moment." },
+        { status: 503 }
+      );
+    }
+
     const body = await request.json();
     const urlsRaw = body.urls as string | string[] | undefined;
     const platforms = body.platforms as Platform[] | undefined;
-    const brandVoiceId = body.brandVoiceId as string | undefined;
+    const brandVoiceIdRaw = body.brandVoiceId as string | undefined;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const brandVoiceId = brandVoiceIdRaw && UUID_RE.test(brandVoiceIdRaw) ? brandVoiceIdRaw : undefined;
+    if (brandVoiceIdRaw && !brandVoiceId) {
+      return NextResponse.json({ error: "Invalid brand voice ID format" }, { status: 400 });
+    }
     const outputLanguage = ((body.outputLanguage as string) || "en") as OutputLanguage;
     const userIntent = body.userIntent as string | undefined;
     const contentAngle = body.contentAngle as string | undefined;
@@ -80,7 +108,7 @@ export async function POST(request: NextRequest) {
       .from("profiles")
       .select("zapier_webhook_url")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const currentMonth = new Date().toISOString().slice(0, 7);
     const { data: usage } = await supabase
@@ -88,7 +116,7 @@ export async function POST(request: NextRequest) {
       .select("repurpose_count")
       .eq("user_id", user.id)
       .eq("month", currentMonth)
-      .single();
+      .maybeSingle();
 
     const used = usage?.repurpose_count ?? 0;
     const jobsCount = validUrls.length;
@@ -128,9 +156,23 @@ export async function POST(request: NextRequest) {
         .select("samples, humanization_level, imperfection_mode, personal_story_injection")
         .eq("id", brandVoiceId)
         .eq("user_id", user.id)
-        .single();
-      brandVoiceSample = voice?.samples;
-      if (voice && (voice.humanization_level || voice.imperfection_mode || voice.personal_story_injection)) {
+        .maybeSingle();
+      if (!voice) {
+        return NextResponse.json(
+          {
+            error:
+              "That brand voice no longer exists or isn’t yours. Clear the selection or pick another.",
+            code: "BRAND_VOICE_NOT_FOUND",
+          },
+          { status: 400 }
+        );
+      }
+      brandVoiceSample = voice.samples;
+      if (
+        voice.humanization_level ||
+        voice.imperfection_mode ||
+        voice.personal_story_injection
+      ) {
         authenticityTuning = {
           humanizationLevel: voice.humanization_level ?? undefined,
           imperfectionMode: voice.imperfection_mode ?? false,
@@ -141,6 +183,8 @@ export async function POST(request: NextRequest) {
 
     const sources: { sourceUrl: string; jobId: string; outputs: { platform: string; content: string }[] }[] = [];
 
+    const errors: { sourceUrl: string; error: string }[] = [];
+
     for (let i = 0; i < validUrls.length; i++) {
       const sourceUrl = validUrls[i]!;
       let resolvedContent: string;
@@ -149,10 +193,8 @@ export async function POST(request: NextRequest) {
         resolvedContent = await scrapeUrl(sourceUrl);
       } catch (scrapeError) {
         const msg = scrapeError instanceof Error ? scrapeError.message : "";
-        return NextResponse.json(
-          { error: `Could not extract content from ${sourceUrl}: ${msg || "Try pasting text directly."}` },
-          { status: 400 }
-        );
+        errors.push({ sourceUrl, error: msg || "Could not extract content" });
+        continue; // skip this URL, proceed to next
       }
 
       const BATCH_THRESHOLD = 4;
@@ -203,56 +245,70 @@ export async function POST(request: NextRequest) {
         outputs = addFreeTierWatermark(outputs);
       }
 
-      const { data: job } = await supabase
-        .from("repurpose_jobs")
-        .insert({
-          user_id: user.id,
-          input_type: "url",
-          input_content: resolvedContent.slice(0, 10000),
-          input_url: sourceUrl,
-          brand_voice_id: brandVoiceId || null,
-          output_language: outputLanguage,
-        })
-        .select("id")
-        .single();
-
-      if (job) {
-        const outputRows = Object.entries(outputs).map(([platform, generatedContent]) => ({
-          job_id: job.id,
-          platform,
-          generated_content: generatedContent,
-        }));
-        await supabase.from("repurpose_outputs").insert(outputRows);
-
-        await supabase.rpc("increment_usage", {
-          p_user_id: user.id,
-          p_month: currentMonth,
-        });
-
-        notifyZapier(profile?.zapier_webhook_url, {
-          jobId: job.id,
-          sourceUrl,
-          outputs: Object.entries(outputs).map(([platform, generatedContent]) => ({
-            platform,
-            content: generatedContent,
-          })),
-          createdAt: new Date().toISOString(),
-        });
-
-        sources.push({
-          sourceUrl,
-          jobId: job.id,
-          outputs: Object.entries(outputs).map(([platform, content]) => ({ platform, content })),
-        });
+      const jobPayload = {
+        user_id: user.id,
+        input_type: "url",
+        input_content: resolvedContent.slice(0, 10000),
+        input_url: sourceUrl,
+        brand_voice_id: brandVoiceId || null,
+        output_language: outputLanguage,
+      };
+      let { data: job, error: jobInsertErr } =
+        await insertRepurposeJobWithFallback(supabase, jobPayload);
+      if (jobInsertErr && isLikelyUserProfileFkError(jobInsertErr)) {
+        await ensureProfileForUser(user, supabase);
+        ({ data: job, error: jobInsertErr } =
+          await insertRepurposeJobWithFallback(supabase, jobPayload));
       }
+      if (jobInsertErr || !job) {
+        console.error("bulk repurpose_jobs insert:", jobInsertErr);
+        errors.push({ sourceUrl, error: jobInsertErr?.message ?? "Could not save repurpose job." });
+        continue;
+      }
+
+      const outputRows = Object.entries(outputs).map(([platform, generatedContent]) => ({
+        job_id: job.id,
+        platform,
+        generated_content: generatedContent,
+      }));
+      await supabase.from("repurpose_outputs").insert(outputRows);
+
+      await supabase.rpc("increment_usage", {
+        p_user_id: user.id,
+        p_month: currentMonth,
+      });
+
+      notifyZapier(profile?.zapier_webhook_url, {
+        jobId: job.id,
+        sourceUrl,
+        outputs: Object.entries(outputs).map(([platform, generatedContent]) => ({
+          platform,
+          content: generatedContent,
+        })),
+        createdAt: new Date().toISOString(),
+      });
+
+      sources.push({
+        sourceUrl,
+        jobId: job.id,
+        outputs: Object.entries(outputs).map(([platform, content]) => ({ platform, content })),
+      });
     }
 
     const totalOutputs = sources.reduce((sum, s) => sum + s.outputs.length, 0);
+
+    if (sources.length === 0 && errors.length > 0) {
+      return NextResponse.json(
+        { error: "All URLs failed to process.", errors },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json({
       sources,
       totalOutputs,
       jobIds: sources.map((s) => s.jobId),
+      ...(errors.length > 0 ? { errors } : {}),
     });
   } catch (error) {
     console.error("Bulk repurpose error:", error);

@@ -5,6 +5,7 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
+import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 
 export async function GET() {
   try {
@@ -17,18 +18,54 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    await ensureProfileForUser(user, supabase);
+
+    let profile: { zapier_webhook_url: string | null } | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("zapier_webhook_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (error) {
+        console.error("[me] profile query error", {
+          userId: user.id,
+          attempt,
+          code: error.code,
+          message: error.message,
+        });
+        if (attempt === 0) await ensureProfileForUser(user, supabase);
+        continue;
+      }
+      if (data) {
+        profile = data;
+        break;
+      }
+      console.warn("[me] no profile row for user", { userId: user.id, attempt });
+      if (attempt === 0) await ensureProfileForUser(user, supabase);
+    }
+    if (!profile) {
+      console.error("[me] profile still missing after ensure+retry", {
+        userId: user.id,
+      });
+      return NextResponse.json(
+        {
+          error: "Could not load your profile. Try again or refresh the page.",
+          code: "PROFILE_SYNC_FAILED",
+          ...(process.env.NODE_ENV === "development" && {
+            debug: { userId: user.id },
+          }),
+        },
+        { status: 503 }
+      );
+    }
+
     const { plan, isSuperUser } = await getEffectivePlan(
       supabase,
       user.id,
       user.email
     );
     const entitlements = getEntitlements(plan);
-
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("zapier_webhook_url")
-      .eq("id", user.id)
-      .single();
 
     const currentMonth = new Date().toISOString().slice(0, 7);
     const { data: usage } = await supabase

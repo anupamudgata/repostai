@@ -17,6 +17,9 @@ export const dashboardBulkHi: DashboardBulk = {
     "Pro: 60/माह, सभी प्लेटफ़ॉर्म, Claude। Agency: असीमित रीपर्पज़।",
   limitModalCta: "मूल्य देखें",
   upgrade: "अपग्रेड",
+  profileSyncBanner:
+    "आपका खाता प्रोफ़ाइल सिंक नहीं हो सका। फिर कोशिश करें या पेज रीफ़्रेश करें।",
+  profileSyncRetry: "फिर कोशिश करें",
   contentAgentTitle: "कंटेंट एजेंट — पूरा कंटेंट सप्ताह प्लान करें",
   contentAgentSubtitle:
     "ब्लॉग URL चिपकाएँ → AI प्लेटफ़ॉर्म, सही समय सुझाता है, सभी वेरिएशन बनाता है और शेड्यूल करता है।",
@@ -68,6 +71,8 @@ export const dashboardBulkHi: DashboardBulk = {
   pdfChars: "{count} वर्ण निकाले गए",
   brandVoiceCardTitle: "ब्रांड वॉइस",
   brandVoiceCardSubtitle: "अपनी लेखन शैली से मिलाएँ (वैकल्पिक)",
+  freeBrandVoiceCardSubtitle:
+    "वैकल्पिक — डिफ़ॉल्ट टोन पर रीपर्पज़ करें या सेव की हुई वॉइस चुनें। फ्री प्लान में 1 ब्रांड वॉइस।",
   noBrandVoice: "कोई ब्रांड वॉइस नहीं",
   addVoiceLink: "वॉइस ट्रेनिंग जोड़ें या एडिट करें",
   addVoiceSuffix: "— लेखन के नमूने चिपकाएँ और प्रामाणिकता ठीक करें।",

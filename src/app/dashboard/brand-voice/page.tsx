@@ -25,7 +25,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
-import { brandVoiceWritingFields } from "@/lib/brand-voice-db";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { PLANS, HUMANIZATION_LEVELS } from "@/config/constants";
 import type { BrandVoice, HumanizationLevel } from "@/types";
@@ -78,32 +77,25 @@ export default function BrandVoicePage() {
   }
 
   async function handleVoiceTraining(payload: BrandVoiceTrainingPayload) {
-    if (!canCreateVoice) {
-      toastT.error("toast.brandVoiceLimit", { max: maxVoices });
-      return;
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { error } = await supabase.from("brand_voices").insert({
-      user_id: user.id,
-      name: payload.name,
-      ...brandVoiceWritingFields(payload.samples),
-      humanization_level: payload.humanizationLevel,
-      imperfection_mode: payload.imperfectionMode,
-      personal_story_injection: payload.personalStoryInjection,
+    const res = await fetch("/api/brand-voice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: payload.name,
+        samples: payload.samples,
+        humanization_level: payload.humanizationLevel,
+        imperfection_mode: payload.imperfectionMode,
+        personal_story_injection: payload.personalStoryInjection,
+      }),
     });
-
-    if (error) {
-      toastT.errorFromApi({ error: error.message });
-    } else {
-      toastT.success("toast.brandVoiceCreatedExclaim");
-      setShowForm(false);
-      loadVoices();
+    const data = await res.json();
+    if (!res.ok) {
+      toastT.errorFromApi({ error: data.error, code: data.code }, "toast.couldNotCreateBrandVoice");
+      throw new Error(data.error || "create failed");
     }
+    toastT.success("toast.brandVoiceCreatedExclaim");
+    setShowForm(false);
+    loadVoices();
   }
 
   async function handleUpdateAuthenticity() {
@@ -257,7 +249,17 @@ export default function BrandVoicePage() {
         </div>
       )}
 
-      <Dialog open={!!editingVoice} onOpenChange={(open) => !open && setEditingVoice(null)}>
+      <Dialog open={!!editingVoice} onOpenChange={(open) => {
+        if (!open) {
+          setEditingVoice(null);
+          // Safety net: clear any lingering scroll lock from Radix remove-scroll
+          requestAnimationFrame(() => {
+            document.body.style.removeProperty("overflow");
+            document.body.style.removeProperty("padding-right");
+            document.documentElement.style.removeProperty("overflow");
+          });
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Authenticity Tuning — {editingVoice?.name}</DialogTitle>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { getRazorpay } from "@/lib/razorpay/client";
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,6 +32,27 @@ export async function POST(req: NextRequest) {
     ) {
       return NextResponse.json(
         { error: "Invalid payment signature" },
+        { status: 400 }
+      );
+    }
+
+    const payment = (await getRazorpay().payments.fetch(
+      razorpay_payment_id
+    )) as { status: string; order_id?: string | null };
+    if (payment.status !== "captured") {
+      console.warn("[razorpay] Order payment not captured:", payment.status);
+      return NextResponse.json(
+        { error: "Payment not completed" },
+        { status: 400 }
+      );
+    }
+    if (
+      payment.order_id != null &&
+      payment.order_id !== "" &&
+      payment.order_id !== razorpay_order_id
+    ) {
+      return NextResponse.json(
+        { error: "Payment does not match order" },
         { status: 400 }
       );
     }

@@ -15,6 +15,9 @@ export const dashboardBulkEn = {
     "Pro: 60/mo, all platforms, Claude. Agency: unlimited repurposes.",
   limitModalCta: "View pricing",
   upgrade: "Upgrade",
+  profileSyncBanner:
+    "We couldn’t sync your account profile. Try again or refresh the page.",
+  profileSyncRetry: "Retry",
   contentAgentTitle: "Content Agent — Plan your entire content week",
   contentAgentSubtitle:
     "Paste a blog URL → AI suggests platforms, optimal times, generates all variations, and schedules them.",
@@ -66,6 +69,9 @@ export const dashboardBulkEn = {
   pdfChars: "{count} characters extracted",
   brandVoiceCardTitle: "Brand Voice",
   brandVoiceCardSubtitle: "Match your writing style (optional)",
+  /** Shown on free plan instead of Radix Select (native menu avoids scroll issues on mobile). */
+  freeBrandVoiceCardSubtitle:
+    "Optional — repurpose with default tone, or pick your saved voice. Free plan includes 1 brand voice.",
   noBrandVoice: "No brand voice",
   addVoiceLink: "Add or edit voice training",
   addVoiceSuffix: "— paste writing samples and tune authenticity.",

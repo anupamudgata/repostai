@@ -18,7 +18,6 @@ import {
   Plug,
   BarChart3,
   Bot,
-  Scissors,
   ImagePlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,11 +52,6 @@ const NAV_LINKS = [
     labelKey: "nav.contentAgent",
     icon: Bot,
     badgeKey: "nav.badgeNew",
-  },
-  {
-    href: "/dashboard/clips",
-    labelKey: "nav.videoClips",
-    icon: Scissors,
   },
   {
     href: "/dashboard/create",

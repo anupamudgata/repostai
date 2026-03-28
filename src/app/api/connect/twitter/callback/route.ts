@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
   };
 
   let username: string | null = null;
+  let platformUserId: string | null = null;
   try {
     const meRes = await fetch("https://api.x.com/2/users/me", {
       headers: {
@@ -80,8 +81,9 @@ export async function GET(request: NextRequest) {
       },
     });
     if (meRes.ok) {
-      const me = (await meRes.json()) as { data?: { username?: string } };
+      const me = (await meRes.json()) as { data?: { id?: string; username?: string } };
       username = me.data?.username ?? null;
+      platformUserId = me.data?.id ?? null;
     }
   } catch {
     // non-fatal
@@ -95,15 +97,17 @@ export async function GET(request: NextRequest) {
     await supabase.from("connected_accounts").upsert(
       {
         user_id: user.id,
-        provider: "twitter",
-        encrypted_access_token: encrypt(tokenData.access_token),
-        encrypted_refresh_token: tokenData.refresh_token
+        platform: "twitter",
+        access_token: encrypt(tokenData.access_token),
+        refresh_token: tokenData.refresh_token
           ? encrypt(tokenData.refresh_token)
           : null,
-        username,
-        expires_at: expiresAt,
+        platform_username: username,
+        platform_user_id: platformUserId ?? "unknown",
+        token_expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
       },
-      { onConflict: "user_id,provider" }
+      { onConflict: "user_id,platform" }
     );
   } catch (e) {
     console.error("Save connected account failed:", e);

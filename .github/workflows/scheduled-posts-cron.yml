@@ -1,0 +1,26 @@
+# Triggers /api/cron/scheduled-posts on a schedule (Vercel Hobby has no multi-run/day built-in cron).
+# Repo secrets: CRON_SECRET (same as Vercel), CRON_TARGET_URL (e.g. https://your-app.vercel.app — no trailing slash)
+name: Scheduled posts cron
+
+on:
+  schedule:
+    # Every 15 minutes UTC (adjust if needed)
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  hit-cron-endpoint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call scheduled-posts API
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          CRON_TARGET_URL: ${{ secrets.CRON_TARGET_URL }}
+        run: |
+          if [ -z "${CRON_SECRET}" ] || [ -z "${CRON_TARGET_URL}" ]; then
+            echo "Skipping: set CRON_SECRET and CRON_TARGET_URL in GitHub Actions secrets to enable."
+            exit 0
+          fi
+          curl -sS -f \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${CRON_TARGET_URL}/api/cron/scheduled-posts"

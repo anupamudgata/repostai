@@ -1,13 +1,20 @@
 import { NextRequest }                   from "next/server";
 import { createClient }                  from "@/lib/supabase/server";
+import { ensureProfileForUser }          from "@/lib/supabase/ensure-profile";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import {
   getEffectivePlan,
   getEntitlements,
+  type AiTier,
 } from "@/lib/billing/plan-entitlements";
-import { burstLimiter, freeTierLimiter, proTierLimiter, agencyTierLimiter } from "@/lib/ratelimit";
+import { burstLimiter } from "@/lib/ratelimit";
+import { addFreeTierWatermark }          from "@/lib/watermark";
 import { captureError }                  from "@/lib/sentry";
+import {
+  insertRepurposeJobWithFallback,
+  isLikelyUserProfileFkError,
+} from "@/lib/supabase/insert-repurpose-job";
 import { openai } from "@/lib/ai/client";
 import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
 import {
@@ -20,11 +27,22 @@ import { applyOdiaSocialMediaGuards } from "@/lib/ai/odia-social-prompt";
 import { isIndianLanguage } from "@/lib/ai/types";
 import { getRegionalPrompts } from "@/lib/prompts/regional";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
+import { scrapeUrl }             from "@/lib/scrapers/url-scraper";
+import { getYouTubeTranscript }  from "@/lib/scrapers/youtube-scraper";
 
 const CLAUDE_REGIONAL_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+const CLAUDE_ENHANCED_MODEL = process.env.ANTHROPIC_ENHANCED_MODEL?.trim() || "claude-haiku-4-5-20251001";
+const CLAUDE_PREMIUM_MODEL  = process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() || "claude-sonnet-4-20250514";
+
+/** Resolve Claude model for streaming based on tier + language. */
+function resolveStreamClaudeModel(aiTier: AiTier, language: Language): string {
+  if (isIndianLanguage(language)) return CLAUDE_REGIONAL_MODEL;
+  if (aiTier === "enhanced") return CLAUDE_ENHANCED_MODEL;
+  return CLAUDE_PREMIUM_MODEL;
+}
 
 
-type SSEEventType = "brief_ready" | "platform_start" | "platform_chunk" | "platform_done" | "platform_error" | "all_done" | "error";
+type SSEEventType = "extracting" | "brief_ready" | "platform_start" | "platform_chunk" | "platform_done" | "platform_error" | "all_done" | "error";
 
 interface SSEPayload {
   type:        SSEEventType;
@@ -36,9 +54,12 @@ interface SSEPayload {
   title?:      string;
   hashtags?:   string[];
   brief?:      ContentBrief;
+  /** Resolved platform list after plan filtering (may be shorter than the client request). */
+  platforms?:  Platform[];
   durationMs?: number;
   error?:      string;
   remaining?:  number;
+  message?:    string;
 }
 
 function sseEvent(payload: SSEPayload): string {
@@ -65,9 +86,47 @@ const TEMPERATURES: Record<Platform, number> = {
   tiktok: 0.85, whatsapp_status: 0.80,
 };
 
-const SYSTEM_MSG = "You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly.";
+const SYSTEM_MSG = `You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly.
 
-async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
+CRITICAL: Write like a HUMAN creator, not an AI. Users should never guess "this was written by AI". Here's how:
+
+1. AVOID THESE AI TELLS (common giveaways):
+   - "In today's fast-paced digital world..." / "The landscape is constantly evolving..." / "In conclusion..."
+   - Lists starting with "Here are X ways..." / "First and foremost..." / "It's important to note..."
+   - Overuse of power words: "amazing", "incredible", "revolutionary", "game-changing"
+   - Perfect grammar everywhere (real people use contractions, fragments, casual phrasing)
+   - Robotic transitions: "Furthermore", "As mentioned earlier", "To summarize"
+
+2. EMBRACE HUMAN PATTERNS:
+   - Contractions: "it's", "don't", "you're", "they've" (humans write this way)
+   - Sentence fragments: "Turns out it works." / "Here's the thing." / "Not really."
+   - Varied sentence length: Mix short punchy sentences with longer ones
+   - Casual connectors: "but here's the thing", "so basically", "honestly"
+   - Personal specificity: "saved me 3 hours" not "saves time"
+   - Authentic skepticism: "I thought it was BS at first" not "I was initially doubtful"
+
+3. VARIETY IS EVERYTHING:
+   - Vary how you open sentences (don't start 3 posts in a row the same way)
+   - Vary sentence length: short, short, medium, long = more engaging
+   - Vary emotional tone: don't be consistently cheerful or serious
+
+4. PLATFORM-SPECIFIC HUMANITY:
+   - Twitter: Conversational asides, real reactions, half-finished thoughts
+   - LinkedIn: Professional but warm; use "I" and personal anecdotes; admit mistakes
+   - Instagram: Energy and personality; emojis feel integrated not decorative
+   - Email: Write like you're talking to a friend; personal touches
+   - TikTok: Script like a human talks — pauses, exclamations, real speech patterns
+
+5. THE GOLDEN RULE:
+   Read every sentence out loud. If it sounds like a press release or Wikipedia, rewrite it.`;
+
+async function* streamClaudeSinglePass(
+  platform: Platform,
+  brief: ContentBrief,
+  voice: string | null,
+  language: Language,
+  claudeModel: string = CLAUDE_REGIONAL_MODEL
+): AsyncGenerator<string> {
   const anthropic = getAnthropicClient();
   if (!anthropic) throw new Error(ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES);
   const promptBuilders = getPromptBuilders(brief, voice, language);
@@ -93,7 +152,7 @@ async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrie
   );
 
   const stream = anthropic.messages.stream({
-    model: CLAUDE_REGIONAL_MODEL,
+    model: claudeModel,
     max_tokens: 2048,
     temperature,
     system: finalSystem,
@@ -106,11 +165,37 @@ async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrie
   }
 }
 
-async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
-  if (isIndianLanguage(language)) {
-    yield* streamPlatformAgentClaude(platform, brief, voice, language);
-    return;
+/**
+ * Routes streaming by plan tier:
+ * - "standard" (Free/Starter) → GPT-4o-mini; Claude Haiku for Indian languages only
+ * - "enhanced" (Pro)          → Claude Haiku 4.5 for all languages
+ * - "premium"  (Agency)       → Claude Sonnet 4 for all languages
+ */
+async function* streamPlatformAgent(
+  platform: Platform,
+  brief: ContentBrief,
+  voice: string | null,
+  language: Language,
+  aiTier: AiTier
+): AsyncGenerator<string> {
+  const useClaudeForRegional = isIndianLanguage(language) && !!getAnthropicClient();
+  const useClaude = aiTier === "premium" || aiTier === "enhanced" || useClaudeForRegional;
+
+  if (useClaude) {
+    const model = resolveStreamClaudeModel(aiTier, language);
+    try {
+      yield* streamClaudeSinglePass(platform, brief, voice, language, model);
+      return;
+    } catch (e) {
+      // Fall back to GPT-4o-mini only for standard tier (regional Indian language)
+      if (aiTier === "standard") {
+        console.warn("[stream] Claude failed for regional language, falling back to GPT-4o-mini:", e);
+      } else {
+        throw e; // Pro/Agency users should see the Claude error, not a silent fallback
+      }
+    }
   }
+
   const promptBuilders = getPromptBuilders(brief, voice, language);
   const stream = await openai.chat.completions.create({
     model: "gpt-4o-mini", temperature: TEMPERATURES[platform], stream: true,
@@ -150,6 +235,18 @@ export async function POST(req: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) { send({ type: "error", error: "Unauthorized." }); close(); return; }
 
+        try {
+          await ensureProfileForUser(user, supabase);
+        } catch {
+          send({
+            type: "error",
+            error:
+              "Could not prepare your account profile. Refresh the page, or sign out and sign in again.",
+          });
+          close();
+          return;
+        }
+
         const burst = await burstLimiter.limit(user.id);
         if (!burst.success) { send({ type: "error", error: "Too many requests. Please slow down." }); close(); return; }
 
@@ -166,7 +263,7 @@ export async function POST(req: NextRequest) {
           .select("repurpose_count")
           .eq("user_id", user.id)
           .eq("month", currentMonth)
-          .single();
+          .maybeSingle();
         const used = usageRow?.repurpose_count ?? 0;
         if (!isSuperUser && entitlements.repurposesPerMonth != null) {
           if (used >= entitlements.repurposesPerMonth) {
@@ -179,38 +276,44 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        const limiter =
-          effectivePlan === "agency"
-            ? agencyTierLimiter
-            : effectivePlan === "pro" ||
-                effectivePlan === "starter"
-              ? proTierLimiter
-              : freeTierLimiter;
-        const tierResult = await limiter.limit(user.id);
-        if (!tierResult.success) {
-          send({
-            type: "error",
-            error:
-              effectivePlan === "free"
-                ? "Too many streaming requests. Please wait or upgrade to Starter or Pro."
-                : "Daily streaming limit reached. Resets at midnight UTC.",
-          });
-          close();
-          return;
-        }
+        /** Remaining count for UI. Do not use Redis daily streaming caps (pro/agency/free) — they duplicate monthly `usage` and caused false blocks when Upstash mis-keyed or limits exhausted mid-session. */
+        const streamRemaining: number | null =
+          !isSuperUser && entitlements.repurposesPerMonth != null
+            ? Math.max(0, entitlements.repurposesPerMonth - used - 1)
+            : null;
 
         const body = await req.json();
-        const { content, platforms, language = "en", brandVoiceId } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string };
-        if (!content?.trim() || !platforms?.length) { send({ type: "error", error: "Content and platforms are required." }); close(); return; }
+        const { content: bodyContent, platforms, language = "en", brandVoiceId, inputType = "text" } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string; inputType?: string };
 
+        let content = bodyContent;
+        if (inputType === "url" || inputType === "youtube") {
+          if (!bodyContent?.trim()) { send({ type: "error", error: "Please enter a valid URL." }); close(); return; }
+          send({ type: "extracting", message: inputType === "youtube" ? "Extracting YouTube transcript..." : "Extracting content from URL..." });
+          try {
+            content = inputType === "youtube"
+              ? await getYouTubeTranscript(bodyContent)
+              : await scrapeUrl(bodyContent);
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : "Could not fetch URL";
+            send({ type: "error", error: `Failed to extract content: ${msg}` });
+            close();
+            return;
+          }
+        }
+
+        if (!content?.trim() || !platforms?.length) { send({ type: "error", error: "Content and platforms are required." }); close(); return; }
+        if (content.length > 50000) { send({ type: "error", error: "Content is too long (max 50,000 characters)." }); close(); return; }
+
+        /** Match POST /api/repurpose: filter to plan-allowed platforms instead of failing the whole request when one ID is out of plan. */
+        let platformsToRun = platforms;
         if (entitlements.allowedPlatformIds) {
           const allow = entitlements.allowedPlatformIds as readonly string[];
-          const ok = platforms.every((p) => allow.includes(p));
-          if (!ok) {
+          platformsToRun = platforms.filter((p) => allow.includes(p));
+          if (platformsToRun.length === 0) {
             send({
               type: "error",
               error:
-                "Your plan includes LinkedIn, Twitter/X, and Instagram only. Upgrade for all platforms.",
+                "Your plan includes LinkedIn, Twitter/X, and Instagram only. Upgrade to Starter or Pro for all platforms.",
             });
             close();
             return;
@@ -219,7 +322,7 @@ export async function POST(req: NextRequest) {
 
         const brief = await extractBrief(content, language);
         brief.rawContent = content;
-        send({ type: "brief_ready", brief });
+        send({ type: "brief_ready", brief, platforms: platformsToRun });
 
         let voicePersona: string | null = null;
         if (brandVoiceId) {
@@ -227,16 +330,18 @@ export async function POST(req: NextRequest) {
         }
 
         const startTime = Date.now();
-        await Promise.allSettled(platforms.map(async (platform) => {
+        const platformResults: Record<string, string> = {};
+        await Promise.allSettled(platformsToRun.map(async (platform) => {
           const platformStart = Date.now();
           send({ type: "platform_start", platform });
           try {
             let accumulated = "";
-            for await (const token of streamPlatformAgent(platform, brief, voicePersona, language)) {
+            for await (const token of streamPlatformAgent(platform, brief, voicePersona, language, entitlements.aiTier)) {
               accumulated += token;
               send({ type: "platform_chunk", platform, chunk: token });
             }
             const parsed = parseStreamedOutput(platform, accumulated);
+            platformResults[platform] = parsed.content ?? accumulated;
             send({ type: "platform_done", platform, durationMs: Date.now() - platformStart, ...parsed });
           } catch (err) {
             captureError(err, { userId: user.id, action: "stream_platform_agent", extra: { platform } });
@@ -249,14 +354,57 @@ export async function POST(req: NextRequest) {
           }
         }));
 
-        if (!isSuperUser) {
-          await supabase.rpc("increment_usage", {
-            p_user_id: user.id,
-            p_month: currentMonth,
-          });
+        // Apply free-tier watermark BEFORE saving to DB (matches /api/repurpose behaviour)
+        const isFreePlan = effectivePlan === "free" && !isSuperUser;
+        const resultsToSave = isFreePlan
+          ? addFreeTierWatermark(platformResults as Record<string, string>)
+          : platformResults;
+
+        // Save job and outputs to DB so they appear in History
+        if (Object.keys(resultsToSave).length > 0) {
+          try {
+            const jobPayload = {
+              user_id: user.id,
+              input_type: (inputType === "url" || inputType === "youtube" ? inputType : "text") as "text" | "url" | "youtube",
+              input_content: content.slice(0, 10000),
+              input_url: (inputType === "url" || inputType === "youtube") ? bodyContent : null,
+              brand_voice_id: brandVoiceId || null,
+              output_language: language,
+            };
+            let { data: job, error: jobErr } = await insertRepurposeJobWithFallback(supabase, jobPayload);
+            if (jobErr && isLikelyUserProfileFkError(jobErr)) {
+              await ensureProfileForUser(user, supabase);
+              ({ data: job, error: jobErr } = await insertRepurposeJobWithFallback(supabase, jobPayload));
+            }
+            if (job && !jobErr) {
+              const outputRows = Object.entries(resultsToSave).map(([p, gen]) => ({
+                job_id: job.id,
+                platform: p,
+                generated_content: gen,
+              }));
+              await supabase.from("repurpose_outputs").insert(outputRows);
+            }
+          } catch (saveErr) {
+            captureError(saveErr, { userId: user.id, action: "stream_save_job" });
+          }
         }
 
-        send({ type: "all_done", durationMs: Date.now() - startTime, remaining: tierResult.remaining });
+        if (!isSuperUser) {
+          try {
+            await supabase.rpc("increment_usage", {
+              p_user_id: user.id,
+              p_month: currentMonth,
+            });
+          } catch (usageErr) {
+            captureError(usageErr, { userId: user.id, action: "increment_usage_stream" });
+          }
+        }
+
+        send({
+          type: "all_done",
+          durationMs: Date.now() - startTime,
+          remaining: streamRemaining ?? undefined,
+        });
       } catch (err) {
         captureError(err, { action: "repurpose_stream" });
         send({ type: "error", error: "Unexpected error. Please try again." });

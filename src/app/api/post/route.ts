@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { postToTwitterWithToken } from "@/lib/social/posters/twitter";
 import { postToLinkedIn } from "@/lib/social/posters/linkedin";
+import { decrypt } from "@/lib/crypto/tokens";
 import type { Platform } from "@/types";
 
 /** Map repurpose platform to connected_account platform */
@@ -93,9 +94,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    /** Decrypt access token — handles both encrypted (new) and plaintext (legacy) values. */
+    let decryptedToken: string;
+    try {
+      decryptedToken = decrypt(account.access_token);
+    } catch {
+      decryptedToken = account.access_token; // legacy plaintext
+    }
+
     if (provider === "twitter") {
       try {
-        await postToTwitterWithToken(content, account.access_token);
+        await postToTwitterWithToken(content, decryptedToken);
         return NextResponse.json({ success: true });
       } catch (e) {
         console.error("Twitter post failed:", e);
