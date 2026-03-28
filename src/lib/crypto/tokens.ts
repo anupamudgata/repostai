@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes, scrypt } from "node:crypto";
+import { createCipheriv, createDecipheriv, randomBytes, scrypt, scryptSync } from "node:crypto";
 
 const ALGORITHM = "aes-256-gcm";
 const KEY_LEN = 32;
@@ -28,7 +28,6 @@ function deriveKeyAsync(secret: string, salt: Buffer | string): Promise<Buffer> 
 
 /** Synchronous key derivation — only for backward-compat decrypt of legacy tokens. */
 function deriveKeySync(secret: string, salt: string): Buffer {
-  const { scryptSync } = require("node:crypto");
   return scryptSync(secret, salt, KEY_LEN);
 }
 
