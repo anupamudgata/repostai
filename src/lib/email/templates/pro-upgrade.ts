@@ -4,30 +4,30 @@ export function proUpgradeEmailHtml(firstName: string, plan: "starter" | "pro" |
   const planConfig = {
     starter: {
       name: "Starter",
-      price: "₹199",
+      price: "₹299",
       color: "#0D9488",
       bg: "#F0FDFA",
       border: "#99F6E4",
       text: "#134E4A",
-      features: ["10 repurposes per month", "All 9 platforms", "GPT-4o-mini", "No watermark", "1 brand voice", "Photo captions (10/mo)"],
+      features: ["50 repurposes per month", "All 9 platforms", "GPT-4o-mini", "No watermark", "1 brand voice", "15 photo captions / month"],
     },
     pro: {
       name: "Pro",
-      price: "₹499",
+      price: "₹799",
       color: "#2563EB",
       bg: "#EFF6FF",
       border: "#BFDBFE",
       text: "#1E3A5F",
-      features: ["60 repurposes per month", "All 9 platforms", "Claude Sonnet (premium AI)", "3 brand voices", "AI Content Starter", "Photo captions (40/mo)", "No watermark", "Priority support"],
+      features: ["150 repurposes per month", "All 9 platforms", "Claude Haiku (enhanced AI)", "5 brand voices", "AI Content Starter", "50 photo captions / month", "No watermark", "Priority support"],
     },
     agency: {
       name: "Agency",
-      price: "₹1,499",
+      price: "₹2,499",
       color: "#7C3AED",
       bg: "#F5F3FF",
       border: "#DDD6FE",
       text: "#4C1D95",
-      features: ["Unlimited repurposes", "All 9 platforms", "Claude Sonnet (premium AI)", "5 brand voices", "AI Content Starter", "Unlimited photo captions", "Team & API (roadmap)", "Dedicated support"],
+      features: ["500 repurposes per month", "All 9 platforms", "Claude Sonnet (premium AI)", "15 brand voices", "AI Content Starter", "200 photo captions / month", "Team & API (roadmap)", "Dedicated support"],
     },
   } as const;
 

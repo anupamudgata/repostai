@@ -73,7 +73,7 @@ export const blogPosts: BlogPost[] = [
 
 <h2>Why Purpose-Built Tools Win</h2>
 <p>A dedicated repurposing tool understands that a LinkedIn post and an Instagram caption have fundamentally different structures. It knows that a Twitter thread needs hooks, numbered formatting, and a call-to-action in the final tweet. It handles platform character limits, hashtag strategies, and even emoji usage differently per channel.</p>
-<p>RepostAI, for example, takes a single input and generates optimized drafts for <strong>9 platforms simultaneously</strong> — with brand voice preservation, Hinglish support, and India-friendly pricing starting at ₹199/month.</p>
+<p>RepostAI, for example, takes a single input and generates optimized drafts for <strong>9 platforms simultaneously</strong> — with brand voice preservation, Hinglish support, and India-friendly pricing starting at ₹299/month.</p>
 
 <h2>The Bottom Line</h2>
 <p>If you're manually rewriting your blog posts for each platform, you're spending time that AI can save. Choose a tool that matches your platforms, your language, and your budget — and get back to creating the content that matters.</p>

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/admin";
+import { encrypt, decrypt } from "@/lib/crypto/tokens";
 import type { Platform }  from "@/lib/social/types";
 
 export interface TokenRecord {
@@ -10,13 +11,31 @@ export interface TokenRecord {
   meta:             Record<string, unknown> | null;
 }
 
+/** Try to decrypt a value; if it fails (e.g. stored as plaintext), return as-is. */
+function safeDecrypt(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    return decrypt(value);
+  } catch {
+    // Token was stored in plaintext (legacy) — return as-is
+    return value;
+  }
+}
+
 export async function getToken(userId: string, platform: Platform): Promise<TokenRecord | null> {
   const { data, error } = await supabaseAdmin
     .from("connected_accounts")
     .select("access_token, refresh_token, token_expires_at, platform_user_id, platform_username, meta")
     .eq("user_id", userId).eq("platform", platform).single();
   if (error || !data) return null;
-  return { accessToken: data.access_token, refreshToken: data.refresh_token, tokenExpiresAt: data.token_expires_at, platformUserId: data.platform_user_id, platformUsername: data.platform_username, meta: data.meta };
+  return {
+    accessToken: safeDecrypt(data.access_token) ?? data.access_token,
+    refreshToken: safeDecrypt(data.refresh_token),
+    tokenExpiresAt: data.token_expires_at,
+    platformUserId: data.platform_user_id,
+    platformUsername: data.platform_username,
+    meta: data.meta,
+  };
 }
 
 export async function upsertToken(userId: string, platform: Platform, data: {
@@ -27,7 +46,8 @@ export async function upsertToken(userId: string, platform: Platform, data: {
   await supabaseAdmin.from("connected_accounts").upsert({
     user_id: userId, platform, platform_user_id: data.platformUserId,
     platform_username: data.platformUsername ?? null, platform_avatar: data.platformAvatar ?? null,
-    access_token: data.accessToken, refresh_token: data.refreshToken ?? null,
+    access_token: encrypt(data.accessToken),
+    refresh_token: data.refreshToken ? encrypt(data.refreshToken) : null,
     token_expires_at: tokenExpiresAt, scope: data.scope ?? null, meta: data.meta ?? null,
     updated_at: new Date().toISOString(),
   }, { onConflict: "user_id, platform" });

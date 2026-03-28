@@ -48,7 +48,7 @@ export async function getCachedRepurposeOutputs(
   platforms: string[],
   language: string,
   brandVoiceId: string | null,
-  aiTierKey: "std" | "prem" = "std"
+  aiTierKey: "std" | "enh" | "prem" = "std"
 ): Promise<Record<string, string> | null> {
   const r = getRedis();
   if (!r) return null;
@@ -67,7 +67,7 @@ export async function setCachedRepurposeOutputs(
   language: string,
   brandVoiceId: string | null,
   outputs: Record<string, string>,
-  aiTierKey: "std" | "prem" = "std"
+  aiTierKey: "std" | "enh" | "prem" = "std"
 ): Promise<void> {
   const r = getRedis();
   if (!r) return;

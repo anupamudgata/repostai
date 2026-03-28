@@ -6,9 +6,15 @@ import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import {
   getEffectivePlan,
   getEntitlements,
+  type AiTier,
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
+import { addFreeTierWatermark }          from "@/lib/watermark";
 import { captureError }                  from "@/lib/sentry";
+import {
+  insertRepurposeJobWithFallback,
+  isLikelyUserProfileFkError,
+} from "@/lib/supabase/insert-repurpose-job";
 import { openai } from "@/lib/ai/client";
 import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
 import {
@@ -23,6 +29,15 @@ import { getRegionalPrompts } from "@/lib/prompts/regional";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
 
 const CLAUDE_REGIONAL_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+const CLAUDE_ENHANCED_MODEL = process.env.ANTHROPIC_ENHANCED_MODEL?.trim() || "claude-haiku-4-5-20251001";
+const CLAUDE_PREMIUM_MODEL  = process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() || "claude-sonnet-4-20250514";
+
+/** Resolve Claude model for streaming based on tier + language. */
+function resolveStreamClaudeModel(aiTier: AiTier, language: Language): string {
+  if (isIndianLanguage(language)) return CLAUDE_REGIONAL_MODEL;
+  if (aiTier === "enhanced") return CLAUDE_ENHANCED_MODEL;
+  return CLAUDE_PREMIUM_MODEL;
+}
 
 
 type SSEEventType = "brief_ready" | "platform_start" | "platform_chunk" | "platform_done" | "platform_error" | "all_done" | "error";
@@ -74,7 +89,8 @@ async function* streamClaudeSinglePass(
   platform: Platform,
   brief: ContentBrief,
   voice: string | null,
-  language: Language
+  language: Language,
+  claudeModel: string = CLAUDE_REGIONAL_MODEL
 ): AsyncGenerator<string> {
   const anthropic = getAnthropicClient();
   if (!anthropic) throw new Error(ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES);
@@ -101,7 +117,7 @@ async function* streamClaudeSinglePass(
   );
 
   const stream = anthropic.messages.stream({
-    model: CLAUDE_REGIONAL_MODEL,
+    model: claudeModel,
     max_tokens: 2048,
     temperature,
     system: finalSystem,
@@ -114,15 +130,37 @@ async function* streamClaudeSinglePass(
   }
 }
 
-async function* streamPlatformAgentClaude(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
-  yield* streamClaudeSinglePass(platform, brief, voice, language);
-}
+/**
+ * Routes streaming by plan tier:
+ * - "standard" (Free/Starter) → GPT-4o-mini; Claude Haiku for Indian languages only
+ * - "enhanced" (Pro)          → Claude Haiku 4.5 for all languages
+ * - "premium"  (Agency)       → Claude Sonnet 4 for all languages
+ */
+async function* streamPlatformAgent(
+  platform: Platform,
+  brief: ContentBrief,
+  voice: string | null,
+  language: Language,
+  aiTier: AiTier
+): AsyncGenerator<string> {
+  const useClaudeForRegional = isIndianLanguage(language) && !!getAnthropicClient();
+  const useClaude = aiTier === "premium" || aiTier === "enhanced" || useClaudeForRegional;
 
-async function* streamPlatformAgent(platform: Platform, brief: ContentBrief, voice: string | null, language: Language): AsyncGenerator<string> {
-  if (isIndianLanguage(language)) {
-    yield* streamPlatformAgentClaude(platform, brief, voice, language);
-    return;
+  if (useClaude) {
+    const model = resolveStreamClaudeModel(aiTier, language);
+    try {
+      yield* streamClaudeSinglePass(platform, brief, voice, language, model);
+      return;
+    } catch (e) {
+      // Fall back to GPT-4o-mini only for standard tier (regional Indian language)
+      if (aiTier === "standard") {
+        console.warn("[stream] Claude failed for regional language, falling back to GPT-4o-mini:", e);
+      } else {
+        throw e; // Pro/Agency users should see the Claude error, not a silent fallback
+      }
+    }
   }
+
   const promptBuilders = getPromptBuilders(brief, voice, language);
   const stream = await openai.chat.completions.create({
     model: "gpt-4o-mini", temperature: TEMPERATURES[platform], stream: true,
@@ -240,16 +278,18 @@ export async function POST(req: NextRequest) {
         }
 
         const startTime = Date.now();
+        const platformResults: Record<string, string> = {};
         await Promise.allSettled(platformsToRun.map(async (platform) => {
           const platformStart = Date.now();
           send({ type: "platform_start", platform });
           try {
             let accumulated = "";
-            for await (const token of streamPlatformAgent(platform, brief, voicePersona, language)) {
+            for await (const token of streamPlatformAgent(platform, brief, voicePersona, language, entitlements.aiTier)) {
               accumulated += token;
               send({ type: "platform_chunk", platform, chunk: token });
             }
             const parsed = parseStreamedOutput(platform, accumulated);
+            platformResults[platform] = parsed.content ?? accumulated;
             send({ type: "platform_done", platform, durationMs: Date.now() - platformStart, ...parsed });
           } catch (err) {
             captureError(err, { userId: user.id, action: "stream_platform_agent", extra: { platform } });
@@ -261,6 +301,41 @@ export async function POST(req: NextRequest) {
             send({ type: "platform_error", platform, error: message });
           }
         }));
+
+        // Apply free-tier watermark BEFORE saving to DB (matches /api/repurpose behaviour)
+        const isFreePlan = effectivePlan === "free" && !isSuperUser;
+        const resultsToSave = isFreePlan
+          ? addFreeTierWatermark(platformResults as Record<string, string>)
+          : platformResults;
+
+        // Save job and outputs to DB so they appear in History
+        if (Object.keys(resultsToSave).length > 0) {
+          try {
+            const jobPayload = {
+              user_id: user.id,
+              input_type: "text" as const,
+              input_content: content.slice(0, 10000),
+              input_url: null,
+              brand_voice_id: brandVoiceId || null,
+              output_language: language,
+            };
+            let { data: job, error: jobErr } = await insertRepurposeJobWithFallback(supabase, jobPayload);
+            if (jobErr && isLikelyUserProfileFkError(jobErr)) {
+              await ensureProfileForUser(user, supabase);
+              ({ data: job, error: jobErr } = await insertRepurposeJobWithFallback(supabase, jobPayload));
+            }
+            if (job && !jobErr) {
+              const outputRows = Object.entries(resultsToSave).map(([p, gen]) => ({
+                job_id: job.id,
+                platform: p,
+                generated_content: gen,
+              }));
+              await supabase.from("repurpose_outputs").insert(outputRows);
+            }
+          } catch (saveErr) {
+            captureError(saveErr, { userId: user.id, action: "stream_save_job" });
+          }
+        }
 
         if (!isSuperUser) {
           try {

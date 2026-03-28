@@ -12,6 +12,7 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
+import { burstLimiter } from "@/lib/ratelimit";
 import { captureError } from "@/lib/sentry";
 import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 import {
@@ -79,6 +80,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const burst = await burstLimiter.limit(user.id);
+    if (!burst.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429 }
+      );
+    }
+
     try {
       await ensureProfileForUser(user, supabase);
     } catch {
@@ -124,7 +133,7 @@ export async function POST(request: NextRequest) {
       .from("profiles")
       .select("zapier_webhook_url")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const currentMonth = new Date().toISOString().slice(0, 7);
     const { data: usage } = await supabase
@@ -132,7 +141,7 @@ export async function POST(request: NextRequest) {
       .select("repurpose_count")
       .eq("user_id", user.id)
       .eq("month", currentMonth)
-      .single();
+      .maybeSingle();
 
     const used = usage?.repurpose_count ?? 0;
     if (!isSuperUser && entitlements.repurposesPerMonth != null) {
@@ -163,7 +172,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const cacheTierKey = entitlements.aiTier === "premium" ? "prem" : "std";
+    const cacheTierKey = entitlements.aiTier === "premium" ? "prem" : entitlements.aiTier === "enhanced" ? "enh" : "std";
 
     // Resolve content from different input types
     let resolvedContent = content;

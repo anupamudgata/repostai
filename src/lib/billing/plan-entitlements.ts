@@ -5,7 +5,13 @@ export type PaidPlan = "free" | "starter" | "pro" | "agency";
 
 /** Razorpay stores subscription id in `subscriptions.stripe_subscription_id` (legacy column name). */
 
-export type AiTier = "standard" | "premium";
+/**
+ * AI tier controls which model family is used for content generation.
+ * - "standard"  → GPT-4o-mini  (fast, cheap — Free & Starter)
+ * - "enhanced"  → Claude Haiku 4.5  (better quality, moderate cost — Pro)
+ * - "premium"   → Claude Sonnet 4   (best quality, highest cost — Agency)
+ */
+export type AiTier = "standard" | "enhanced" | "premium";
 
 export interface PlanEntitlements {
   repurposesPerMonth: number | null;
@@ -19,32 +25,32 @@ export interface PlanEntitlements {
 
 const ENTITLEMENTS: Record<PaidPlan, PlanEntitlements> = {
   free: {
-    repurposesPerMonth: 10,
+    repurposesPerMonth: 5,
     allowedPlatformIds: FREE_PLATFORM_IDS as readonly string[],
     brandVoicesMax: 1,
     aiTier: "standard",
     photosPerMonth: 2,
   },
   starter: {
-    repurposesPerMonth: 10,
+    repurposesPerMonth: 50,
     allowedPlatformIds: null,
     brandVoicesMax: 1,
     aiTier: "standard",
-    photosPerMonth: 10,
+    photosPerMonth: 15,
   },
   pro: {
-    repurposesPerMonth: 60,
-    allowedPlatformIds: null,
-    brandVoicesMax: 3,
-    aiTier: "premium",
-    photosPerMonth: 40,
-  },
-  agency: {
-    repurposesPerMonth: null,
+    repurposesPerMonth: 150,
     allowedPlatformIds: null,
     brandVoicesMax: 5,
+    aiTier: "enhanced",
+    photosPerMonth: 50,
+  },
+  agency: {
+    repurposesPerMonth: 500,
+    allowedPlatformIds: null,
+    brandVoicesMax: 15,
     aiTier: "premium",
-    photosPerMonth: null,
+    photosPerMonth: 200,
   },
 };
 
@@ -65,16 +71,25 @@ export async function getEffectivePlan(
   userId: string,
   email: string | undefined
 ): Promise<{ plan: PaidPlan; isSuperUser: boolean }> {
-  if (email === SUPERUSER_EMAIL) {
+  if (email && SUPERUSER_EMAIL && email === SUPERUSER_EMAIL) {
     return { plan: "pro", isSuperUser: true };
   }
 
-  const { data: sub } = await supabase
-    .from("subscriptions")
-    .select("plan, status")
-    .eq("user_id", userId)
-    .maybeSingle();
+  // Fetch subscription and profile in parallel to reduce latency
+  const [subResult, profileResult] = await Promise.all([
+    supabase
+      .from("subscriptions")
+      .select("plan, status")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", userId)
+      .maybeSingle(),
+  ]);
 
+  const sub = subResult.data;
   const subOk = sub?.status === "active" || sub?.status === "trialing";
   if (
     subOk &&
@@ -86,13 +101,7 @@ export async function getEffectivePlan(
     return { plan: sub.plan as PaidPlan, isSuperUser: false };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("plan")
-    .eq("id", userId)
-    .single();
-
-  const p = profile?.plan;
+  const p = profileResult.data?.plan;
   if (p === "agency" || p === "pro" || p === "starter") {
     return { plan: p, isSuperUser: false };
   }

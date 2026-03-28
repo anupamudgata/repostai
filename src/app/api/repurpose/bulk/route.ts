@@ -9,6 +9,7 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
+import { burstLimiter } from "@/lib/ratelimit";
 import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
 import {
   insertRepurposeJobWithFallback,
@@ -45,6 +46,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const burst = await burstLimiter.limit(user.id);
+    if (!burst.success) {
+      return NextResponse.json(
+        { error: "Too many requests. Please slow down." },
+        { status: 429 }
+      );
+    }
+
     try {
       await ensureProfileForUser(user, supabase);
     } catch {
@@ -57,7 +66,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const urlsRaw = body.urls as string | string[] | undefined;
     const platforms = body.platforms as Platform[] | undefined;
-    const brandVoiceId = body.brandVoiceId as string | undefined;
+    const brandVoiceIdRaw = body.brandVoiceId as string | undefined;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const brandVoiceId = brandVoiceIdRaw && UUID_RE.test(brandVoiceIdRaw) ? brandVoiceIdRaw : undefined;
+    if (brandVoiceIdRaw && !brandVoiceId) {
+      return NextResponse.json({ error: "Invalid brand voice ID format" }, { status: 400 });
+    }
     const outputLanguage = ((body.outputLanguage as string) || "en") as OutputLanguage;
     const userIntent = body.userIntent as string | undefined;
     const contentAngle = body.contentAngle as string | undefined;
@@ -94,7 +108,7 @@ export async function POST(request: NextRequest) {
       .from("profiles")
       .select("zapier_webhook_url")
       .eq("id", user.id)
-      .single();
+      .maybeSingle();
 
     const currentMonth = new Date().toISOString().slice(0, 7);
     const { data: usage } = await supabase
@@ -102,7 +116,7 @@ export async function POST(request: NextRequest) {
       .select("repurpose_count")
       .eq("user_id", user.id)
       .eq("month", currentMonth)
-      .single();
+      .maybeSingle();
 
     const used = usage?.repurpose_count ?? 0;
     const jobsCount = validUrls.length;
@@ -169,6 +183,8 @@ export async function POST(request: NextRequest) {
 
     const sources: { sourceUrl: string; jobId: string; outputs: { platform: string; content: string }[] }[] = [];
 
+    const errors: { sourceUrl: string; error: string }[] = [];
+
     for (let i = 0; i < validUrls.length; i++) {
       const sourceUrl = validUrls[i]!;
       let resolvedContent: string;
@@ -177,10 +193,8 @@ export async function POST(request: NextRequest) {
         resolvedContent = await scrapeUrl(sourceUrl);
       } catch (scrapeError) {
         const msg = scrapeError instanceof Error ? scrapeError.message : "";
-        return NextResponse.json(
-          { error: `Could not extract content from ${sourceUrl}: ${msg || "Try pasting text directly."}` },
-          { status: 400 }
-        );
+        errors.push({ sourceUrl, error: msg || "Could not extract content" });
+        continue; // skip this URL, proceed to next
       }
 
       const BATCH_THRESHOLD = 4;
@@ -248,15 +262,8 @@ export async function POST(request: NextRequest) {
       }
       if (jobInsertErr || !job) {
         console.error("bulk repurpose_jobs insert:", jobInsertErr);
-        return NextResponse.json(
-          {
-            error:
-              jobInsertErr?.message ??
-              "Could not save repurpose job. Try again.",
-            code: "JOB_INSERT_FAILED",
-          },
-          { status: 500 }
-        );
+        errors.push({ sourceUrl, error: jobInsertErr?.message ?? "Could not save repurpose job." });
+        continue;
       }
 
       const outputRows = Object.entries(outputs).map(([platform, generatedContent]) => ({
@@ -290,10 +297,18 @@ export async function POST(request: NextRequest) {
 
     const totalOutputs = sources.reduce((sum, s) => sum + s.outputs.length, 0);
 
+    if (sources.length === 0 && errors.length > 0) {
+      return NextResponse.json(
+        { error: "All URLs failed to process.", errors },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json({
       sources,
       totalOutputs,
       jobIds: sources.map((s) => s.jobId),
+      ...(errors.length > 0 ? { errors } : {}),
     });
   } catch (error) {
     console.error("Bulk repurpose error:", error);

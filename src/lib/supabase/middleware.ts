@@ -31,7 +31,8 @@ export async function updateSession(request: NextRequest) {
 
   const isAuthPage =
     request.nextUrl.pathname.startsWith("/login") ||
-    request.nextUrl.pathname.startsWith("/signup");
+    request.nextUrl.pathname.startsWith("/signup") ||
+    request.nextUrl.pathname.startsWith("/forgot-password");
   const isDashboard = request.nextUrl.pathname.startsWith("/dashboard");
 
   if (!user && isDashboard) {

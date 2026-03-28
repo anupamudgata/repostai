@@ -77,7 +77,22 @@ export async function repurposeContent(
 }
 
 const CLAUDE_REGIONAL_MODEL = process.env.ANTHROPIC_HINDI_MODEL?.trim() || "claude-haiku-4-5-20251001";
+/** Enhanced tier (Pro plan): Claude Haiku 4.5 — fast, good quality, moderate cost. */
+const CLAUDE_ENHANCED_MODEL = process.env.ANTHROPIC_ENHANCED_MODEL?.trim() || "claude-haiku-4-5-20251001";
+/** Premium tier (Agency plan): Claude Sonnet 4 — best quality, highest cost. */
 const CLAUDE_PREMIUM_MODEL = process.env.ANTHROPIC_REPURPOSE_MODEL?.trim() || "claude-sonnet-4-20250514";
+
+/**
+ * Resolve which Claude model to use based on tier + language.
+ * - "enhanced" (Pro)   → Haiku 4.5
+ * - "premium" (Agency) → Sonnet 4
+ * - Indian language on any tier → regional model (Haiku 4.5)
+ */
+function resolveClaudeModel(tier: AiTier, outputLanguage: string): string {
+  if (isIndianLanguage(outputLanguage)) return CLAUDE_REGIONAL_MODEL;
+  if (tier === "enhanced") return CLAUDE_ENHANCED_MODEL;
+  return CLAUDE_PREMIUM_MODEL;
+}
 
 export async function repurposeContentClaude(
   content: string,
@@ -87,12 +102,13 @@ export async function repurposeContentClaude(
   userIntent?: string,
   contentAngle?: string,
   hookMode?: string,
-  authenticityTuning?: AuthenticityTuning
+  authenticityTuning?: AuthenticityTuning,
+  tier: AiTier = "premium"
 ): Promise<Record<Platform, string>> {
   const client = getAnthropicClient();
   if (!client) {
     throw new Error(
-      "Premium AI (Claude) is not configured. Set ANTHROPIC_API_KEY or contact support."
+      "Claude AI is not configured. Set ANTHROPIC_API_KEY or contact support."
     );
   }
   const prompt = buildRepurposePrompt(
@@ -106,7 +122,7 @@ export async function repurposeContentClaude(
     authenticityTuning
   );
   const isIndian = isIndianLanguage(outputLanguage ?? "en");
-  const model = isIndian ? CLAUDE_REGIONAL_MODEL : CLAUDE_PREMIUM_MODEL;
+  const model = resolveClaudeModel(tier, outputLanguage ?? "en");
 
   const msg = await client.messages.create({
     model,
@@ -128,7 +144,13 @@ export async function repurposeContentClaude(
   }
 }
 
-/** Routes premium (Claude) vs standard (GPT-4o-mini). Hindi always uses Claude Haiku 4.5. */
+/**
+ * Routes AI model by plan tier:
+ * - "standard" (Free/Starter) → GPT-4o-mini
+ * - "enhanced" (Pro)          → Claude Haiku 4.5
+ * - "premium"  (Agency)       → Claude Sonnet 4
+ * Indian languages always use Claude Haiku 4.5 regardless of tier.
+ */
 export async function repurposeContentForTier(
   tier: AiTier,
   content: string,
@@ -141,7 +163,9 @@ export async function repurposeContentForTier(
   authenticityTuning?: AuthenticityTuning
 ): Promise<Record<Platform, string>> {
   const useClaudeForRegional = isIndianLanguage(outputLanguage ?? "en") && !!getAnthropicClient();
-  if (tier === "premium" || useClaudeForRegional) {
+  const useClaude = tier === "premium" || tier === "enhanced" || useClaudeForRegional;
+
+  if (useClaude) {
     try {
       return await repurposeContentClaude(
         content,
@@ -151,7 +175,8 @@ export async function repurposeContentForTier(
         userIntent,
         contentAngle,
         hookMode,
-        authenticityTuning
+        authenticityTuning,
+        tier
       );
     } catch (e) {
       console.warn("[repurpose] Claude failed, falling back to GPT-4o-mini:", e);

@@ -7,20 +7,43 @@ export async function postToLinkedIn(userId: string, text: string): Promise<Post
   if (!token) return { platform: "linkedin", success: false, error: "LinkedIn not connected" };
   if (isTokenExpired(token.tokenExpiresAt)) return { platform: "linkedin", success: false, error: "LinkedIn token expired. Please reconnect." };
   try {
-    const response = await fetch("https://api.linkedin.com/v2/ugcPosts", {
+    // Use the newer Posts API (ugcPosts is deprecated and being shut down)
+    const response = await fetch("https://api.linkedin.com/rest/posts", {
       method: "POST",
-      headers: { Authorization: `Bearer ${token.accessToken}`, "Content-Type": "application/json", "X-Restli-Protocol-Version": "2.0.0", "linkedin-version": "202502" },
+      headers: {
+        Authorization: `Bearer ${token.accessToken}`,
+        "Content-Type": "application/json",
+        "X-Restli-Protocol-Version": "2.0.0",
+        "LinkedIn-Version": "202402",
+      },
       body: JSON.stringify({
         author: `urn:li:person:${token.platformUserId}`,
+        commentary: text,
+        visibility: "PUBLIC",
+        distribution: {
+          feedDistribution: "MAIN_FEED",
+          targetEntities: [],
+          thirdPartyDistributionChannels: [],
+        },
         lifecycleState: "PUBLISHED",
-        specificContent: { "com.linkedin.ugc.ShareContent": { shareCommentary: { text }, shareMediaCategory: "NONE" } },
-        visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
+        isReshareDisabledByAuthor: false,
       }),
     });
-    if (!response.ok) { const err = await response.json().catch(() => ({})); return { platform: "linkedin", success: false, error: err.message ?? `LinkedIn API error ${response.status}` }; }
-    const data = await response.json();
-    const postId = data.id ?? "";
-    return { platform: "linkedin", success: true, postId, postUrl: `https://www.linkedin.com/feed/update/${postId}` };
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      const errMsg = (err as { message?: string }).message ?? `LinkedIn API error ${response.status}`;
+      return { platform: "linkedin", success: false, error: errMsg };
+    }
+
+    // The Posts API returns the post ID in the x-restli-id header
+    const postId = response.headers.get("x-restli-id") ?? "";
+    return {
+      platform: "linkedin",
+      success: true,
+      postId,
+      postUrl: postId ? `https://www.linkedin.com/feed/update/${postId}` : undefined,
+    };
   } catch (err) {
     return { platform: "linkedin", success: false, error: err instanceof Error ? err.message : "Unknown error" };
   }

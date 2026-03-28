@@ -28,9 +28,10 @@ export async function GET(req: NextRequest) {
     const now           = new Date().toISOString();
 
     // Fetch all scheduled posts that are due (status = pending; schedule API inserts pending)
+    // Include connected_account for token-based posting
     const { data: posts, error: fetchError } = await supabaseAdmin
       .from("scheduled_posts")
-      .select("*")
+      .select("*, connected_accounts:connected_account_id(access_token, platform)")
       .eq("status", "pending")
       .lte("scheduled_at", now)
       .limit(50);
@@ -94,6 +95,10 @@ export async function GET(req: NextRequest) {
             if (platform === "linkedin") {
               const { postToLinkedIn } = await import("@/lib/social/posters/linkedin");
               await postToLinkedIn(post.user_id, content);
+              publishedCount++;
+            } else if (platform === "twitter_thread") {
+              const { postToTwitterThread } = await import("@/lib/social/posters/twitter");
+              await postToTwitterThread(post.user_id, content);
               publishedCount++;
             } else if (platform === "twitter" || platform === "twitter_single") {
               const { postToTwitter } = await import("@/lib/social/posters/twitter");

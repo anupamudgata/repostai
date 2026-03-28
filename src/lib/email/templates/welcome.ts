@@ -48,7 +48,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica N
 <p class="steps-title">Do these 3 things right now</p>
 <div class="step"><div class="step-num">1</div><div><p class="step-title">Do your first repurpose</p><p class="step-desc">Paste any blog post, YouTube link, or plain text. Pick your platforms. Hit Repurpose. Takes under 60 seconds.</p></div></div>
 <div class="step"><div class="step-num">2</div><div><p class="step-title">Set up your brand voice</p><p class="step-desc">Paste 3-5 examples of your writing. Every output will sound like you, not a robot.</p></div></div>
-<div class="step"><div class="step-num">3</div><div><p class="step-title">Save hours every week</p><p class="step-desc">Your free plan includes 10 repurposes per month. Upgrade to Starter (₹199/mo) for all platforms, or Pro (₹499/mo) for premium AI and 60 repurposes.</p></div></div>
+<div class="step"><div class="step-num">3</div><div><p class="step-title">Save hours every week</p><p class="step-desc">Your free plan includes 5 repurposes per month. Upgrade to Starter (₹299/mo) for 50 repurposes and all platforms, or Pro (₹799/mo) for 150 repurposes with enhanced AI.</p></div></div>
 <div class="cta-block"><a href="${appUrl}/dashboard" class="cta-btn">Start your first repurpose</a><p class="free-note">No credit card needed to start.</p></div>
 <div class="divider"></div>
 <div class="founder"><div class="avatar">A</div><div><p class="founder-name">Anupam — Founder, RepostAI</p><p class="founder-msg">I built this because I was tired of spending hours reformatting one blog post for every platform. If you hit any issues or have feedback, reply to this email — it goes straight to me and I read every message.</p></div></div>
