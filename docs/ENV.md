@@ -89,9 +89,9 @@ OPENAI_API_KEY=sk-...
 
 ### Cron on Vercel Hobby vs Pro
 
-- **Hobby:** Vercel allows **only one cron invocation per day**. This project’s `vercel.json` uses **`0 9 * * *`** (daily ~09:00 UTC) so deployment succeeds on Hobby. Hourly schedules will **fail**.
-- **Pro:** You can use hourly or more frequent crons in `vercel.json`.
-- Set **`CRON_SECRET`** in Vercel env; Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`. For extra runs without Pro, use an external cron hitting the same URL with that header. See **`docs/PRE_LAUNCH_CHECKLIST.md` §5**.
+- **Hobby:** Vercel allows **only one built-in Cron invocation per day**; frequent schedules in `vercel.json` **block deploys**. This repo **does not** define `crons` in `vercel.json`. Use an **external scheduler** (cron-job.org, GitHub Actions workflow in this repo, etc.) with **`CRON_SECRET`**. See **`docs/EXTERNAL_CRON_SCHEDULED_POSTS.md`**.
+- **Pro:** You may add a `crons` entry to `vercel.json` (e.g. every 15 minutes). With **`CRON_SECRET`** set, Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`.
+- Set **`CRON_SECRET`** in Vercel in all cases so `/api/cron/scheduled-posts` is not public. See **`docs/PRE_LAUNCH_CHECKLIST.md` §5** for checklist context.
 
 ### Step 6: LinkedIn env vars (Connect / post)
 

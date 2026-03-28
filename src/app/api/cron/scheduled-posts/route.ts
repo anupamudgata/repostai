@@ -15,11 +15,13 @@ export const dynamic    = "force-dynamic";
 export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
-  // Verify this is a legitimate Vercel cron request
-  const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
+  const authHeader = req.headers.get("authorization");
+  const querySecret = req.nextUrl.searchParams.get("secret");
+  const bearerOk = authHeader === `Bearer ${cronSecret}`;
+  const queryOk = Boolean(cronSecret && querySecret === cronSecret);
 
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || (!bearerOk && !queryOk)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

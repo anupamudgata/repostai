@@ -55,12 +55,12 @@ Use this guide when the app works locally but has issues on Vercel (same old pag
 
 ## 5. Cron job error: “Hobby accounts are limited to daily cron jobs”
 
-**Cause:** Vercel Hobby plan allows only **one run per day** per cron.
+**Cause:** Vercel Hobby allows only **one built-in Cron invocation per day**. Schedules like every 15 minutes **fail validation** on deploy.
 
 **Fix:**
 
-- In **vercel.json**, use a **daily** schedule, e.g. `0 0 * * *` (midnight UTC), instead of `* * * * *` (every minute).
-- For more frequent runs, upgrade to **Vercel Pro** or call the cron endpoint from an **external cron** (e.g. cron-job.org) with the correct auth (e.g. `CRON_SECRET`).
+- This repo **omits** `crons` from `vercel.json` so Hobby deploys succeed. Use an **external scheduler** (cron-job.org, GitHub Actions, etc.) to `GET` `/api/cron/scheduled-posts` with **`CRON_SECRET`**. See **[EXTERNAL_CRON_SCHEDULED_POSTS.md](./EXTERNAL_CRON_SCHEDULED_POSTS.md)**.
+- After upgrading to **Vercel Pro**, you can add a `crons` entry back to `vercel.json` if you want Vercel-native scheduling again.
 
 ---
 
@@ -80,7 +80,7 @@ Use this guide when the app works locally but has issues on Vercel (same old pag
 | Login redirect wrong | Add Vercel URL to Supabase **Redirect URLs**; optionally set **Site URL**. |
 | Landing not at root | Open `https://your-app.vercel.app/` (no path). |
 | Features missing | Set env vars in Vercel (Supabase, NEXT_PUBLIC_APP_URL, etc.); redeploy. |
-| Cron rejected | Use daily schedule (`0 0 * * *`) on Hobby, or use Pro / external cron. |
+| Cron rejected | Use external cron + `CRON_SECRET` (see EXTERNAL_CRON_SCHEDULED_POSTS.md), or Vercel Pro + `vercel.json` crons. |
 
 See **docs/ENV_VARS_CHECKLIST.md** for the full list of environment variables.
 
