@@ -249,7 +249,17 @@ export default function BrandVoicePage() {
         </div>
       )}
 
-      <Dialog open={!!editingVoice} onOpenChange={(open) => !open && setEditingVoice(null)}>
+      <Dialog open={!!editingVoice} onOpenChange={(open) => {
+        if (!open) {
+          setEditingVoice(null);
+          // Safety net: clear any lingering scroll lock from Radix remove-scroll
+          requestAnimationFrame(() => {
+            document.body.style.removeProperty("overflow");
+            document.body.style.removeProperty("padding-right");
+            document.documentElement.style.removeProperty("overflow");
+          });
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Authenticity Tuning — {editingVoice?.name}</DialogTitle>
