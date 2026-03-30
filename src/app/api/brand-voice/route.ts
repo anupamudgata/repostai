@@ -137,14 +137,18 @@ export async function PATCH(req: NextRequest) {
       .select("id, user_id")
       .eq("id", id)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
     if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const updates: Record<string, string> = { updated_at: new Date().toISOString() };
     if (name?.trim()) updates.name = name.trim();
     if (samples?.trim()) {
       Object.assign(updates, brandVoiceWritingFields(samples.trim()));
     }
-    await supabase.from("brand_voices").update(updates).eq("id", id).eq("user_id", user.id);
+    const { error: updateError } = await supabase.from("brand_voices").update(updates).eq("id", id).eq("user_id", user.id);
+    if (updateError) {
+      console.error("[brand-voice] PATCH update failed", updateError);
+      return NextResponse.json({ error: "Failed to update brand voice" }, { status: 500 });
+    }
     if (samples?.trim()) { await invalidateBrandVoiceCache(id); warmBrandVoiceCache(id).catch(() => {}); }
     return NextResponse.json({ success: true });
   } catch (err) {
@@ -161,7 +165,11 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
-    await supabase.from("brand_voices").delete().eq("id", id).eq("user_id", user.id);
+    const { error: deleteError } = await supabase.from("brand_voices").delete().eq("id", id).eq("user_id", user.id);
+    if (deleteError) {
+      console.error("[brand-voice] DELETE failed", deleteError);
+      return NextResponse.json({ error: "Failed to delete brand voice" }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[brand-voice] DELETE error:", err);

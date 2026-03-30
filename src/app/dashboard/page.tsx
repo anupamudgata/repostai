@@ -303,8 +303,8 @@ export default function DashboardPage() {
 
   const isFreePlan = plan === "free";
   const hasPaidPlan = plan !== null && plan !== "free";
-  /** Native select while loading or on free tier (avoids Radix scroll-lock on some devices). */
-  const useNativeBrandVoiceSelect = plan === null || plan === "free";
+  /** Always use native select for brand voice — avoids Radix scroll-lock freezing the page. */
+  const useNativeBrandVoiceSelect = true;
 
   /** Map repurpose platform to connected_account platform for "Post now" */
   const platformProvider = (p: Platform): string | null => {

@@ -73,7 +73,7 @@ export async function GET() {
       .select("repurpose_count")
       .eq("user_id", user.id)
       .eq("month", currentMonth)
-      .single();
+      .maybeSingle();
     const repurposeCount = usage?.repurpose_count ?? 0;
 
     const repurposeLimit = isSuperUser

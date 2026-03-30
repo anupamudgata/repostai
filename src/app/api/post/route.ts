@@ -42,31 +42,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get output content (job must belong to user)
-    const { data: output, error: outputError } = await supabase
-      .from("repurpose_outputs")
-      .select("id, generated_content, edited_content")
-      .eq("job_id", jobId)
-      .eq("platform", platform)
-      .single();
-
-    if (outputError || !output) {
-      return NextResponse.json(
-        { error: "Output not found or not yours" },
-        { status: 404 }
-      );
-    }
-
+    // Verify job ownership FIRST before fetching content
     const { data: job } = await supabase
       .from("repurpose_jobs")
       .select("id")
       .eq("id", jobId)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (!job) {
       return NextResponse.json(
         { error: "Job not found or not yours" },
+        { status: 404 }
+      );
+    }
+
+    // Now safe to fetch output content
+    const { data: output, error: outputError } = await supabase
+      .from("repurpose_outputs")
+      .select("id, generated_content, edited_content")
+      .eq("job_id", jobId)
+      .eq("platform", platform)
+      .maybeSingle();
+
+    if (outputError || !output) {
+      return NextResponse.json(
+        { error: "Output not found for this job and platform" },
         { status: 404 }
       );
     }
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
       .select("id, platform, access_token")
       .eq("id", connectedAccountId)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (accountError || !account || account.platform !== provider) {
       return NextResponse.json(

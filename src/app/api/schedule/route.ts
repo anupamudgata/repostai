@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       .select("id")
       .eq("id", jobId)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (!job) {
       return NextResponse.json(
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       .select("id")
       .eq("job_id", jobId)
       .eq("platform", platform)
-      .single();
+      .maybeSingle();
 
     if (outputError || !output) {
       return NextResponse.json(
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       .select("id, platform")
       .eq("id", connectedAccountId)
       .eq("user_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (accountError || !account || account.platform !== provider) {
       return NextResponse.json(

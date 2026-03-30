@@ -141,11 +141,7 @@ export function BrandVoiceTrainingForm({
     if (!canCreate) return;
 
     const combinedSamples = buildSamplesString();
-    if (totalWords < 80) {
-      toastT.error("toast.paste100Voice");
-      return;
-    }
-    if (filledSlots.length < 1) {
+    if (!combinedSamples || totalWords < 80) {
       toastT.error("toast.paste100Voice");
       return;
     }
