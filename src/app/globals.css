@@ -250,3 +250,57 @@ html { scroll-behavior: smooth; }
     var(--font-noto-kannada), var(--font-noto-gurmukhi), var(--font-noto-telugu),
     var(--font-noto-oriya), ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Shimmer loading animation */
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position:  200% center; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, oklch(0.93 0.008 280) 25%, oklch(0.96 0.005 280) 50%, oklch(0.93 0.008 280) 75%);
+  background-size: 200% auto;
+  animation: shimmer 1.5s linear infinite;
+}
+.dark .animate-shimmer {
+  background: linear-gradient(90deg, oklch(0.22 0.03 280) 25%, oklch(0.26 0.03 280) 50%, oklch(0.22 0.03 280) 75%);
+  background-size: 200% auto;
+}
+
+/* Soft gradient card hover */
+.card-hover {
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 4px 24px oklch(0.55 0.24 280 / 8%);
+  transform: translateY(-1px);
+  border-color: oklch(0.55 0.24 280 / 20%);
+}
+
+/* Dashboard page fade-in */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-page-in {
+  animation: page-in 0.35s ease-out forwards;
+}
+
+/* Active nav indicator */
+.nav-active-dot {
+  position: relative;
+}
+.nav-active-dot::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 2px;
+  border-radius: 999px;
+  background: var(--primary);
+}

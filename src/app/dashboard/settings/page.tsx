@@ -1,47 +1,47 @@
 // src/app/dashboard/settings/page.tsx
-// FIX #2: Black screen fixed — removed bg-background class that renders black
-//         when CSS variables not loaded. Use explicit safe colors.
-// FIX #3: Plan badge now reads from subscriptions table (single source of truth)
-//         not from user metadata which can be stale.
 
 import { createClient }  from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redirect }      from "next/navigation";
 import { SUPPORT_EMAIL } from "@/config/constants";
 import UpgradeSection    from "@/components/dashboard/UpgradeSection";
+import { Crown, Shield, Trash2, CreditCard, CalendarDays, User } from "lucide-react";
 
-// Plan display config
 const PLAN_CONFIG = {
   free: {
     label:       "Free",
     price:       "₹0/month",
-    color:       "#6B7280",
-    bg:          "#F9FAFB",
-    border:      "#E5E7EB",
+    textClass:   "text-gray-600",
+    bgClass:     "bg-gray-50 dark:bg-gray-900/30",
+    borderClass: "border-gray-200 dark:border-gray-700",
+    badgeClass:  "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
     description: "5 repurposes/mo · 3 platforms · Watermark",
   },
   starter: {
     label:       "Starter",
     price:       "₹299/month",
-    color:       "#0D9488",
-    bg:          "#F0FDFA",
-    border:      "#99F6E4",
+    textClass:   "text-teal-700 dark:text-teal-400",
+    bgClass:     "bg-teal-50 dark:bg-teal-900/20",
+    borderClass: "border-teal-200 dark:border-teal-800",
+    badgeClass:  "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-400",
     description: "50 repurposes/mo · All platforms · GPT‑4o‑mini · No watermark",
   },
   pro: {
     label:       "Pro",
     price:       "₹799/month",
-    color:       "#2563EB",
-    bg:          "#EFF6FF",
-    border:      "#BFDBFE",
+    textClass:   "text-blue-700 dark:text-blue-400",
+    bgClass:     "bg-blue-50 dark:bg-blue-900/20",
+    borderClass: "border-blue-200 dark:border-blue-800",
+    badgeClass:  "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
     description: "150 repurposes/mo · Claude Haiku · 5 brand voices",
   },
   agency: {
     label:       "Agency",
     price:       "₹2,499/month",
-    color:       "#7C3AED",
-    bg:          "#F5F3FF",
-    border:      "#DDD6FE",
+    textClass:   "text-violet-700 dark:text-violet-400",
+    bgClass:     "bg-violet-50 dark:bg-violet-900/20",
+    borderClass: "border-violet-200 dark:border-violet-800",
+    badgeClass:  "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400",
     description: "500 repurposes/mo · Claude Sonnet · 15 brand voices",
   },
 } as const;
@@ -51,14 +51,12 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // FIX #3: Always read plan from subscriptions table — single source of truth
   const { data: sub } = await supabaseAdmin
     .from("subscriptions")
     .select("plan, status, current_period_end, cancel_at_period_end, stripe_subscription_id")
     .eq("user_id", user.id)
     .single();
 
-  // Determine actual plan — only "active" or "trialing" subscriptions count
   const activePlan = (
     sub?.status === "active" || sub?.status === "trialing"
       ? sub.plan
@@ -73,188 +71,124 @@ export default async function SettingsPage() {
       })
     : null;
 
+  const displayName = user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User";
+  const initial = (user.email?.[0] ?? "U").toUpperCase();
+  const memberSince = new Date(user.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  const provider = user.app_metadata?.provider ?? "email";
+
   return (
-    // FIX #2: Use explicit white background — NOT bg-background which goes black
-    <div style={{
-      minHeight:   "100vh",
-      background:  "#F9FAFB",   // explicit safe color, not CSS variable
-      padding:     "40px 24px",
-      fontFamily:  "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif",
-    }}>
-      <div style={{ maxWidth: "680px", margin: "0 auto" }}>
+    <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-1">Manage your account and subscription</p>
+      </div>
 
-        {/* Page title */}
-        <h1 style={{
-          fontSize:     "22px",
-          fontWeight:   700,
-          color:        "#111827",   // explicit — not text-foreground
-          marginBottom: "32px",
-        }}>
-          Settings
-        </h1>
+      {/* Account section */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground" />
+          Account
+        </h2>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="p-5 flex items-center gap-4">
+            {/* Avatar */}
+            <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-violet-500 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
+              {initial}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-foreground truncate">{displayName}</p>
+              <p className="text-sm text-muted-foreground truncate">{user.email}</p>
+            </div>
+            <span className={`text-xs font-semibold px-3 py-1 rounded-full shrink-0 ${planConfig.badgeClass}`}>
+              {planConfig.label}
+            </span>
+          </div>
 
-        {/* ── Account section ─────────────────────────────────────── */}
-        <section style={{ marginBottom: "24px" }}>
-          <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#111827", marginBottom: "12px" }}>
-            Account
-          </h2>
-          <div style={{
-            background:   "#FFFFFF",
-            border:       "1px solid #E5E7EB",
-            borderRadius: "12px",
-            padding:      "20px",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "16px" }}>
-              {/* Avatar */}
-              <div style={{
-                width:          "48px",
-                height:         "48px",
-                borderRadius:   "50%",
-                background:     "#1E3A5F",
-                color:          "#FFFFFF",
-                fontSize:       "18px",
-                fontWeight:     700,
-                display:        "flex",
-                alignItems:     "center",
-                justifyContent: "center",
-                flexShrink:     0,
-              }}>
-                {user.email?.[0]?.toUpperCase() ?? "U"}
+          <div className="border-t border-border/60 px-5 py-4 grid grid-cols-2 gap-4 bg-muted/20">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Member since</p>
+              <p className="text-sm font-medium text-foreground flex items-center gap-1.5">
+                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                {memberSince}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Auth provider</p>
+              <p className="text-sm font-medium text-foreground capitalize flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                {provider}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Subscription section */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <CreditCard className="h-4 w-4 text-muted-foreground" />
+          Subscription
+        </h2>
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {/* Plan card */}
+          <div className={`p-5 ${planConfig.bgClass} border-b ${planConfig.borderClass}`}>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  {activePlan !== "free" && <Crown className={`h-4 w-4 ${planConfig.textClass}`} />}
+                  <span className={`text-base font-bold ${planConfig.textClass}`}>
+                    {planConfig.label} Plan
+                  </span>
+                </div>
+                <p className={`text-sm opacity-80 ${planConfig.textClass}`}>{planConfig.description}</p>
+                {renewsOn && activePlan !== "free" && (
+                  <p className={`text-xs opacity-70 ${planConfig.textClass} flex items-center gap-1`}>
+                    <CalendarDays className="h-3 w-3" />
+                    {sub?.cancel_at_period_end ? `Cancels on ${renewsOn}` : `Renews on ${renewsOn}`}
+                  </p>
+                )}
               </div>
-              <div>
-                <p style={{ fontSize: "15px", fontWeight: 600, color: "#111827", margin: 0 }}>
-                  {user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? "User"}
-                </p>
-                <p style={{ fontSize: "13px", color: "#6B7280", margin: "2px 0 0" }}>
-                  {user.email}
-                </p>
-              </div>
-              {/* FIX #3: Plan badge reads from subscriptions table */}
-              <span style={{
-                marginLeft:   "auto",
-                fontSize:     "12px",
-                fontWeight:   600,
-                padding:      "4px 12px",
-                borderRadius: "999px",
-                background:   planConfig.bg,
-                color:        planConfig.color,
-                border:       `1px solid ${planConfig.border}`,
-              }}>
-                {planConfig.label}
+              <span className={`text-sm font-bold shrink-0 ${planConfig.textClass}`}>
+                {planConfig.price}
               </span>
             </div>
-
-            <div style={{ borderTop: "0.5px solid #F3F4F6", paddingTop: "14px" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", fontSize: "13px" }}>
-                <div>
-                  <span style={{ color: "#9CA3AF" }}>Member since</span>
-                  <p style={{ color: "#374151", fontWeight: 500, margin: "2px 0 0" }}>
-                    {new Date(user.created_at).toLocaleDateString("en-IN", { month: "long", year: "numeric" })}
-                  </p>
-                </div>
-                <div>
-                  <span style={{ color: "#9CA3AF" }}>Auth provider</span>
-                  <p style={{ color: "#374151", fontWeight: 500, margin: "2px 0 0", textTransform: "capitalize" }}>
-                    {user.app_metadata?.provider ?? "email"}
-                  </p>
-                </div>
-              </div>
-            </div>
           </div>
-        </section>
 
-        {/* ── Subscription section ─────────────────────────────────── */}
-        <section style={{ marginBottom: "24px" }}>
-          <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#111827", marginBottom: "12px" }}>
-            Subscription
-          </h2>
-          <div style={{
-            background:   "#FFFFFF",
-            border:       "1px solid #E5E7EB",
-            borderRadius: "12px",
-            overflow:     "hidden",
-          }}>
-            {/* Plan card */}
-            <div style={{
-              padding:    "20px",
-              background: planConfig.bg,
-              borderBottom: `1px solid ${planConfig.border}`,
-            }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "6px" }}>
-                <span style={{ fontSize: "16px", fontWeight: 700, color: planConfig.color }}>
-                  {planConfig.label} plan
-                </span>
-                <span style={{ fontSize: "15px", fontWeight: 600, color: planConfig.color }}>
-                  {planConfig.price}
-                </span>
-              </div>
-              <p style={{ fontSize: "13px", color: planConfig.color, opacity: 0.8, margin: 0 }}>
-                {planConfig.description}
-              </p>
-              {renewsOn && activePlan !== "free" && (
-                <p style={{ fontSize: "12px", color: planConfig.color, opacity: 0.7, marginTop: "8px" }}>
-                  {sub?.cancel_at_period_end
-                    ? `Cancels on ${renewsOn}`
-                    : `Renews on ${renewsOn}`}
-                </p>
-              )}
-            </div>
-
-            <div style={{ padding: "16px 20px" }}>
-              {activePlan === "free" ? (
-                <UpgradeSection />
-              ) : (
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <ManageBillingButton />
-                </div>
-              )}
-            </div>
+          <div className="p-5">
+            {activePlan === "free" ? (
+              <UpgradeSection />
+            ) : (
+              <ManageBillingButton />
+            )}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* ── Danger zone ──────────────────────────────────────────── */}
-        <section>
-          <h2 style={{ fontSize: "15px", fontWeight: 600, color: "#DC2626", marginBottom: "12px" }}>
-            Danger zone
-          </h2>
-          <div style={{
-            background:   "#FFFFFF",
-            border:       "1px solid #FECACA",
-            borderRadius: "12px",
-            padding:      "20px",
-          }}>
-            <p style={{ fontSize: "13px", color: "#6B7280", marginBottom: "16px", lineHeight: 1.6 }}>
-              Permanently delete your account, all repurpose history, brand voices, and cancel
-              your subscription. This cannot be undone.
-            </p>
-            <DeleteAccountButton />
-          </div>
-        </section>
-
-      </div>
+      {/* Danger zone */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-destructive flex items-center gap-2">
+          <Trash2 className="h-4 w-4" />
+          Danger zone
+        </h2>
+        <div className="bg-card border border-destructive/30 rounded-xl p-5">
+          <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+            Permanently delete your account, all repurpose history, brand voices, and cancel your subscription. This cannot be undone.
+          </p>
+          <DeleteAccountButton />
+        </div>
+      </section>
     </div>
   );
 }
-
-// ── Client components (inline to avoid extra files) ───────────────────────────
 
 function ManageBillingButton() {
   return (
     <a
       href={`mailto:${SUPPORT_EMAIL}?subject=Billing%20request`}
-      style={{
-        display:        "inline-flex",
-        padding:        "9px 20px",
-        borderRadius:   "8px",
-        border:         "1px solid #E5E7EB",
-        background:     "transparent",
-        color:          "#374151",
-        fontSize:       "13px",
-        fontWeight:     600,
-        cursor:         "pointer",
-        textDecoration: "none",
-      }}
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-transparent text-foreground text-sm font-medium hover:bg-accent/50 transition-colors"
     >
+      <CreditCard className="h-4 w-4" />
       Manage billing
     </a>
   );
@@ -264,20 +198,9 @@ function DeleteAccountButton() {
   return (
     <a
       href="/dashboard/settings/delete"
-      style={{
-        display:        "inline-flex",
-        alignItems:     "center",
-        gap:            "6px",
-        padding:        "8px 16px",
-        borderRadius:   "8px",
-        border:         "1px solid #FECACA",
-        background:     "transparent",
-        color:          "#DC2626",
-        fontSize:       "13px",
-        fontWeight:     500,
-        textDecoration: "none",
-      }}
+      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-destructive/40 bg-transparent text-destructive text-sm font-medium hover:bg-destructive/5 transition-colors"
     >
+      <Trash2 className="h-4 w-4" />
       Delete account
     </a>
   );
