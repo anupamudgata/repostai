@@ -794,65 +794,73 @@ export default function DashboardPage() {
           </Button>
         </div>
       )}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">{d.title}</h1>
-            <p className="text-sm sm:text-base text-muted-foreground mt-1">
-              {d.subtitle}
-            </p>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              {d.title}
+            </span>
+          </h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1.5">
+            {d.subtitle}
+          </p>
         </div>
         {usage && (
-          <div className="flex flex-col items-end gap-2 min-w-[200px] max-w-sm">
-            <span className="text-sm text-muted-foreground text-right">
+          <div className="flex flex-col items-start sm:items-end gap-2 min-w-[200px] max-w-sm bg-card border border-border/60 rounded-xl px-4 py-3 shadow-sm">
+            <span className="text-xs font-semibold text-muted-foreground text-right">
               {usage.limit != null
                 ? df(d.usageLine, { count: usage.count, limit: usage.limit })
                 : df(d.usageLineUnlimited, { count: usage.count })}
             </span>
             {usage.limit != null && (
               <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full bg-primary transition-all"
-                  style={{
-                    width: `${Math.min(100, (usage.count / usage.limit) * 100)}%`,
-                  }}
-                />
+                {(() => {
+                  const pct = Math.min(100, (usage.count / usage.limit!) * 100);
+                  const cls = pct >= 90 ? "usage-bar-fill danger" : pct >= 70 ? "usage-bar-fill warn" : "usage-bar-fill";
+                  return <div className={`h-full rounded-full ${cls}`} style={{ width: `${pct}%` }} />;
+                })()}
               </div>
             )}
             <span className="text-xs text-muted-foreground">
               {df(d.resetsInDays, { days: usage.daysUntilReset })}
             </span>
-            {usage.limit != null &&
-              usage.count >= Math.max(0, usage.limit - 2) && (
-                <Link href="/#pricing">
-                  <Button size="sm" variant="outline">
-                    {d.upgrade}
-                  </Button>
-                </Link>
-              )}
+            {usage.limit != null && usage.count >= Math.max(0, usage.limit - 2) && (
+              <Link href="/#pricing">
+                <Button size="sm" variant="outline" className="h-7 text-xs font-semibold border-primary/40 text-primary hover:bg-primary/5">
+                  {d.upgrade} ↑
+                </Button>
+              </Link>
+            )}
           </div>
         )}
       </div>
 
       {/* Content Agent CTA */}
       <Link href="/dashboard/agent">
-        <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent hover:from-primary/10 hover:to-primary/5 transition-colors cursor-pointer">
-          <CardContent className="py-4 flex items-center gap-4">
-            <Bot className="h-10 w-10 text-primary shrink-0" />
+        <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/8 via-purple-500/5 to-transparent hover:from-primary/14 hover:border-primary/40 transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md hover:shadow-primary/10">
+          <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
+          <div className="px-5 py-4 flex items-center gap-4">
+            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/15 flex items-center justify-center shrink-0 group-hover:from-primary/30 group-hover:to-purple-500/25 transition-all duration-300">
+              <Bot className="h-6 w-6 text-primary" />
+            </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold">{d.contentAgentTitle}</p>
-              <p className="text-sm text-muted-foreground">
+              <p className="font-bold text-sm">{d.contentAgentTitle}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {d.contentAgentSubtitle}
               </p>
             </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0" />
-          </CardContent>
-        </Card>
+            <div className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              Try it <ChevronRight className="h-4 w-4" />
+            </div>
+            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200" />
+          </div>
+        </div>
       </Link>
 
       {/* Input Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{d.yourContent}</CardTitle>
+      <Card className="dash-card border-border/60 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-bold">{d.yourContent}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Tabs
@@ -1042,9 +1050,9 @@ export default function DashboardPage() {
       </Card>
 
       {/* Brand voice: native select on free plan (avoids Radix scroll-lock on some devices). */}
-      <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">{d.brandVoiceCardTitle}</CardTitle>
+      <Card className="dash-card border-border/60 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg font-bold">{d.brandVoiceCardTitle}</CardTitle>
             <p className="text-sm text-muted-foreground">
               {useNativeBrandVoiceSelect
                 ? d.freeBrandVoiceCardSubtitle
@@ -1104,9 +1112,9 @@ export default function DashboardPage() {
         </Card>
 
       {/* Platform Selection — touch-optimized (min 44px tap targets) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base sm:text-lg">{d.outputPlatformsTitle}</CardTitle>
+      <Card className="dash-card border-border/60 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg font-bold">{d.outputPlatformsTitle}</CardTitle>
           {isFreePlan && (
             <p className="text-xs sm:text-sm text-muted-foreground">
               {d.freePlanPlatformsBefore}{" "}
@@ -1129,19 +1137,18 @@ export default function DashboardPage() {
                   disabled={isLocked}
                   onClick={() => !isLocked && togglePlatform(platform.id as Platform)}
                   title={isLocked ? d.platformLockTitle : undefined}
-                  className={`
-                    inline-flex items-center gap-2 rounded-md border text-sm font-medium transition-colors
-                    min-h-[44px] px-4 py-3 touch-manipulation select-none
-                    ${isLocked
-                      ? "opacity-60 cursor-not-allowed border-muted bg-muted/50 text-muted-foreground"
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-xl border text-sm font-semibold transition-all duration-200",
+                    "min-h-[44px] px-4 py-2.5 touch-manipulation select-none",
+                    isLocked
+                      ? "opacity-50 cursor-not-allowed border-muted bg-muted/30 text-muted-foreground"
                       : isSelected
-                        ? "bg-primary text-primary-foreground border-primary"
-                        : "bg-background hover:bg-muted/50 border-input"
-                    }
-                  `}
+                        ? "platform-chip-selected"
+                        : "bg-card hover:bg-muted/50 border-border/60 hover:border-primary/40 hover:text-primary"
+                  )}
                 >
-                  {isLocked && <Lock className="h-4 w-4 shrink-0" />}
-                  {isSelected && !isLocked && <Check className="h-4 w-4 shrink-0" />}
+                  {isLocked && <Lock className="h-3.5 w-3.5 shrink-0" />}
+                  {isSelected && !isLocked && <Check className="h-3.5 w-3.5 shrink-0" />}
                   {platform.name}
                 </button>
               );
@@ -1151,9 +1158,9 @@ export default function DashboardPage() {
       </Card>
 
       {/* Content Angle + Hook Mode */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{d.generateAsTitle}</CardTitle>
+      <Card className="dash-card border-border/60 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-bold">{d.generateAsTitle}</CardTitle>
           <p className="text-sm text-muted-foreground">
             {d.generateAsSubtitle}
           </p>
@@ -1195,9 +1202,9 @@ export default function DashboardPage() {
       </Card>
 
       {/* Language Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">{d.outputLanguageTitle}</CardTitle>
+      <Card className="dash-card border-border/60 shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-bold">{d.outputLanguageTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4">
@@ -1237,9 +1244,9 @@ export default function DashboardPage() {
       </Card>
 
       {/* What you want — optional intent */}
-      <Card>
+      <Card className="dash-card border-border/60 shadow-sm">
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">{d.intentTitle}</CardTitle>
+          <CardTitle className="text-base font-bold">{d.intentTitle}</CardTitle>
           <p className="text-sm text-muted-foreground font-normal">
             {d.intentSubtitle}
           </p>
@@ -1263,10 +1270,10 @@ export default function DashboardPage() {
         {d.infoSerious}
       </p>
 
-      {/* Generate Button — touch-friendly */}
+      {/* Generate Button — glowing CTA */}
       <Button
         size="lg"
-        className="w-full min-h-[48px] text-base sm:text-lg touch-manipulation"
+        className="w-full min-h-[56px] text-base sm:text-lg touch-manipulation btn-generate rounded-xl font-bold tracking-wide"
         onClick={handleRepurpose}
         disabled={loading}
       >
@@ -1348,9 +1355,9 @@ export default function DashboardPage() {
           </div>
           {/* Where to Post — platform fit scorecard (single repurpose only) */}
           {outputs.length > 0 && bulkSources.length === 0 && (
-            <Card className="border-primary/20 bg-primary/5">
+            <Card className="border-primary/20 bg-gradient-to-r from-primary/6 to-transparent shadow-sm">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
+                <CardTitle className="text-base flex items-center gap-2 font-bold">
                   <BarChart3 className="h-4 w-4 text-primary" />
                   {d.platformFitTitle}
                 </CardTitle>
@@ -1570,19 +1577,20 @@ export default function DashboardPage() {
                   ? connectedAccounts.find((a) => a.platform === provider)
                   : null;
                 return (
-                  <Card key={output.platform}>
-                  <CardHeader className="pb-3">
+                  <Card key={output.platform} className="output-card border-border/60 shadow-sm overflow-hidden">
+                  <CardHeader className="pb-3 bg-gradient-to-r from-muted/40 to-transparent border-b border-border/40">
                     <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-base">
+                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-primary inline-block" />
                         {platformInfo?.name || output.platform}
                       </CardTitle>
-                      <div className="flex gap-2 flex-wrap items-center">
+                      <div className="flex gap-1.5 flex-wrap items-center">
                         {provider && (
                           <>
                             <Button
                               size="sm"
                               variant="default"
-                              className="min-h-[40px] touch-manipulation"
+                              className="h-8 px-2.5 text-xs touch-manipulation font-semibold"
                               onClick={() =>
                                 account
                                   ? handlePostNow(output.platform, account.id)
@@ -1598,29 +1606,19 @@ export default function DashboardPage() {
                               }
                             >
                               {postingPlatform === output.platform ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <Loader2 className="h-3 w-3 animate-spin" />
                               ) : (
-                                <>
-                                  <Send className="h-3.5 w-3.5 mr-1" />
-                                  {d.postNow}
-                                </>
+                                <><Send className="h-3 w-3 mr-1" />{d.postNow}</>
                               )}
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="min-h-[40px] touch-manipulation"
+                              className="h-8 px-2.5 text-xs touch-manipulation"
                               onClick={() => openScheduleModal(output.platform)}
                               disabled={scheduleSubmitting}
-                              title={
-                                !account && provider
-                                  ? df(d.connectToScheduleTitle, {
-                                      provider: providerLabel(provider),
-                                    })
-                                  : undefined
-                              }
                             >
-                              <CalendarClock className="h-3.5 w-3.5 mr-1" />
+                              <CalendarClock className="h-3 w-3 mr-1" />
                               {d.schedule}
                             </Button>
                             {!account && provider && (
@@ -1628,9 +1626,7 @@ export default function DashboardPage() {
                                 href="/dashboard/connections"
                                 className="text-xs text-primary hover:underline font-medium"
                               >
-                                {df(d.connectProvider, {
-                                  provider: providerLabel(provider),
-                                })}
+                                {df(d.connectProvider, { provider: providerLabel(provider) })}
                               </Link>
                             )}
                           </>
@@ -1638,44 +1634,33 @@ export default function DashboardPage() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="min-h-[40px] touch-manipulation"
+                          className="h-8 px-2 text-xs touch-manipulation text-muted-foreground hover:text-foreground"
                           onClick={() => handleRegenerate(output.platform)}
                           disabled={regeneratingPlatform !== null}
                         >
                           {regeneratingPlatform === output.platform ? (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            <Loader2 className="h-3 w-3 animate-spin" />
                           ) : (
-                            <>
-                              <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                              {d.regenerate}
-                            </>
+                            <RefreshCw className="h-3 w-3" />
                           )}
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="min-h-[40px] touch-manipulation"
-                          onClick={() =>
-                            handleCopy(output.platform, output.content)
-                          }
+                          className={cn("h-8 px-2 text-xs touch-manipulation", copiedPlatform === output.platform ? "text-primary" : "text-muted-foreground hover:text-foreground")}
+                          onClick={() => handleCopy(output.platform, output.content)}
                         >
                           {copiedPlatform === output.platform ? (
-                            <>
-                              <Check className="h-3.5 w-3.5 mr-1" />
-                              {d.copied}
-                            </>
+                            <Check className="h-3 w-3" />
                           ) : (
-                            <>
-                              <Copy className="h-3.5 w-3.5 mr-1" />
-                              {d.copy}
-                            </>
+                            <Copy className="h-3 w-3" />
                           )}
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    <div className="bg-muted/50 rounded-lg p-4 text-sm font-sans whitespace-pre-wrap max-h-80 overflow-y-auto">
+                  <CardContent className="space-y-2 pt-4">
+                    <div className="bg-muted/30 rounded-xl p-4 text-sm font-sans whitespace-pre-wrap max-h-80 overflow-y-auto leading-relaxed border border-border/30">
                       {output.content}
                     </div>
                     {platformInfo && (

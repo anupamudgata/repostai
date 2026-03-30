@@ -28,7 +28,7 @@ export default async function DashboardLayout({
   const plan = isSuperUser ? "pro" : (profile?.plan || "free");
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="dashboard-bg">
       <DashboardNav
         user={{
           email: user.email || "",
@@ -37,7 +37,7 @@ export default async function DashboardLayout({
           plan,
         }}
       />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 animate-page-in">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 animate-page-in">
         {children}
       </main>
       <SupportChatWidget />

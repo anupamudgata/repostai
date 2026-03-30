@@ -483,3 +483,94 @@ html { scroll-behavior: smooth; }
   color: oklch(0.55 0.24 280);
   background: oklch(0.55 0.24 280 / 8%);
 }
+
+/* ─── Dashboard background ─── */
+.dashboard-bg {
+  background:
+    radial-gradient(ellipse 70% 50% at 10% 0%, oklch(0.55 0.24 280 / 4%), transparent),
+    radial-gradient(ellipse 60% 50% at 90% 100%, oklch(0.60 0.20 320 / 3%), transparent);
+  min-height: 100vh;
+}
+
+/* ─── Dashboard generate button ─── */
+@keyframes btn-shimmer {
+  from { background-position: -300% center; }
+  to   { background-position:  300% center; }
+}
+.btn-generate {
+  background: linear-gradient(90deg,
+    oklch(0.55 0.24 280),
+    oklch(0.62 0.22 305),
+    oklch(0.60 0.20 320),
+    oklch(0.62 0.22 305),
+    oklch(0.55 0.24 280)
+  );
+  background-size: 300% auto;
+  animation: btn-shimmer 5s linear infinite;
+  box-shadow: 0 4px 28px oklch(0.55 0.24 280 / 35%), 0 1px 4px oklch(0.55 0.24 280 / 20%);
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+  color: oklch(0.99 0 0) !important;
+}
+.btn-generate:hover {
+  box-shadow: 0 6px 36px oklch(0.55 0.24 280 / 55%), 0 2px 8px oklch(0.55 0.24 280 / 30%);
+  transform: translateY(-1px);
+}
+.btn-generate:disabled {
+  animation: none;
+  background: oklch(0.55 0.24 280 / 50%);
+  box-shadow: none;
+  transform: none;
+}
+
+/* ─── Platform chip selected ─── */
+.platform-chip-selected {
+  background: linear-gradient(135deg, oklch(0.55 0.24 280), oklch(0.60 0.20 320)) !important;
+  color: oklch(0.99 0 0) !important;
+  border-color: transparent !important;
+  box-shadow: 0 2px 12px oklch(0.55 0.24 280 / 30%);
+}
+
+/* ─── Dashboard card hover ─── */
+.dash-card {
+  transition: border-color 0.2s, box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.dash-card:focus-within {
+  border-color: oklch(0.55 0.24 280 / 40%);
+  box-shadow: 0 0 0 3px oklch(0.55 0.24 280 / 8%);
+}
+
+/* ─── Output card ─── */
+.output-card {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.output-card:hover {
+  border-color: oklch(0.55 0.24 280 / 35%);
+  box-shadow: 0 4px 20px oklch(0.55 0.24 280 / 8%);
+}
+
+/* ─── Usage bar gradient ─── */
+.usage-bar-fill {
+  background: linear-gradient(90deg, oklch(0.55 0.24 280), oklch(0.60 0.20 320));
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.usage-bar-fill.warn {
+  background: linear-gradient(90deg, oklch(0.65 0.22 65), oklch(0.70 0.20 50));
+}
+.usage-bar-fill.danger {
+  background: linear-gradient(90deg, oklch(0.577 0.245 27), oklch(0.65 0.22 27));
+}
+
+/* ─── Nav active indicator ─── */
+.nav-item-active {
+  position: relative;
+}
+.nav-item-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  height: 60%;
+  width: 2.5px;
+  border-radius: 0 2px 2px 0;
+  background: oklch(0.55 0.24 280);
+}

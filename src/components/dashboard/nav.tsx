@@ -61,10 +61,10 @@ const NAV_LINKS = [
 ] as const;
 
 const PLAN_COLORS: Record<string, string> = {
-  free: "bg-muted text-muted-foreground",
+  free: "bg-muted text-muted-foreground border-border/60",
   starter: "bg-teal-500/10 text-teal-600 border-teal-500/20",
-  pro: "bg-blue-500/10 text-blue-600 border-blue-500/20",
-  agency: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+  pro: "bg-gradient-to-r from-blue-500/15 to-violet-500/15 text-blue-600 border-blue-500/20",
+  agency: "bg-gradient-to-r from-violet-500/15 to-pink-500/15 text-violet-600 border-violet-500/20",
 };
 
 export function DashboardNav({ user }: NavProps) {
@@ -89,15 +89,15 @@ export function DashboardNav({ user }: NavProps) {
   }
 
   return (
-    <nav className="border-b bg-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+    <nav className="border-b bg-background/90 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         {/* Logo */}
-        <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Zap className="h-4.5 w-4.5 text-primary" />
+        <div className="flex items-center gap-5">
+          <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0 group">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center shadow-md shadow-primary/30 group-hover:shadow-primary/50 transition-shadow duration-300">
+              <Zap className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold tracking-tight">{t("brandName")}</span>
+            <span className="font-bold tracking-tight text-base">{t("brandName")}</span>
           </Link>
 
           {/* Desktop nav */}
@@ -110,13 +110,13 @@ export function DashboardNav({ user }: NavProps) {
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "gap-1.5 text-xs font-medium transition-all rounded-lg px-2.5",
+                      "gap-1.5 text-xs font-medium transition-all duration-200 rounded-lg px-2.5 relative",
                       active
-                        ? "bg-primary/8 text-primary hover:bg-primary/12"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
+                        ? "bg-primary/10 text-primary hover:bg-primary/14 nav-item-active"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent/70"
                     )}
                   >
-                    <link.icon className={cn("h-3.5 w-3.5", active && "text-primary")} />
+                    <link.icon className={cn("h-3.5 w-3.5 shrink-0", active && "text-primary")} />
                     {t(link.labelKey)}
                     {"badgeKey" in link && link.badgeKey && (
                       <Badge
@@ -150,7 +150,7 @@ export function DashboardNav({ user }: NavProps) {
 
           {user.plan === "free" && (
             <Link href="/#pricing" onClick={() => track(AnalyticsEvent.UPGRADE_CLICKED, { source: "nav" })}>
-              <Button size="sm" className="h-8 px-3 text-xs gap-1.5 bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 shadow-sm font-semibold">
+              <Button size="sm" className="h-8 px-3 text-xs gap-1.5 bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 shadow-md shadow-primary/25 font-semibold transition-all hover:scale-[1.02]">
                 <Zap className="h-3 w-3" />
                 Upgrade
               </Button>
@@ -171,18 +171,18 @@ export function DashboardNav({ user }: NavProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 ring-2 ring-transparent hover:ring-primary/20 transition-all" aria-label="Account menu">
-                <Avatar className="h-8 w-8">
+              <button className="rounded-full p-0.5 bg-gradient-to-br from-primary/30 to-purple-500/30 hover:from-primary/50 hover:to-purple-500/50 transition-all duration-300" aria-label="Account menu">
+                <Avatar className="h-8 w-8 ring-2 ring-background">
                   <AvatarImage src={user.avatar_url} alt={user.name || "Profile"} />
                   <AvatarFallback className="text-xs bg-primary/10 text-primary font-bold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-              </Button>
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60 p-1.5">
-              <div className="px-2.5 py-2 mb-1">
-                <p className="text-sm font-semibold">{user.name || "User"}</p>
+            <DropdownMenuContent align="end" className="w-60 p-1.5 shadow-xl shadow-black/10">
+              <div className="px-2.5 py-2.5 mb-1">
+                <p className="text-sm font-bold">{user.name || "User"}</p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
               <DropdownMenuSeparator />
@@ -204,7 +204,7 @@ export function DashboardNav({ user }: NavProps) {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t bg-background/98 backdrop-blur-md px-4 py-3 space-y-0.5">
+        <div className="md:hidden border-t bg-background/95 backdrop-blur-xl px-4 py-3 space-y-0.5 shadow-lg">
           {NAV_LINKS.map((link) => {
             const active = isActive(link.href, "exact" in link ? link.exact : false);
             return (
@@ -212,13 +212,13 @@ export function DashboardNav({ user }: NavProps) {
                 <Button
                   variant="ghost"
                   className={cn(
-                    "w-full justify-start gap-3 h-10 text-sm font-medium rounded-lg",
+                    "w-full justify-start gap-3 h-11 text-sm font-medium rounded-xl",
                     active
-                      ? "bg-primary/8 text-primary"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent/60"
                   )}
                 >
-                  <link.icon className={cn("h-4 w-4", active && "text-primary")} />
+                  <link.icon className={cn("h-4 w-4 shrink-0", active && "text-primary")} />
                   {t(link.labelKey)}
                   {"badgeKey" in link && link.badgeKey && (
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-auto">
@@ -230,7 +230,7 @@ export function DashboardNav({ user }: NavProps) {
             );
           })}
           <Link href="/dashboard/settings" onClick={() => setMobileOpen(false)}>
-            <Button variant="ghost" className="w-full justify-start gap-3 h-10 text-sm text-muted-foreground hover:text-foreground rounded-lg">
+            <Button variant="ghost" className="w-full justify-start gap-3 h-11 text-sm text-muted-foreground hover:text-foreground rounded-xl">
               <Settings className="h-4 w-4" />
               {t("common.settings")}
             </Button>
