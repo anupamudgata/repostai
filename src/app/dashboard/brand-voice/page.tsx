@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Mic, Settings2 } from "lucide-react";
+import { Plus, Trash2, Mic, Settings2, Sparkles, RefreshCw, Brain } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -28,13 +28,20 @@ import { createClient } from "@/lib/supabase/client";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { PLANS, HUMANIZATION_LEVELS } from "@/config/constants";
 import type { BrandVoice, HumanizationLevel } from "@/types";
+import { cn } from "@/lib/utils";
+
+interface VoiceWithPersona extends BrandVoice {
+  persona?: string | null;
+  persona_generated_at?: string | null;
+  samples_hash?: string | null;
+}
 
 export default function BrandVoicePage() {
   const toastT = useAppToast();
-  const [voices, setVoices] = useState<BrandVoice[]>([]);
+  const [voices, setVoices] = useState<VoiceWithPersona[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [editingVoice, setEditingVoice] = useState<BrandVoice | null>(null);
+  const [editingVoice, setEditingVoice] = useState<VoiceWithPersona | null>(null);
   const [editHumanization, setEditHumanization] = useState<HumanizationLevel>("professional");
   const [editImperfection, setEditImperfection] = useState(false);
   const [editPersonalStory, setEditPersonalStory] = useState(false);
@@ -69,7 +76,7 @@ export default function BrandVoicePage() {
 
     const { data } = await supabase
       .from("brand_voices")
-      .select("*")
+      .select("*, persona, persona_generated_at, samples_hash")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -119,7 +126,7 @@ export default function BrandVoicePage() {
     }
   }
 
-  function openEditDialog(voice: BrandVoice) {
+  function openEditDialog(voice: VoiceWithPersona) {
     setEditingVoice(voice);
     setEditHumanization((voice.humanization_level as HumanizationLevel) || "professional");
     setEditImperfection(voice.imperfection_mode ?? false);
@@ -142,11 +149,14 @@ export default function BrandVoicePage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Brand Voice</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+            Brand Voice
+          </h1>
           <p className="text-muted-foreground mt-1">
-            Train the AI to write in your unique style.
+            Train the AI on your real writing — it learns your tone, rhythm, and vocabulary.
           </p>
         </div>
         <Button
@@ -157,123 +167,209 @@ export default function BrandVoicePage() {
             }
             setShowForm(!showForm);
           }}
-          className="gap-2"
+          className="gap-2 bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 shadow-md shadow-primary/20 font-semibold"
         >
           <Plus className="h-4 w-4" />
-          Add Voice ({voices.length}/{maxVoices})
+          Add Voice
+          <span className="text-xs opacity-70">({voices.length}/{maxVoices})</span>
         </Button>
       </div>
 
+      {/* Training form */}
       {showForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Create brand voice</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Paste real writing samples — the AI copies your tone, pacing, and vocabulary.
+        <div className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden">
+          <div className="px-6 py-4 border-b bg-muted/30">
+            <h2 className="text-base font-semibold flex items-center gap-2">
+              <Brain className="h-4 w-4 text-primary" />
+              Create brand voice
+            </h2>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Paste real published writing — the AI copies your tone, pacing, and vocabulary.
             </p>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div className="p-6">
             <BrandVoiceTrainingForm
               existingVoices={voices}
               limit={maxVoices}
               onSubmit={handleVoiceTraining}
               onCancel={() => setShowForm(false)}
             />
-          </CardContent>
-        </Card>
-      )}
-
-      {voices.length === 0 && !showForm ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Mic className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-1">No brand voices yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Add writing samples so the AI matches your unique tone and style.
-            </p>
-            <Button onClick={() => setShowForm(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Create Your First Voice
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {voices.map((voice) => (
-            <Card key={voice.id}>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{voice.name}</CardTitle>
-                  <div className="flex gap-1">
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                      onClick={() => openEditDialog(voice)}
-                      title="Authenticity settings"
-                    >
-                      <Settings2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDelete(voice.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground line-clamp-4">
-                  {voice.samples ?? voice.sample_text}
-                </p>
-                <div className="flex flex-wrap gap-1 mt-3">
-                  {voice.imperfection_mode && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-muted">Imperfection</span>
-                  )}
-                  {voice.personal_story_injection && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-muted">Stories</span>
-                  )}
-                  {voice.humanization_level && voice.humanization_level !== "professional" && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-muted capitalize">{voice.humanization_level}</span>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-2">
-                  Created {new Date(voice.created_at).toLocaleDateString()}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+          </div>
         </div>
       )}
 
-      <Dialog open={!!editingVoice} onOpenChange={(open) => {
-        if (!open) {
-          setEditingVoice(null);
-          // Safety net: clear any lingering scroll lock from Radix remove-scroll
-          requestAnimationFrame(() => {
-            document.body.style.removeProperty("overflow");
-            document.body.style.removeProperty("padding-right");
-            document.documentElement.style.removeProperty("overflow");
-          });
-        }
-      }}>
-        <DialogContent>
+      {/* Empty state */}
+      {voices.length === 0 && !showForm ? (
+        <div className="rounded-2xl border border-dashed border-border/60 bg-muted/20 py-16 text-center">
+          <div className="h-14 w-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+            <Mic className="h-7 w-7 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">No brand voices yet</h3>
+          <p className="text-muted-foreground text-sm mb-5 max-w-xs mx-auto">
+            Add real writing samples and the AI will learn to post exactly like you.
+          </p>
+          <Button
+            onClick={() => setShowForm(true)}
+            className="gap-2 bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 shadow-md shadow-primary/20 font-semibold"
+          >
+            <Plus className="h-4 w-4" />
+            Create Your First Voice
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {voices.map((voice) => {
+            const hasPersona = !!voice.persona;
+            const trainedAgo = voice.persona_generated_at
+              ? new Date(voice.persona_generated_at).toLocaleDateString()
+              : null;
+
+            return (
+              <div
+                key={voice.id}
+                className="rounded-2xl border border-border/60 bg-card shadow-sm overflow-hidden group hover:border-primary/30 hover:shadow-md transition-all duration-200"
+              >
+                {/* Card header */}
+                <div className="px-4 py-3 border-b bg-muted/20 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center shrink-0">
+                      <Mic className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{voice.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Created {new Date(voice.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {hasPersona ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-2 py-0.5 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1"
+                      >
+                        <Sparkles className="h-2.5 w-2.5" />
+                        AI Trained
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-2 py-0.5 bg-amber-500/10 text-amber-600 border-amber-500/20 gap-1"
+                      >
+                        <RefreshCw className="h-2.5 w-2.5" />
+                        Training…
+                      </Badge>
+                    )}
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                      onClick={() => openEditDialog(voice)}
+                      title="Authenticity settings"
+                    >
+                      <Settings2 className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(voice.id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Card body — show persona if available, else raw samples */}
+                <div className="p-4">
+                  {hasPersona ? (
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-primary/70">
+                        AI Voice Fingerprint
+                      </p>
+                      <p className="text-sm text-muted-foreground line-clamp-4 leading-relaxed">
+                        {voice.persona}
+                      </p>
+                      {trainedAgo && (
+                        <p className="text-xs text-muted-foreground/60">
+                          Trained {trainedAgo}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground line-clamp-4 italic">
+                      {voice.samples ?? voice.sample_text ?? "No samples yet"}
+                    </p>
+                  )}
+
+                  {/* Tuning badges */}
+                  <div
+                    className={cn(
+                      "flex flex-wrap gap-1.5",
+                      (voice.imperfection_mode ||
+                        voice.personal_story_injection ||
+                        (voice.humanization_level &&
+                          voice.humanization_level !== "professional")) &&
+                        "mt-3"
+                    )}
+                  >
+                    {voice.humanization_level &&
+                      voice.humanization_level !== "professional" && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border/60 capitalize">
+                          {voice.humanization_level}
+                        </span>
+                      )}
+                    {voice.imperfection_mode && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border/60">
+                        Imperfection
+                      </span>
+                    )}
+                    {voice.personal_story_injection && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted border border-border/60">
+                        Stories
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Authenticity edit dialog */}
+      <Dialog
+        open={!!editingVoice}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingVoice(null);
+            requestAnimationFrame(() => {
+              document.body.style.removeProperty("overflow");
+              document.body.style.removeProperty("padding-right");
+              document.documentElement.style.removeProperty("overflow");
+            });
+          }
+        }}
+      >
+        <DialogContent className="rounded-2xl">
           <DialogHeader>
             <DialogTitle>Authenticity Tuning — {editingVoice?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
               <Label>Humanization Level</Label>
-              <Select value={editHumanization} onValueChange={(v) => setEditHumanization(v as HumanizationLevel)}>
+              <Select
+                value={editHumanization}
+                onValueChange={(v) => setEditHumanization(v as HumanizationLevel)}
+              >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {HUMANIZATION_LEVELS.map((l) => (
-                    <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -281,21 +377,35 @@ export default function BrandVoicePage() {
             <div className="flex items-center justify-between">
               <div>
                 <Label>Imperfection Mode</Label>
-                <p className="text-xs text-muted-foreground">Typos, fragments, lowercase for vibe</p>
+                <p className="text-xs text-muted-foreground">
+                  Fragments, lowercase, relaxed punctuation for vibe
+                </p>
               </div>
-              <Switch checked={editImperfection} onCheckedChange={setEditImperfection} />
+              <Switch
+                checked={editImperfection}
+                onCheckedChange={setEditImperfection}
+              />
             </div>
             <div className="flex items-center justify-between">
               <div>
                 <Label>Personal Story Injection</Label>
-                <p className="text-xs text-muted-foreground">AI adds relevant anecdotes</p>
+                <p className="text-xs text-muted-foreground">
+                  AI adds relevant anecdotes naturally
+                </p>
               </div>
-              <Switch checked={editPersonalStory} onCheckedChange={setEditPersonalStory} />
+              <Switch
+                checked={editPersonalStory}
+                onCheckedChange={setEditPersonalStory}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingVoice(null)}>Cancel</Button>
-            <Button onClick={handleUpdateAuthenticity} disabled={loading}>Save</Button>
+            <Button variant="outline" onClick={() => setEditingVoice(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateAuthenticity} disabled={loading}>
+              Save
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

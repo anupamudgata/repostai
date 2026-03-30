@@ -43,7 +43,7 @@ export async function generateBrandVoicePersona(
     const model = getClaudeBrandVoiceModel();
     const msg = await anthropic.messages.create({
       model,
-      max_tokens: 2048,
+      max_tokens: 3000,
       system: buildBrandVoiceSystemPrompt(),
       messages: [
         {
