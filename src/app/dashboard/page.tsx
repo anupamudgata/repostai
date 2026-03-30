@@ -263,6 +263,8 @@ export default function DashboardPage() {
   const [platformFitLoading, setPlatformFitLoading] = useState(false);
   const [profileSyncFailed, setProfileSyncFailed] = useState(false);
 
+  const topRef = useRef<HTMLDivElement>(null);
+
   const clearRepurposeResults = useCallback(() => {
     setOutputs([]);
     setBulkSources([]);
@@ -271,6 +273,24 @@ export default function DashboardPage() {
     setPlatformFitLoading(false);
     setCopiedPlatform(null);
     setRegeneratingPlatform(null);
+  }, []);
+
+  const handleStartNew = useCallback(() => {
+    setOutputs([]);
+    setBulkSources([]);
+    setLastJobId(null);
+    setPlatformFitScores([]);
+    setPlatformFitLoading(false);
+    setCopiedPlatform(null);
+    setRegeneratingPlatform(null);
+    setContent("");
+    setUrl("");
+    setBulkUrls("");
+    setPdfFileName("");
+    setPdfExtractedText("");
+    setUserIntent("");
+    setInputType("text");
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
   useEffect(() => {
@@ -775,7 +795,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8 pb-8">
+    <div ref={topRef} className="space-y-6 sm:space-y-8 pb-8">
       <OnboardingBanner />
       {profileSyncFailed && (
         <div
@@ -1316,42 +1336,81 @@ export default function DashboardPage() {
               </span>
             )}
           </p>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-bold">{d.generatedHeading}</h2>
+          <div className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-xl sm:text-2xl font-bold">{d.generatedHeading}</h2>
+              </div>
+              {hasPaidPlan && bulkSources.length === 0 && (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handlePostAllConnected}
+                    disabled={bulkPosting}
+                  >
+                    {bulkPosting ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        {d.postingAll}
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-3.5 w-3.5 mr-1" />
+                        {d.postAllConnected}
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">{d.postAllHint}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Quick action bar — change language or start fresh without scrolling */}
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
+              <span className="text-xs font-medium text-muted-foreground shrink-0">Re-generate in:</span>
+              <Select
+                value={outputLanguage}
+                onValueChange={(v) => setOutputLanguage(v as OutputLanguage)}
+              >
+                <SelectTrigger className="h-8 w-auto min-w-[140px] text-xs border-border/60">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.id} value={lang.id} lang={lang.id} className="text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <span>{lang.flag}</span>
+                        <span>{lang.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                size="sm"
+                className="h-8 text-xs px-3 gap-1.5 bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 font-semibold shadow-sm"
+                onClick={handleRepurpose}
+                disabled={loading}
+              >
+                {loading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                Re-generate
+              </Button>
+              <div className="flex-1" />
               <Button
                 type="button"
                 size="sm"
-                variant="ghost"
-                className="text-muted-foreground"
-                onClick={clearRepurposeResults}
+                variant="outline"
+                className="h-8 text-xs px-3 gap-1.5 border-border/60"
+                onClick={handleStartNew}
               >
-                {d.clearResults}
+                + New Post
               </Button>
             </div>
-            {hasPaidPlan && bulkSources.length === 0 && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handlePostAllConnected}
-                  disabled={bulkPosting}
-                >
-                  {bulkPosting ? (
-                    <>
-                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
-                      {d.postingAll}
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-3.5 w-3.5 mr-1" />
-                      {d.postAllConnected}
-                    </>
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground">{d.postAllHint}</p>
-              </div>
-            )}
           </div>
           {/* Where to Post — platform fit scorecard (single repurpose only) */}
           {outputs.length > 0 && bulkSources.length === 0 && (
