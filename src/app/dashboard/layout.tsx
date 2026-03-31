@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
+import {
+  bootstrapProfileFromAuthAdmin,
+  ensureProfileForRepurposeInsert,
+} from "@/lib/supabase/ensure-profile";
 import { SUPERUSER_EMAIL } from "@/config/constants";
 import { DashboardShell } from "@/components/dashboard/dashboard-sidebar";
 import { SupportChatWidget } from "@/components/support/SupportChatWidget";
@@ -35,8 +38,17 @@ export default async function DashboardLayout({
         .maybeSingle();
       profile = refetch.data;
     } catch (e) {
-      console.error("[dashboard/layout] ensureProfileReadyForSession:", e);
+      console.error("[dashboard/layout] ensureProfileForRepurposeInsert:", e);
     }
+  }
+  if (!profile) {
+    await bootstrapProfileFromAuthAdmin(user.id);
+    const { data: refetch2 } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+    profile = refetch2 ?? profile;
   }
 
   const isSuperUser = user.email === SUPERUSER_EMAIL;

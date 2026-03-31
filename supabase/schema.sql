@@ -1,11 +1,12 @@
 -- ============================================
 -- RepostAI — Complete Schema + Migration (FINAL)
 -- Safe for: empty database (creates everything) or existing (adds missing columns/policies)
--- INCLUDES: All 11 languages, security fixes, RLS, triggers, RPCs, backfill, indexes
+-- INCLUDES: All 11 languages, support chat (3 tables), security fixes, RLS, triggers, RPCs, backfill, indexes
 -- Paste this entire file into Supabase SQL Editor and run once.
 -- ============================================
 
 create extension if not exists "uuid-ossp";
+create extension if not exists pgcrypto;
 
 -- ============================================
 -- 0. PRE-FLIGHT — Clean up bad data BEFORE any constraint changes
@@ -252,6 +253,53 @@ create table if not exists public.razorpay_orders (
   created_at timestamptz not null default now()
 );
 
+-- Support widget: persistent chat + human escalation (app: /api/support, tools.ts)
+create table if not exists public.chat_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  status text not null default 'open' check (status in ('open', 'needs_human', 'closed')),
+  title text,
+  last_message_at timestamptz not null default now(),
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.chat_messages (
+  id text primary key,
+  session_id uuid not null references public.chat_sessions (id) on delete cascade,
+  role text not null check (role in ('user', 'assistant', 'system', 'tool')),
+  content text not null default '',
+  parts jsonb,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.support_tickets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  session_id uuid not null references public.chat_sessions (id) on delete cascade,
+  status text not null default 'open' check (status in ('open', 'in_progress', 'resolved')),
+  reason text,
+  transcript_summary text,
+  transcript_snapshot jsonb not null default '[]'::jsonb,
+  user_email text,
+  admin_notes text,
+  notified_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_chat_sessions_user_last
+  on public.chat_sessions (user_id, last_message_at desc);
+
+create index if not exists idx_chat_messages_session_created
+  on public.chat_messages (session_id, created_at asc);
+
+create index if not exists idx_support_tickets_user_id on public.support_tickets (user_id);
+create index if not exists idx_support_tickets_session_id on public.support_tickets (session_id);
+create index if not exists idx_support_tickets_status_created
+  on public.support_tickets (status, created_at desc);
+
 -- ============================================
 -- 2. MIGRATION — Add missing columns + fix constraints
 -- ============================================
@@ -394,6 +442,9 @@ alter table public.post_engagement enable row level security;
 alter table public.photo_uploads enable row level security;
 alter table public.photo_caption_runs enable row level security;
 alter table public.razorpay_orders enable row level security;
+alter table public.chat_sessions enable row level security;
+alter table public.chat_messages enable row level security;
+alter table public.support_tickets enable row level security;
 
 -- ============================================
 -- 4. POLICIES (Drop then create — idempotent)
@@ -519,6 +570,65 @@ drop policy if exists "Users can insert their own razorpay orders" on public.raz
 create policy "Users can view their own razorpay orders" on public.razorpay_orders for select using (auth.uid() = user_id);
 create policy "Users can insert their own razorpay orders" on public.razorpay_orders for insert with check (auth.uid() = user_id);
 
+-- support chat
+drop policy if exists "Users manage own chat_sessions" on public.chat_sessions;
+create policy "Users manage own chat_sessions"
+  on public.chat_sessions
+  for all
+  using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users read own chat_messages" on public.chat_messages;
+create policy "Users read own chat_messages"
+  on public.chat_messages
+  for select
+  using (
+    exists (
+      select 1 from public.chat_sessions s
+      where s.id = chat_messages.session_id and s.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Users insert own chat_messages" on public.chat_messages;
+create policy "Users insert own chat_messages"
+  on public.chat_messages
+  for insert
+  with check (
+    exists (
+      select 1 from public.chat_sessions s
+      where s.id = chat_messages.session_id and s.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Users update own chat_messages" on public.chat_messages;
+create policy "Users update own chat_messages"
+  on public.chat_messages
+  for update
+  using (
+    exists (
+      select 1 from public.chat_sessions s
+      where s.id = chat_messages.session_id and s.user_id = auth.uid()
+    )
+  );
+
+drop policy if exists "Users select own support_tickets" on public.support_tickets;
+create policy "Users select own support_tickets"
+  on public.support_tickets
+  for select
+  using (auth.uid() = user_id);
+
+drop policy if exists "Users insert own support_tickets" on public.support_tickets;
+create policy "Users insert own support_tickets"
+  on public.support_tickets
+  for insert
+  with check (auth.uid() = user_id);
+
+drop policy if exists "Users update own support_tickets" on public.support_tickets;
+create policy "Users update own support_tickets"
+  on public.support_tickets
+  for update
+  using (auth.uid() = user_id);
+
 -- ============================================
 -- 5. TRIGGER — Auto-create profile on signup
 -- ============================================
@@ -598,18 +708,36 @@ grant execute on function public.ensure_profile_from_auth() to authenticated;
 grant execute on function public.ensure_profile_from_auth() to service_role;
 
 -- ============================================
--- 7. FUNCTION — Atomic usage increment
+-- 7. FUNCTION — Atomic usage increment (JWT must match user, or service_role)
 -- ============================================
 
 create or replace function public.increment_usage(p_user_id uuid, p_month text)
-returns void as $$
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  jwt_role text := coalesce(auth.jwt() ->> 'role', '');
 begin
+  if jwt_role = 'service_role' then
+    null;
+  elsif auth.uid() is not null and p_user_id = auth.uid() then
+    null;
+  else
+    raise exception 'increment_usage: forbidden';
+  end if;
+
   insert into public.usage (user_id, month, repurpose_count)
   values (p_user_id, p_month, 1)
   on conflict (user_id, month)
-  do update set repurpose_count = usage.repurpose_count + 1;
+  do update set repurpose_count = public.usage.repurpose_count + 1;
 end;
-$$ language plpgsql security definer;
+$$;
+
+revoke all on function public.increment_usage(uuid, text) from public;
+grant execute on function public.increment_usage(uuid, text) to authenticated;
+grant execute on function public.increment_usage(uuid, text) to service_role;
 
 -- ============================================
 -- 8. BACKFILL — Create profiles for existing users without one
@@ -670,7 +798,7 @@ create index if not exists idx_razorpay_orders_user_id on public.razorpay_orders
 -- VERIFICATION QUERIES (Run after execution)
 -- ============================================
 -- SELECT COUNT(*) as table_count FROM information_schema.tables WHERE table_schema = 'public';
--- Expected: 13 tables
+-- Expected: 16 core tables (profiles, subscriptions, brand_voices, repurpose_jobs, repurpose_outputs, usage, created_posts, connected_accounts, scheduled_posts, post_engagement, photo_uploads, photo_caption_runs, razorpay_orders, chat_sessions, chat_messages, support_tickets)
 
 -- SELECT COUNT(*) as users_without_profile FROM auth.users u
 --   LEFT JOIN profiles p ON u.id = p.id WHERE p.id IS NULL;

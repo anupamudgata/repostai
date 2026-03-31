@@ -14,7 +14,10 @@ import {
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
 import { captureError } from "@/lib/sentry";
-import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
+import {
+  ensureProfileForRepurposeInsert,
+  profileEnsureConfigErrorMessage,
+} from "@/lib/supabase/ensure-profile";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 
 /** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
@@ -90,7 +93,14 @@ export async function POST(request: NextRequest) {
 
     try {
       await ensureProfileForRepurposeInsert(user, supabase);
-    } catch {
+    } catch (e) {
+      const cfg = profileEnsureConfigErrorMessage(e);
+      if (cfg) {
+        return NextResponse.json(
+          { error: cfg, code: "SUPABASE_CONFIG" },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
         { error: "Could not prepare your account. Try again in a moment." },
         { status: 503 }
