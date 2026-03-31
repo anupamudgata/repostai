@@ -84,7 +84,7 @@ export const landingBulkEn = {
       "Paste into RepostAI (5 seconds)",
       "Select all platforms (3 seconds)",
       "Click 'Repurpose' (1 second)",
-      "AI generates all 9 platforms (< 60 seconds)",
+      "AI generates content for all 9 platforms (< 60 seconds)",
       "Post now with one click or schedule for later",
       "Copy & paste to each platform (2 min)",
     ],
@@ -95,7 +95,7 @@ export const landingBulkEn = {
   comparison: {
     badge: "Honest Comparison",
     title: "See how RepostAI stacks up",
-    subtitle: "We built what other tools should have been all along.",
+    subtitle: "The tool other repurposing platforms should have been all along.",
     colFeature: "Feature",
     colUs: "RepostAI",
     colRep: "Repurpose.io",
@@ -130,7 +130,7 @@ export const landingBulkEn = {
         step: "02",
         title: "AI Repurposes It",
         description:
-          "Our AI generates platform-specific content for all 7+ platforms simultaneously. Brand voice included.",
+          "Our AI generates platform-specific content for all 7+ platforms simultaneously. Brand Voice included.",
       },
       {
         step: "03",
@@ -143,7 +143,7 @@ export const landingBulkEn = {
   featuresSection: {
     badge: "Built for Speed",
     title: "Everything you need. Nothing you don't.",
-    subtitle: "No bloated feature lists. Just the tools that actually save you time.",
+    subtitle: "No bloated feature lists. Only the tools that save you time.",
     integrationsLink: "Integrations",
     items: [
       {
@@ -252,7 +252,7 @@ export const landingBulkEn = {
     billingMonthly: "Monthly",
     billingYearly: "Yearly",
     perMonth: "/month",
-    perDayPrefix: "That's just",
+    perDayPrefix: "Only",
     perDaySuffix: "/day",
     annualSave: "or",
     annualBilled: "/mo billed annually (save 20%)",
@@ -323,20 +323,20 @@ export const landingBulkEn = {
     title: "Hey, I'm the founder",
     role: "Solo builder, content creator",
     p1: "I built RepostAI because I was tired of the same problem every creator faces: you spend hours writing one great blog post, then spend MORE hours reformatting it for LinkedIn, Twitter, Instagram, and email. It's exhausting.",
-    p2: "I tried every tool out there. Repurpose.io only does video distribution — no AI, no text creation. Lately AI costs $49+/month and is built for enterprises. Most \"AI tools\" just wrap ChatGPT and produce generic slop that sounds nothing like you.",
-    p3: "So I built what I actually wanted: paste your content, pick your platforms, get platform-native posts that sound like YOU — in 60 seconds, from ₹0 (Free) to ₹299 (Starter) or ₹799/month (Pro).",
-    p4: "No VC funding. No bloated team. Just one developer building the tool I wish existed. Every feature request goes straight to me, and I ship weekly.",
+    p2: "I tried every tool out there. Repurpose.io only does video distribution — no AI, no text creation. Lately AI costs $49+/month and is built for enterprises. Most \"AI tools\" wrap ChatGPT and produce generic, formulaic content that sounds nothing like you.",
+    p3: "So I built what I wanted: paste your content, pick your platforms, get platform-native posts that sound like YOU — in 60 seconds, from ₹0 (Free) to ₹299 (Starter) or ₹799/month (Pro).",
+    p4: "No VC funding. No bloated team. One developer building the tool I wish existed. Every feature request goes straight to me, and I ship weekly.",
     footer: "Built with care. Shipped with speed.",
   },
   faqTitle: "Frequently asked questions",
   faq: [
     {
       q: "Is the generated content really platform-specific?",
-      a: "Yes. LinkedIn posts get professional hooks and hashtags. Twitter threads are numbered and under 280 chars. Instagram captions include relevant hashtags. Each platform's output follows that platform's native conventions — it's not just the same text copy-pasted everywhere.",
+      a: "Yes. LinkedIn posts get professional hooks and hashtags. Twitter threads are numbered and capped at 280 characters each. Instagram captions include relevant hashtags. Each platform's output follows that platform's native conventions — it's not the same text copy-pasted everywhere.",
     },
     {
       q: "How is this different from ChatGPT?",
-      a: "ChatGPT gives you one output at a time with no structure. RepostAI generates all 7+ platforms simultaneously with platform-specific formatting, brand voice matching, and one-click copy. It's built specifically for content repurposing, not general chat.",
+      a: "ChatGPT gives you one output at a time with no structure. RepostAI generates content for all 7+ platforms simultaneously with platform-specific formatting, Brand Voice matching, and one-click copy. It's built specifically for content repurposing, not general chat.",
     },
     {
       q: "What does 'brand voice training' mean?",
@@ -356,7 +356,7 @@ export const landingBulkEn = {
     },
     {
       q: "What if it's not for me?",
-      a: "We offer a 14-day money-back guarantee on all paid plans. If you're not saving time, email us and we'll refund you — no questions asked.",
+      a: "There's a 14-day money-back guarantee on all paid plans. If you're not saving time, email me and I'll refund you — no questions asked.",
     },
     {
       q: "What is AI Content Starter?",
