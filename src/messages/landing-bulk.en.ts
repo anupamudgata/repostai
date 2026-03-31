@@ -113,7 +113,7 @@ export const landingBulkEn = {
       { feature: "One-Click All Platforms", us: true, rep: false, lately: false, postiv: false },
       { feature: "Multi-Language (EN/HI/ES/PT/FR)", us: true, rep: false, lately: false, postiv: false },
       { feature: "Free Plan Available", us: true, rep: false, lately: false, postiv: false },
-      { feature: "Starting Price", us: "$19/mo", rep: "$35/mo", lately: "$49/mo", postiv: "$99/mo" },
+      { feature: "Starting Price", us: "$5.99/mo", rep: "$25/mo", lately: "$49/mo", postiv: "$99/mo" },
     ],
   },
   howItWorks: {
@@ -323,8 +323,8 @@ export const landingBulkEn = {
     title: "Hey, I'm the founder",
     role: "Solo builder, content creator",
     p1: "I built RepostAI because I was tired of the same problem every creator faces: you spend hours writing one great blog post, then spend MORE hours reformatting it for LinkedIn, Twitter, Instagram, and email. It's exhausting.",
-    p2: "I tried every tool out there. Repurpose.io only does video distribution — no AI, no text creation. Lately AI costs $49+/month and is built for enterprises. Most \"AI tools\" wrap ChatGPT and produce generic, formulaic content that sounds nothing like you.",
-    p3: "So I built what I wanted: paste your content, pick your platforms, get platform-native posts that sound like YOU — in 60 seconds, from ₹0 (Free) to ₹299 (Starter) or ₹799/month (Pro).",
+    p2: "I tried every tool out there. Repurpose.io starts at $25/month with no AI generation. Lately AI costs $49+/month and is built for enterprises. Most \"AI tools\" wrap ChatGPT and produce generic, formulaic content that sounds nothing like you.",
+    p3: "So I built what I wanted: paste your content, pick your platforms, get platform-native posts that sound like YOU — in 60 seconds, from $0 free to $5.99/mo (Starter) or $14.99/mo (Pro).",
     p4: "No VC funding. No bloated team. One developer building the tool I wish existed. Every feature request goes straight to me, and I ship weekly.",
     footer: "Built with care. Shipped with speed.",
   },
@@ -344,7 +344,7 @@ export const landingBulkEn = {
     },
     {
       q: "Can I use it for my clients' content?",
-      a: "Absolutely. The Agency plan (₹2,499/mo) includes 15 brand voices today, with more team and client workflows shipping soon.",
+      a: "Absolutely. The Agency plan ($39.99/mo · ₹2,499/mo in India) includes 15 brand voices today, with more team and client workflows shipping soon.",
     },
     {
       q: "What if I don't like the output?",
@@ -352,7 +352,7 @@ export const landingBulkEn = {
     },
     {
       q: "Is there a free trial?",
-      a: "Better — there's a free plan: 5 repurposes/month, LinkedIn/Twitter/Instagram, with a small watermark. No credit card required. Starter (₹299/mo) gives you 50 repurposes, all 9 platforms, and no watermark. Pro (₹799/mo) adds 150 repurposes with Claude Haiku AI and 5 brand voices.",
+      a: "Better — there's a free plan: 5 repurposes/month, LinkedIn/Twitter/Instagram, with a small watermark. No credit card required. Starter ($5.99/mo · ₹299/mo in India) gives you 50 repurposes, all 9 platforms, and no watermark. Pro ($14.99/mo · ₹799/mo in India) adds 150 repurposes with Claude Haiku AI and 5 brand voices.",
     },
     {
       q: "What if it's not for me?",
