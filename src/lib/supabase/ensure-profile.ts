@@ -1,6 +1,52 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+/** True if a profiles row exists (service role — bypasses RLS). */
+export async function profileRowExistsAdmin(userId: string): Promise<boolean> {
+  try {
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error) {
+      console.warn("[profileRowExistsAdmin]", error.message, error.code);
+      return false;
+    }
+    return Boolean(data);
+  } catch {
+    return false;
+  }
+}
+
+/** Non-sensitive config errors to surface in API responses (wrong Supabase keys). */
+export function profileEnsureConfigErrorMessage(err: unknown): string | null {
+  if (!(err instanceof Error)) return null;
+  if (/service_role|SUPABASE_SERVICE_ROLE_KEY|anon key/i.test(err.message)) {
+    return err.message;
+  }
+  return null;
+}
+
+/** Read zapier_webhook_url when JWT cannot SELECT profiles (RLS) but row exists. */
+export async function getProfileZapierAdmin(
+  userId: string
+): Promise<string | null> {
+  try {
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
+      .from("profiles")
+      .select("zapier_webhook_url")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return data.zapier_webhook_url ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * `brand_voices`, `repurpose_jobs`, etc. reference `profiles(id)`. Ensures a row exists.
  *
@@ -47,6 +93,9 @@ export async function ensureProfileForUser(
     admin = getSupabaseAdmin();
   } catch (e) {
     console.error("[ensureProfileForUser] service role unavailable", e);
+    if (e instanceof Error && /service_role|SUPABASE_SERVICE_ROLE_KEY|anon key/i.test(e.message)) {
+      throw e;
+    }
     if (userSupabase && (await hasProfile(userSupabase))) return;
     throw new Error(
       "Could not create your profile. Apply the latest Supabase migration (ensure_profile_from_auth) and set SUPABASE_SERVICE_ROLE_KEY."
@@ -159,7 +208,63 @@ export async function ensureProfileReadyForSession(
   }
   if (await profileVisible()) return;
 
+  // Row exists in DB (FK OK) but session still cannot read it — broken RLS or stale JWT.
+  // Do not block repurpose: job insert uses service role and only needs the FK target.
+  if (await profileRowExistsAdmin(user.id)) {
+    console.warn(
+      "[ensureProfileReadyForSession] profiles row exists for user but JWT session cannot select it — check RLS SELECT on public.profiles and run scripts/supabase-paste-full-profile-fix.sql"
+    );
+    return;
+  }
+
+  // Last resort: read auth.users via Admin API and upsert profiles (works when SQL trigger/RPC never ran).
+  const bootstrapped = await bootstrapProfileFromAuthAdmin(user.id);
+  if (bootstrapped) {
+    if (await profileVisible()) return;
+    if (await profileRowExistsAdmin(user.id)) return;
+  }
+
   throw new Error("Profile row still missing after ensure and RPC retries");
+}
+
+/**
+ * Creates `public.profiles` from `auth.users` using the service role + Auth Admin API.
+ * Use when trigger/RPC/`ensure_profile_from_auth` did not run (common for older accounts or partial migrations).
+ */
+export async function bootstrapProfileFromAuthAdmin(userId: string): Promise<boolean> {
+  if (await profileRowExistsAdmin(userId)) return true;
+  try {
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin.auth.admin.getUserById(userId);
+    if (error || !data?.user) {
+      console.warn("[bootstrapProfileFromAuthAdmin] getUserById", error?.message);
+      return false;
+    }
+    const u = data.user;
+    const meta = u.user_metadata ?? {};
+    const emailRaw = u.email?.trim() ?? "";
+    const row = {
+      id: u.id,
+      email: emailRaw || `${u.id.replace(/-/g, "")}@users.repostai.local`,
+      name: (meta.full_name as string) ?? (meta.name as string) ?? null,
+      avatar_url: (meta.avatar_url as string) ?? null,
+      market_region: (meta.market_region as string) ?? null,
+    };
+    const { error: upErr } = await admin
+      .from("profiles")
+      .upsert(row, { onConflict: "id" });
+    if (upErr) {
+      console.warn(
+        "[bootstrapProfileFromAuthAdmin] upsert",
+        upErr.message,
+        upErr.code
+      );
+    }
+    return await profileRowExistsAdmin(userId);
+  } catch (e) {
+    console.warn("[bootstrapProfileFromAuthAdmin]", e);
+    return false;
+  }
 }
 
 /** Force a `profiles` row via service role so FK checks on `repurpose_jobs` succeed (same DB the admin client uses). */

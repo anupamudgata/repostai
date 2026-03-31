@@ -5,7 +5,13 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
-import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
+import {
+  bootstrapProfileFromAuthAdmin,
+  ensureProfileForRepurposeInsert,
+  getProfileZapierAdmin,
+  profileEnsureConfigErrorMessage,
+  profileRowExistsAdmin,
+} from "@/lib/supabase/ensure-profile";
 
 export async function GET() {
   try {
@@ -18,7 +24,18 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await ensureProfileForRepurposeInsert(user, supabase);
+    try {
+      await ensureProfileForRepurposeInsert(user, supabase);
+    } catch (e) {
+      const cfg = profileEnsureConfigErrorMessage(e);
+      if (cfg) {
+        return NextResponse.json(
+          { error: cfg, code: "SUPABASE_CONFIG" },
+          { status: 500 }
+        );
+      }
+      throw e;
+    }
 
     let profile: { zapier_webhook_url: string | null } | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -53,6 +70,41 @@ export async function GET() {
       }
     }
     if (!profile) {
+      const exists = await profileRowExistsAdmin(user.id);
+      if (exists) {
+        const zapier = await getProfileZapierAdmin(user.id);
+        console.warn(
+          "[me] using admin read for profile — fix SELECT RLS on public.profiles (run scripts/supabase-paste-full-profile-fix.sql)",
+          { userId: user.id }
+        );
+        profile = { zapier_webhook_url: zapier };
+      }
+    }
+    if (!profile) {
+      await bootstrapProfileFromAuthAdmin(user.id);
+      try {
+        await supabase.rpc("ensure_profile_from_auth");
+      } catch {
+        /* RPC may be missing */
+      }
+      const { data: afterBootstrap } = await supabase
+        .from("profiles")
+        .select("zapier_webhook_url")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (afterBootstrap) {
+        profile = afterBootstrap;
+      }
+    }
+    if (!profile) {
+      const exists = await profileRowExistsAdmin(user.id);
+      if (exists) {
+        profile = {
+          zapier_webhook_url: await getProfileZapierAdmin(user.id),
+        };
+      }
+    }
+    if (!profile) {
       console.error("[me] profile still missing after ensure+retry", {
         userId: user.id,
       });
@@ -61,7 +113,10 @@ export async function GET() {
           error: "Could not load your profile. Try again or refresh the page.",
           code: "PROFILE_SYNC_FAILED",
           ...(process.env.NODE_ENV === "development" && {
-            debug: { userId: user.id },
+            debug: {
+              userId: user.id,
+              hint: "Set SUPABASE_SERVICE_ROLE_KEY to the service_role JWT and run scripts/supabase-paste-full-profile-fix.sql on your Supabase project.",
+            },
           }),
         },
         { status: 503 }

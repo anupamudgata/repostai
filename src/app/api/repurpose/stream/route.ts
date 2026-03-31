@@ -1,6 +1,9 @@
 import { NextRequest }                   from "next/server";
 import { createClient }                  from "@/lib/supabase/server";
-import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
+import {
+  ensureProfileForRepurposeInsert,
+  profileEnsureConfigErrorMessage,
+} from "@/lib/supabase/ensure-profile";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import {
@@ -234,10 +237,13 @@ export async function POST(req: NextRequest) {
 
         try {
           await ensureProfileForRepurposeInsert(user, supabase);
-        } catch {
+        } catch (ensureErr) {
+          const cfg = profileEnsureConfigErrorMessage(ensureErr);
           send({
             type: "error",
-            error: "Could not prepare your account. Try again in a moment.",
+            error:
+              cfg ??
+              "Could not prepare your account. Try again in a moment.",
           });
           close();
           return;
