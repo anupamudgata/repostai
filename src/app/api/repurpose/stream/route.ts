@@ -1,6 +1,6 @@
 import { NextRequest }                   from "next/server";
 import { createClient }                  from "@/lib/supabase/server";
-import { ensureProfileForUser }          from "@/lib/supabase/ensure-profile";
+import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import {
@@ -236,12 +236,11 @@ export async function POST(req: NextRequest) {
         if (authError || !user) { send({ type: "error", error: "Unauthorized." }); close(); return; }
 
         try {
-          await ensureProfileForUser(user, supabase);
+          await ensureProfileReadyForSession(user, supabase);
         } catch {
           send({
             type: "error",
-            error:
-              "Could not prepare your account profile. Refresh the page, or sign out and sign in again.",
+            error: "Could not prepare your account. Try again in a moment.",
           });
           close();
           return;
@@ -373,7 +372,11 @@ export async function POST(req: NextRequest) {
             };
             let { data: job, error: jobErr } = await insertRepurposeJobWithFallback(supabase, jobPayload);
             if (jobErr && isLikelyUserProfileFkError(jobErr)) {
-              await ensureProfileForUser(user, supabase);
+              try {
+                await ensureProfileReadyForSession(user, supabase);
+              } catch {
+                /* keep jobErr; save skipped below */
+              }
               ({ data: job, error: jobErr } = await insertRepurposeJobWithFallback(supabase, jobPayload));
             }
             if (job && !jobErr) {

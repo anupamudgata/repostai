@@ -11,6 +11,8 @@ Use this list to configure **local** (`.env.local`) and **production** (e.g. Ver
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL | Supabase Dashboard → Project Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key | Same as above |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (server-only) | Same as above |
+
+**Use the same Supabase project for URL, anon, and service role.** On Vercel, `SUPABASE_SERVICE_ROLE_KEY` must come from **Project Settings → API** for the project whose URL is in `NEXT_PUBLIC_SUPABASE_URL`. A key from a different project causes profile creation and `repurpose_jobs` inserts to fail in subtle ways.
 | `OPENAI_API_KEY` | OpenAI API key | https://platform.openai.com/api-keys |
 | `NEXT_PUBLIC_APP_URL` | App URL (e.g. `https://repostai.com` or `http://localhost:3000`) | You set this |
 

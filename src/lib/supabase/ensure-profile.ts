@@ -112,3 +112,42 @@ export async function ensureProfileForUser(
   console.error("[ensureProfileForUser] all attempts failed", insertErr);
   throw insertErr ?? new Error("Profile creation failed after all attempts");
 }
+
+/**
+ * Use before inserts that FK to `profiles` (e.g. `repurpose_jobs`). Runs `ensureProfileForUser`,
+ * verifies the row is visible to the session, retries `ensure_profile_from_auth` + full ensure once.
+ */
+export async function ensureProfileReadyForSession(
+  user: User,
+  userSupabase: SupabaseClient
+): Promise<void> {
+  await ensureProfileForUser(user, userSupabase);
+
+  async function profileVisible(): Promise<boolean> {
+    const { data } = await userSupabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    return Boolean(data);
+  }
+
+  if (await profileVisible()) return;
+
+  const { error: rpcErr } = await userSupabase.rpc("ensure_profile_from_auth");
+  if (rpcErr) {
+    console.warn("[ensureProfileReadyForSession] ensure_profile_from_auth", rpcErr.message);
+  }
+  if (await profileVisible()) return;
+
+  await ensureProfileForUser(user, userSupabase);
+  if (await profileVisible()) return;
+
+  const { error: rpc2 } = await userSupabase.rpc("ensure_profile_from_auth");
+  if (rpc2) {
+    console.warn("[ensureProfileReadyForSession] ensure_profile_from_auth retry", rpc2.message);
+  }
+  if (await profileVisible()) return;
+
+  throw new Error("Profile row still missing after ensure and RPC retries");
+}

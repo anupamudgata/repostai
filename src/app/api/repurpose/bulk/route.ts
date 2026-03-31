@@ -10,7 +10,7 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
-import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
+import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
 import {
   insertRepurposeJobWithFallback,
   isLikelyUserProfileFkError,
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureProfileForUser(user, supabase);
+      await ensureProfileReadyForSession(user, supabase);
     } catch {
       return NextResponse.json(
         { error: "Could not prepare your account. Try again in a moment." },
@@ -256,7 +256,11 @@ export async function POST(request: NextRequest) {
       let { data: job, error: jobInsertErr } =
         await insertRepurposeJobWithFallback(supabase, jobPayload);
       if (jobInsertErr && isLikelyUserProfileFkError(jobInsertErr)) {
-        await ensureProfileForUser(user, supabase);
+        try {
+          await ensureProfileReadyForSession(user, supabase);
+        } catch {
+          /* fall through */
+        }
         ({ data: job, error: jobInsertErr } =
           await insertRepurposeJobWithFallback(supabase, jobPayload));
       }

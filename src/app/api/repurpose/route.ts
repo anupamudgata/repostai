@@ -14,7 +14,7 @@ import {
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
 import { captureError } from "@/lib/sentry";
-import { ensureProfileForUser } from "@/lib/supabase/ensure-profile";
+import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
 import {
   insertRepurposeJobWithFallback,
   isLikelyUserProfileFkError,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureProfileForUser(user, supabase);
+      await ensureProfileReadyForSession(user, supabase);
     } catch {
       return NextResponse.json(
         { error: "Could not prepare your account. Try again in a moment." },
@@ -266,7 +266,11 @@ export async function POST(request: NextRequest) {
       let { data: job, error: cachedJobError } =
         await insertRepurposeJobWithFallback(supabase, jobInsertPayload);
       if (cachedJobError && isLikelyUserProfileFkError(cachedJobError)) {
-        await ensureProfileForUser(user, supabase);
+        try {
+          await ensureProfileReadyForSession(user, supabase);
+        } catch {
+          /* fall through to error response */
+        }
         ({ data: job, error: cachedJobError } =
           await insertRepurposeJobWithFallback(supabase, jobInsertPayload));
       }
@@ -349,7 +353,11 @@ export async function POST(request: NextRequest) {
     let { data: job, error: jobInsertError } =
       await insertRepurposeJobWithFallback(supabase, jobInsertPayloadMain);
     if (jobInsertError && isLikelyUserProfileFkError(jobInsertError)) {
-      await ensureProfileForUser(user, supabase);
+      try {
+        await ensureProfileReadyForSession(user, supabase);
+      } catch {
+        /* fall through to error response */
+      }
       ({ data: job, error: jobInsertError } =
         await insertRepurposeJobWithFallback(supabase, jobInsertPayloadMain));
     }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
 import { SUPERUSER_EMAIL } from "@/config/constants";
 import { DashboardNav } from "@/components/dashboard/nav";
 import { SupportChatWidget } from "@/components/support/SupportChatWidget";
@@ -18,11 +19,25 @@ export default async function DashboardLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  let { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
+
+  if (!profile) {
+    try {
+      await ensureProfileReadyForSession(user, supabase);
+      const refetch = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+      profile = refetch.data;
+    } catch (e) {
+      console.error("[dashboard/layout] ensureProfileReadyForSession:", e);
+    }
+  }
 
   const isSuperUser = user.email === SUPERUSER_EMAIL;
   const plan = isSuperUser ? "pro" : (profile?.plan || "free");
