@@ -97,29 +97,25 @@ function LoginForm() {
 
         <div className="relative space-y-8">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-white/90 text-sm font-medium">
-              <Sparkles className="h-3.5 w-3.5" />
-              Trusted by 50,000+ creators
-            </div>
             <blockquote className="text-white text-xl font-medium leading-relaxed">
-              &ldquo;RepostAI turned my single blog post into 10 platform-ready pieces in under 30 seconds.&rdquo;
+              &ldquo;I paste the blog link, click once, and get LinkedIn, Twitter, and Instagram ready. No more copy-paste hell.&rdquo;
             </blockquote>
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                A
+                M
               </div>
               <div>
-                <p className="text-white font-semibold text-sm">Arjun Sharma</p>
-                <p className="text-white/60 text-xs">Content Creator · 50K+ followers</p>
+                <p className="text-white font-semibold text-sm">Marketing Lead</p>
+                <p className="text-white/60 text-xs">5+ hours saved every week</p>
               </div>
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             {[
-              { icon: Users, label: "50K+", sub: "Creators" },
-              { icon: Globe, label: "10", sub: "Platforms" },
-              { icon: Sparkles, label: "Free", sub: "Forever" },
+              { icon: Users, label: "Free", sub: "Forever" },
+              { icon: Globe, label: "9", sub: "Platforms" },
+              { icon: Sparkles, label: "< 60s", sub: "Per post" },
             ].map(({ icon: Icon, label, sub }) => (
               <div key={sub} className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-center border border-white/10">
                 <Icon className="h-5 w-5 text-white/70 mx-auto mb-1" />

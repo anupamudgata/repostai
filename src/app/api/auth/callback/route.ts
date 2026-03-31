@@ -69,19 +69,29 @@ async function afterSession(
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
+    // Check before ensureProfileForUser so we know if this is first sign-in
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", user.id)
+      .maybeSingle();
+    const isNewUser = !existingProfile;
+
     try {
       await ensureProfileForUser(user, supabase);
     } catch (ensureErr) {
       console.error("[auth callback] ensureProfileForUser failed:", ensureErr);
     }
-    try {
-      if (user.email) {
+
+    // Only send welcome email on the very first sign-in
+    if (isNewUser && user.email) {
+      try {
         const fullName = (user.user_metadata?.full_name as string) ?? "";
         const firstName = fullName.split(" ")[0] || user.email.split("@")[0];
         await sendWelcomeEmail({ email: user.email, firstName });
+      } catch (emailErr) {
+        console.error("[auth callback] Welcome email failed:", emailErr);
       }
-    } catch (emailErr) {
-      console.error("[auth callback] Welcome email failed:", emailErr);
     }
   }
   response.headers.set("Cache-Control", "private, no-store");

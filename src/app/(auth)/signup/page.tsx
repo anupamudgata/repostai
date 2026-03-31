@@ -49,7 +49,7 @@ export default function SignupPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -58,6 +58,11 @@ export default function SignupPage() {
         },
       });
       if (error) { toastT.errorFromApi({ error: error.message }); return; }
+      if (data.session) {
+        // Email confirmations disabled in Supabase — user is already logged in
+        router.push("/dashboard");
+        return;
+      }
       toastT.success("auth.checkEmailConfirm");
       router.push("/login");
     } catch (err) {
@@ -109,10 +114,10 @@ export default function SignupPage() {
               Free forever · No credit card
             </div>
             <h2 className="text-3xl font-bold text-white leading-tight">
-              One post.<br />Ten platforms.<br />Seconds.
+              One post.<br />Nine platforms.<br />Seconds.
             </h2>
             <p className="text-white/70 text-base leading-relaxed">
-              Join 50,000+ creators who save hours every week with AI-powered content repurposing.
+              Save hours every week with AI-powered content repurposing — free to start, no credit card needed.
             </p>
           </div>
 

@@ -66,7 +66,8 @@ export async function GET(request: NextRequest) {
       plan,
       status: "active",
       current_period_end: periodEnd,
-    }, { onConflict: "stripe_subscription_id" });
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
 
     return NextResponse.redirect(`${baseUrl}/dashboard?upgraded=true`);
   } catch (error) {
