@@ -29,9 +29,9 @@ export const landingBulkEn = {
     },
     {
       quote:
-        "From one YouTube video to 7 platform-ready posts in under a minute. Insane.",
+        "From one YouTube video to 9 platform-ready posts in under a minute. Nothing else comes close.",
       attribution: "Creator",
-      beforeAfter: "1 video → 7 posts",
+      beforeAfter: "1 video → 9 posts",
     },
   ],
   testimonialSection: {
@@ -54,7 +54,7 @@ export const landingBulkEn = {
   demo: {
     badge: "See it in action",
     title: "Watch: One post to every platform in 60 seconds",
-    subtitle: "No fluff — just paste, click, and copy.",
+    subtitle: "No fluff — paste, click, and copy.",
     iframeTitle: "RepostAI 60-second demo",
     placeholderTitle: "Demo video coming soon",
     placeholderSubtitle: "See how it works below",
@@ -117,7 +117,7 @@ export const landingBulkEn = {
     ],
   },
   howItWorks: {
-    badge: "Dead Simple",
+    badge: "3 Simple Steps",
     title: "Three steps. 60 seconds. Done.",
     steps: [
       {
@@ -179,13 +179,13 @@ export const landingBulkEn = {
       },
       {
         id: "postNow",
-        title: "Post now",
+        title: "Post Now",
         description:
           "Connect Twitter or LinkedIn and publish directly from RepostAI. One click to post — no copy-paste.",
       },
       {
         id: "schedule",
-        title: "Schedule posts",
+        title: "Schedule Posts",
         description:
           "Set a date and time; we post for you automatically. Perfect for queues and consistent publishing.",
       },
@@ -225,7 +225,7 @@ export const landingBulkEn = {
     ],
   },
   useCasesSection: {
-    title: "Built for people who create content",
+    title: "Built for creators, marketers, and agencies",
     items: [
       {
         title: "Content Creators",
@@ -336,7 +336,7 @@ export const landingBulkEn = {
     },
     {
       q: "How is this different from ChatGPT?",
-      a: "ChatGPT gives you one output at a time with no structure. RepostAI generates content for all 7+ platforms simultaneously with platform-specific formatting, Brand Voice matching, and one-click copy. It's built specifically for content repurposing, not general chat.",
+      a: "ChatGPT gives you one output at a time with no structure. RepostAI generates content for all 9 platforms simultaneously with platform-specific formatting, Brand Voice matching, and one-click copy. It's built specifically for content repurposing, not general chat.",
     },
     {
       q: "What does 'brand voice training' mean?",
