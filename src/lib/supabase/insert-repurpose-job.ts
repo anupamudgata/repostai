@@ -1,19 +1,28 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  ensureProfileReadyForSession,
+  upsertProfileRowAdmin,
+} from "@/lib/supabase/ensure-profile";
 
 /** True when Postgres reports FK failure on repurpose_jobs → profiles(user_id). */
 export function isLikelyUserProfileFkError(err: {
   message?: string;
   details?: string;
+  hint?: string;
+  code?: string;
 } | null): boolean {
   if (!err) return false;
-  const s = `${err.message ?? ""} ${err.details ?? ""}`.toLowerCase();
-  if (s.includes("brand_voice")) return false;
+  const s = `${err.message ?? ""} ${err.details ?? ""} ${err.hint ?? ""}`.toLowerCase();
+  if (s.includes("brand_voice") || s.includes("brand_voices")) return false;
+  const code = String(err.code ?? "");
+  if (code === "23503") {
+    return true;
+  }
   return (
     s.includes("user_id_fkey") ||
     s.includes("repurpose_jobs_user_id_fkey") ||
-    (s.includes("user_id") &&
-      (s.includes("profiles") || s.includes("profile")))
+    (s.includes("user_id") && (s.includes("profiles") || s.includes("profile")))
   );
 }
 
@@ -74,4 +83,25 @@ export async function insertRepurposeJobWithFallback(
   }
 
   return adminResult;
+}
+
+/**
+ * Inserts a repurpose job; on profile FK errors, upserts profile via admin + re-runs session ensure, then retries.
+ */
+export async function insertRepurposeJobWithProfileFixups(
+  supabase: SupabaseClient,
+  user: User,
+  payload: RepurposeJobInsertPayload
+) {
+  let result = await insertRepurposeJobWithFallback(supabase, payload);
+  for (let attempt = 0; attempt < 2 && result.error && isLikelyUserProfileFkError(result.error); attempt++) {
+    await upsertProfileRowAdmin(user);
+    try {
+      await ensureProfileReadyForSession(user, supabase);
+    } catch {
+      /* ignore */
+    }
+    result = await insertRepurposeJobWithFallback(supabase, payload);
+  }
+  return result;
 }

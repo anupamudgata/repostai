@@ -18,7 +18,8 @@
     "brandVoice": "Brand Voice",
     "photos": "Photos",
     "badgeNew": "NEW",
-    "badgePro": "PRO"
+    "badgePro": "PRO",
+    "upgrade": "Upgrade"
   },
   "common": {
     "settings": "Settings",
@@ -196,6 +197,7 @@
     "invalidServerResponse": "Invalid response from server",
     "failedExtractPdf": "Failed to extract text",
     "pdfExtracted": "PDF text extracted!",
+    "sampleContentInserted": "Sample content added — replace with your own anytime.",
     "failedProcessPdf": "Failed to process PDF",
     "historyDeleted": "History item deleted",
     "posted": "Posted!",

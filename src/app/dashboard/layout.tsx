@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
+import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
 import { SUPERUSER_EMAIL } from "@/config/constants";
-import { DashboardNav } from "@/components/dashboard/nav";
+import { DashboardShell } from "@/components/dashboard/dashboard-sidebar";
 import { SupportChatWidget } from "@/components/support/SupportChatWidget";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export default async function DashboardLayout({
 
   if (!profile) {
     try {
-      await ensureProfileReadyForSession(user, supabase);
+      await ensureProfileForRepurposeInsert(user, supabase);
       const refetch = await supabase
         .from("profiles")
         .select("*")
@@ -43,19 +43,20 @@ export default async function DashboardLayout({
   const plan = isSuperUser ? "pro" : (profile?.plan || "free");
 
   return (
-    <div className="dashboard-bg">
-      <DashboardNav
-        user={{
-          email: user.email || "",
-          name: profile?.name || user.user_metadata?.full_name || "",
-          avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url,
-          plan,
-        }}
-      />
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 animate-page-in">
-        {children}
-      </main>
-      <SupportChatWidget />
-    </div>
+    <DashboardShell
+      user={{
+        email: user.email || "",
+        name: profile?.name || user.user_metadata?.full_name || "",
+        avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url,
+        plan,
+      }}
+    >
+      <>
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 animate-page-in">
+          {children}
+        </div>
+        <SupportChatWidget />
+      </>
+    </DashboardShell>
   );
 }

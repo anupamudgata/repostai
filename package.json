@@ -9,6 +9,7 @@
     "start": "next start",
     "local": "npm run build && next start",
     "lint": "eslint",
+    "auth:set-password": "node scripts/set-auth-user-password.mjs",
     "db:start": "npx supabase start",
     "db:stop": "npx supabase stop",
     "db:status": "npx supabase status",

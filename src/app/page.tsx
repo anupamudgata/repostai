@@ -37,6 +37,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { PLANS, PLANS_PRICING, SUPPORT_EMAIL, LANDING_VIDEO_URL } from "@/config/constants";
 import { LandingNav } from "@/components/landing-nav";
+import { LifetimeRepurposeStat } from "@/components/lifetime-repurpose-stat";
 import { useI18n } from "@/contexts/i18n-provider";
 import { landingBulkEn } from "@/messages/landing-bulk.en";
 import { landingBulkHi } from "@/messages/landing-bulk.hi";
@@ -106,7 +107,13 @@ export default function LandingPage() {
 
       {/* ── HERO ── */}
       <section className="relative py-20 sm:py-28 lg:py-36 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-transparent to-transparent pointer-events-none" />
+        {/* Layered background: grid pattern + gradient + animated orbs */}
+        <div className="absolute inset-0 grid-pattern opacity-60 pointer-events-none" />
+        <div className="absolute inset-0 hero-gradient pointer-events-none" />
+        <div className="hero-orb-1" />
+        <div className="hero-orb-2" />
+        <div className="hero-orb-3" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80 pointer-events-none" />
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Text block */}
           <div className="text-center max-w-3xl mx-auto mb-14">
@@ -123,7 +130,7 @@ export default function LandingPage() {
               <Link href="/signup">
                 <Button
                   size="lg"
-                  className="min-h-[52px] text-base px-8 shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-200 font-semibold"
+                  className="btn-hero-cta min-h-[52px] text-base px-8 font-semibold"
                 >
                   {t("landing.ctaPrimary")}
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -151,11 +158,28 @@ export default function LandingPage() {
                 <Check className="h-3.5 w-3.5 text-primary" /> {t("landing.checkPublish")}
               </Link>
             </div>
+            <div className="flex justify-center mt-5 animate-blur-in animation-delay-700">
+              <LifetimeRepurposeStat L={L} variant="hero" />
+            </div>
           </div>
 
           {/* Product Mockup */}
           <div className="animate-scale-in animation-delay-400 max-w-2xl mx-auto">
-            <div className="relative rounded-2xl border border-border/70 bg-card shadow-2xl shadow-black/8 overflow-hidden">
+            {/* Floating platform badges around mockup */}
+            <div className="relative">
+              <div className="hidden sm:flex float-badge absolute -left-16 top-8 items-center gap-1.5 bg-card border border-border/60 rounded-full px-3 py-1.5 shadow-lg text-xs font-medium z-10">
+                <div className="h-3.5 w-3.5 rounded-sm bg-blue-600 flex items-center justify-center"><Linkedin className="h-2 w-2 text-white" /></div>
+                LinkedIn
+              </div>
+              <div className="hidden sm:flex float-badge-delayed absolute -right-16 top-16 items-center gap-1.5 bg-card border border-border/60 rounded-full px-3 py-1.5 shadow-lg text-xs font-medium z-10">
+                <div className="h-3.5 w-3.5 rounded-sm bg-sky-500 flex items-center justify-center"><Twitter className="h-2 w-2 text-white" /></div>
+                Twitter/X
+              </div>
+              <div className="hidden sm:flex float-badge absolute -right-14 bottom-16 items-center gap-1.5 bg-card border border-border/60 rounded-full px-3 py-1.5 shadow-lg text-xs font-medium z-10">
+                <Sparkles className="h-3 w-3 text-primary" />
+                <span className="text-primary">0.8s</span>
+              </div>
+            <div className="relative rounded-2xl border border-border/70 bg-card mockup-glow-ring overflow-hidden">
               {/* Browser chrome */}
               <div className="bg-muted/80 border-b border-border/60 px-4 py-2.5 flex items-center gap-2">
                 <div className="flex gap-1.5">
@@ -232,22 +256,26 @@ export default function LandingPage() {
                 ))}
               </div>
             </div>
+            </div>{/* close floating badges wrapper */}
           </div>
         </div>
       </section>
 
       {/* ── STATS BAR ── */}
-      <section className="py-8 border-y border-border/40">
+      <section className="py-10 border-y border-border/40 bg-muted/10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-3 gap-4 text-center">
             {[
-              { value: "5+ hrs", label: t("landing.proofHoursSaved") },
-              { value: "< 60s", label: t("landing.proofToPlatforms") },
-              { value: "9", label: t("landing.proofPlatformsSupported") },
+              { value: "5+", unit: " hrs", label: t("landing.proofHoursSaved") },
+              { value: "< 60", unit: "s", label: t("landing.proofToPlatforms") },
+              { value: "9", unit: "+", label: t("landing.proofPlatformsSupported") },
             ].map((stat, i) => (
               <div key={i} className={i > 0 ? "border-l border-border/40" : ""}>
-                <p className="text-2xl sm:text-3xl font-bold">{stat.value}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">{stat.label}</p>
+                <p className="text-3xl sm:text-4xl font-black tracking-tight">
+                  <span className="stat-value-gradient">{stat.value}</span>
+                  <span className="text-muted-foreground/60 text-xl font-bold">{stat.unit}</span>
+                </p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">{stat.label}</p>
               </div>
             ))}
           </div>
@@ -296,24 +324,26 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-5 relative" data-reveal>
             {([
-              { ...L.howItWorks.steps[0], icon: MousePointerClick },
-              { ...L.howItWorks.steps[1], icon: Sparkles },
-              { ...L.howItWorks.steps[2], icon: Send },
+              { ...L.howItWorks.steps[0], icon: MousePointerClick, gradient: "from-blue-500/20 to-violet-500/10" },
+              { ...L.howItWorks.steps[1], icon: Sparkles, gradient: "from-violet-500/20 to-fuchsia-500/10" },
+              { ...L.howItWorks.steps[2], icon: Send, gradient: "from-fuchsia-500/15 to-pink-500/10" },
             ] as const).map((step, i) => (
-              <div key={step.step} className="bg-card border border-border/60 rounded-2xl p-6 relative">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <step.icon className="h-[18px] w-[18px] text-primary" />
+              <div key={step.step} className="feature-card-premium bg-card border border-border/60 rounded-2xl p-6 relative">
+                {/* Gradient corner accent */}
+                <div className={`absolute top-0 right-0 w-24 h-24 rounded-tr-2xl rounded-bl-[60px] bg-gradient-to-bl ${step.gradient} pointer-events-none`} />
+                <div className="flex items-center gap-3 mb-4 relative">
+                  <div className="icon-gradient-purple h-10 w-10 rounded-xl flex items-center justify-center shrink-0">
+                    <step.icon className="h-5 w-5 text-primary" />
                   </div>
-                  <span className="text-xs font-bold text-muted-foreground/50 tracking-widest">
-                    {step.step}
+                  <span className="step-number text-[3rem] leading-none select-none" style={{ fontSize: "3rem" }}>
+                    {i + 1}
                   </span>
                 </div>
-                <h3 className="font-semibold mb-2">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                <h3 className="font-semibold mb-2 relative">{step.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed relative">{step.description}</p>
                 {i < 2 && (
-                  <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-6 w-6 rounded-full border border-border/60 bg-card items-center justify-center">
-                    <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                  <div className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 h-7 w-7 rounded-full border border-primary/20 bg-primary/8 items-center justify-center">
+                    <ArrowRight className="h-3.5 w-3.5 text-primary" />
                   </div>
                 )}
               </div>
@@ -456,8 +486,10 @@ export default function LandingPage() {
               if (!feature) return null;
               const isIntegrations = id === "integrations";
               const content = (
-                <div className="p-5 rounded-xl border border-border/60 bg-card hover:border-primary/25 transition-colors duration-200 h-full">
-                  <Icon className="h-[18px] w-[18px] text-primary mb-3" />
+                <div className="feature-card-premium p-5 rounded-xl border border-border/60 bg-card h-full">
+                  <div className="icon-gradient-purple h-9 w-9 rounded-xl flex items-center justify-center mb-3">
+                    <Icon className="h-[18px] w-[18px] text-primary" />
+                  </div>
                   <h3 className="font-semibold text-sm mb-1">{feature.title}</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed">{feature.description}</p>
                   {isIntegrations && (
@@ -479,31 +511,31 @@ export default function LandingPage() {
       </section>
 
       {/* ── PLATFORMS ── */}
-      <section className="py-12 sm:py-16 bg-muted/20">
-        <div className="max-w-3xl mx-auto px-4 text-center">
+      <section className="py-12 sm:py-16 bg-muted/20 overflow-hidden">
+        <div className="max-w-3xl mx-auto px-4 text-center mb-8">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2">
             {L.platformsSection.title}
           </h2>
-          <p className="text-muted-foreground text-sm mb-8 max-w-md mx-auto">
+          <p className="text-muted-foreground text-sm max-w-md mx-auto">
             {L.platformsSection.subtitle}
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {L.platformsSection.names.map((name, idx) => {
-              const platform = PLATFORM_ICONS[idx];
-              return (
-                <div
-                  key={idx}
-                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border/60 bg-card text-sm font-medium"
-                >
-                  {platform && (
-                    <div className={`h-3.5 w-3.5 rounded-sm ${platform.color} flex items-center justify-center shrink-0`}>
-                      <platform.icon className="h-2 w-2 text-white" />
-                    </div>
-                  )}
-                  {name}
+        </div>
+        {/* Infinite marquee ticker */}
+        <div className="relative marquee-fade overflow-hidden">
+          <div className="flex animate-marquee gap-3 w-max">
+            {[...PLATFORM_ICONS.map((p, idx) => ({ ...p, name: L.platformsSection.names[idx] ?? "" })),
+              ...PLATFORM_ICONS.map((p, idx) => ({ ...p, name: L.platformsSection.names[idx] ?? "" }))
+            ].map((platform, idx) => (
+              <div
+                key={idx}
+                className="ticker-chip flex items-center gap-2 px-4 py-2 rounded-full border border-border/60 bg-card text-sm font-medium whitespace-nowrap cursor-default select-none"
+              >
+                <div className={`h-4 w-4 rounded-sm ${platform.color} flex items-center justify-center shrink-0`}>
+                  <platform.icon className="h-2.5 w-2.5 text-white" />
                 </div>
-              );
-            })}
+                {platform.name}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -521,8 +553,15 @@ export default function LandingPage() {
             {L.testimonials.map((item, i) => (
               <div
                 key={i}
-                className="bg-card border border-border/60 rounded-2xl p-5 flex flex-col"
+                className="feature-card-premium bg-card border border-border/60 rounded-2xl p-5 flex flex-col"
               >
+                <div className="star-row mb-3">
+                  {[...Array(5)].map((_, s) => (
+                    <svg key={s} className="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
                 <p className="text-sm text-muted-foreground leading-relaxed flex-1">
                   &ldquo;{item.quote}&rdquo;
                 </p>
@@ -546,7 +585,10 @@ export default function LandingPage() {
           </div>
           <div className="grid md:grid-cols-3 gap-4">
             {L.useCasesSection.items.map((uc) => (
-              <div key={uc.title} className="bg-card border border-border/60 rounded-xl p-6">
+              <div key={uc.title} className="usecase-card bg-card border border-border/60 rounded-xl p-6">
+                <div className="h-8 w-8 rounded-lg icon-gradient-purple flex items-center justify-center mb-3">
+                  <Zap className="h-4 w-4 text-primary" />
+                </div>
                 <h3 className="font-semibold mb-2">{uc.title}</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">{uc.description}</p>
               </div>
@@ -624,15 +666,12 @@ export default function LandingPage() {
                 : 0;
               const perDay = displayPrice > 0 ? (displayPrice / 30).toFixed(2) : "0";
               const isPro = plan.name === "Pro";
-              return (
+              const cardInner = (
                 <div
-                  key={plan.name}
-                  data-reveal
-                  data-delay={String(planIdx + 1)}
-                  className={`relative rounded-2xl p-6 transition-all duration-200 ${
+                  className={`relative p-6 transition-all duration-200 ${
                     isPro
-                      ? "bg-primary text-primary-foreground ring-1 ring-primary shadow-xl shadow-primary/20"
-                      : "bg-card border border-border/60 hover:border-border"
+                      ? "pro-ring-inner bg-primary text-primary-foreground shadow-xl shadow-primary/25"
+                      : "rounded-2xl bg-card border border-border/60 hover:border-border hover:shadow-md"
                   }`}
                 >
                   {isPro && (
@@ -713,6 +752,15 @@ export default function LandingPage() {
                         : pf(L.pricingSection.ctaPaid, { plan: plan.name })}
                     </Button>
                   </Link>
+                </div>
+              );
+              return isPro ? (
+                <div key={plan.name} data-reveal data-delay={String(planIdx + 1)} className="pro-ring-wrapper">
+                  {cardInner}
+                </div>
+              ) : (
+                <div key={plan.name} data-reveal data-delay={String(planIdx + 1)}>
+                  {cardInner}
                 </div>
               );
             })}
@@ -933,6 +981,7 @@ export default function LandingPage() {
               <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
                 {L.footer.tagline}
               </p>
+              <LifetimeRepurposeStat L={L} variant="footer" />
             </div>
             <div>
               <p className="font-semibold text-sm mb-3">{L.footer.product}</p>

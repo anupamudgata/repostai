@@ -14,11 +14,8 @@ import {
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
 import { captureError } from "@/lib/sentry";
-import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
-import {
-  insertRepurposeJobWithFallback,
-  isLikelyUserProfileFkError,
-} from "@/lib/supabase/insert-repurpose-job";
+import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
+import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 
 /** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
 function messageForRepurposeJobInsertError(err: {
@@ -46,6 +43,9 @@ function messageForRepurposeJobInsertError(err: {
     /_fkey/i.test(msg);
   if (isFk) {
     const isUserProfileFk =
+      (code === "23503" &&
+        !detail.includes("brand_voice") &&
+        !detail.includes("brand_voices")) ||
       detail.includes("user_id_fkey") ||
       detail.includes("repurpose_jobs_user_id") ||
       (detail.includes("user_id") &&
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureProfileReadyForSession(user, supabase);
+      await ensureProfileForRepurposeInsert(user, supabase);
     } catch {
       return NextResponse.json(
         { error: "Could not prepare your account. Try again in a moment." },
@@ -263,17 +263,8 @@ export async function POST(request: NextRequest) {
         brand_voice_id: brandVoiceId || null,
         output_language: outputLanguage,
       };
-      let { data: job, error: cachedJobError } =
-        await insertRepurposeJobWithFallback(supabase, jobInsertPayload);
-      if (cachedJobError && isLikelyUserProfileFkError(cachedJobError)) {
-        try {
-          await ensureProfileReadyForSession(user, supabase);
-        } catch {
-          /* fall through to error response */
-        }
-        ({ data: job, error: cachedJobError } =
-          await insertRepurposeJobWithFallback(supabase, jobInsertPayload));
-      }
+      const { data: job, error: cachedJobError } =
+        await insertRepurposeJobWithProfileFixups(supabase, user, jobInsertPayload);
       if (cachedJobError || !job) {
         console.error("repurpose_jobs insert (cached path):", cachedJobError);
         captureError(cachedJobError ?? new Error("repurpose job insert returned no row"), {
@@ -350,17 +341,8 @@ export async function POST(request: NextRequest) {
       brand_voice_id: brandVoiceId || null,
       output_language: outputLanguage,
     };
-    let { data: job, error: jobInsertError } =
-      await insertRepurposeJobWithFallback(supabase, jobInsertPayloadMain);
-    if (jobInsertError && isLikelyUserProfileFkError(jobInsertError)) {
-      try {
-        await ensureProfileReadyForSession(user, supabase);
-      } catch {
-        /* fall through to error response */
-      }
-      ({ data: job, error: jobInsertError } =
-        await insertRepurposeJobWithFallback(supabase, jobInsertPayloadMain));
-    }
+    const { data: job, error: jobInsertError } =
+      await insertRepurposeJobWithProfileFixups(supabase, user, jobInsertPayloadMain);
 
     if (jobInsertError || !job) {
       console.error("repurpose_jobs insert:", jobInsertError);

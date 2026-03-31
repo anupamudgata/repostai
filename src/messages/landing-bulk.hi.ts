@@ -375,6 +375,7 @@ export const landingBulkHi: LandingBulk = {
     button: "मुफ़्त शुरू करें",
     footnote: "कार्ड की ज़रूरत नहीं। कभी भी अपग्रेड करें।",
   },
+  lifetimeRepurposeStat: "{count} लाइफ़टाइम रीपर्पज़",
   footer: {
     tagline: "AI से कंटेंट रीपर्पज़िंग। एक पोस्ट, हर प्लेटफ़ॉर्म, 60 सेकंड से कम।",
     product: "प्रोडक्ट",

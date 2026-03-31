@@ -2,6 +2,11 @@
 -- Paste into Supabase Dashboard → SQL Editor → New query → Run
 -- Fixes missing public.profiles rows (repurpose FK / "profile isn't ready").
 -- Safe to re-run: uses CREATE OR REPLACE, DROP IF EXISTS, ON CONFLICT DO NOTHING.
+--
+-- Production + local checklist (do both envs):
+--   1) Run this entire script on the project (local Supabase or hosted).
+--   2) Vercel / .env.local: SUPABASE_SERVICE_ROLE_KEY = service_role key (NOT anon).
+--   3) Same Supabase URL + anon key as in the dashboard for that project.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
@@ -10,31 +10,18 @@ const OnboardingBanner = dynamic(
   { ssr: false }
 );
 import {
-  Link as LinkIcon,
-  Type,
-  Youtube,
-  FileText,
   Loader2,
-  Copy,
-  Check,
   RefreshCw,
-  Lock,
   Send,
-  CalendarClock,
-  Info,
   Bot,
   ChevronRight,
-  Scissors,
   BarChart3,
   ThumbsUp,
   ThumbsDown,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -61,123 +48,23 @@ import {
   SUPPORTED_PLATFORMS,
   SUPPORTED_LANGUAGES,
   FREE_PLATFORM_IDS,
-  CONTENT_ANGLES,
-  HOOK_MODES,
 } from "@/config/constants";
-import { cn } from "@/lib/utils";
-
-const INPUT_TABS = [
-  { id: "text" as InputType, icon: Type },
-  { id: "url" as InputType, icon: LinkIcon },
-  { id: "youtube" as InputType, icon: Youtube },
-  { id: "pdf" as InputType, icon: FileText },
-];
+import { charDf as dfChar } from "@/components/dashboard/repurpose/character-count";
+import { PlatformPicker } from "@/components/dashboard/repurpose/platform-picker";
+import { GenerationPreviewStrip } from "@/components/dashboard/repurpose/generation-preview-strip";
+import { SourceInputPanel } from "@/components/dashboard/repurpose/source-input-panel";
+import {
+  QualityReadinessPanel,
+  buildReadinessItems,
+} from "@/components/dashboard/repurpose/quality-readiness-panel";
+import { WorkspaceHeader } from "@/components/dashboard/repurpose/workspace-header";
+import { WorkspaceSettingsRail } from "@/components/dashboard/repurpose/workspace-settings-rail";
+import {
+  OutputAssetCard,
+  type RefineIntent,
+} from "@/components/dashboard/repurpose/output-asset-card";
 
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
-
-function charDf(
-  template: string,
-  vars: Record<string, string | number>
-): string {
-  let s = template;
-  for (const [k, v] of Object.entries(vars)) {
-    s = s.replaceAll(`{${k}}`, String(v));
-  }
-  return s;
-}
-
-function CharacterCount({
-  content,
-  platformId,
-  maxLength,
-  platformName,
-}: {
-  content: string;
-  platformId: string;
-  maxLength: number | null;
-  platformName: string;
-}) {
-  const { locale } = useI18n();
-  const d = locale === "hi" ? dashboardBulkHi : dashboardBulkEn;
-  const c = d.charCount;
-  const len = content.length;
-  const isThread = platformId === "twitter_thread";
-  const tweetLines = isThread
-    ? content.split(/\n/).filter((l) => l.trim().length > 0)
-    : [];
-  const overLimit =
-    maxLength != null &&
-    (isThread
-      ? tweetLines.some((l) => l.length > maxLength!)
-      : len > maxLength);
-  const overTweets =
-    isThread && tweetLines.some((l) => l.length > 280)
-      ? tweetLines.filter((l) => l.length > 280).length
-      : 0;
-
-  const isTwitterSingle = platformId === "twitter_single";
-  const isInstagram = platformId === "instagram";
-  const remaining = maxLength != null && !isThread ? maxLength - len : null;
-  const firstLineLen = (isInstagram || isThread) ? (content.split("\n")[0]?.trim().length ?? 0) : 0;
-
-  return (
-    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-      {isThread ? (
-        <>
-          <span>{charDf(c.threadTotal, { count: len })}</span>
-          <span>·</span>
-          <span>{c.threadEach280}</span>
-          {tweetLines.length > 0 && (
-            <span>
-              (
-              {tweetLines.map((l, _i) => Math.max(0, 280 - l.length)).join(", ")}{" "}
-              {c.threadLeftSuffix})
-            </span>
-          )}
-          {overTweets > 0 && (
-            <span className="text-amber-600 dark:text-amber-500 font-medium">
-              {overTweets === 1
-                ? c.tweetOverLimitOne
-                : charDf(c.tweetOverLimitMany, { count: overTweets })}
-            </span>
-          )}
-        </>
-      ) : isTwitterSingle && maxLength != null ? (
-        <>
-          <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
-            {len} / {maxLength}
-          </span>
-          <span>
-            {charDf(c.leftParen, {
-              count: remaining != null && remaining >= 0 ? remaining : 0,
-            })}
-          </span>
-          {overLimit && (
-            <span className="text-amber-600 dark:text-amber-500 font-medium">{c.overLimit}</span>
-          )}
-        </>
-      ) : maxLength != null ? (
-        <>
-          <span className={overLimit ? "text-amber-600 dark:text-amber-500 font-medium" : ""}>
-            {charDf(c.slashChars, { current: len, max: maxLength })}
-          </span>
-          {isInstagram && (
-            <span title={c.firstLineTooltip}>
-              {charDf(c.firstLineBadge, { current: firstLineLen })}
-            </span>
-          )}
-          {overLimit && (
-            <span className="text-amber-600 dark:text-amber-500 font-medium">
-              {charDf(c.overLimitTrim, { platform: platformName })}
-            </span>
-          )}
-        </>
-      ) : (
-        <span>{charDf(c.plainChars, { count: len })}</span>
-      )}
-    </div>
-  );
-}
 
 export default function DashboardPage() {
   const pathname = usePathname();
@@ -192,16 +79,7 @@ export default function DashboardPage() {
     return p;
   }
 
-  function df(
-    template: string,
-    vars: Record<string, string | number>
-  ): string {
-    let s = template;
-    for (const [k, v] of Object.entries(vars)) {
-      s = s.replaceAll(`{${k}}`, String(v));
-    }
-    return s;
-  }
+  const df = dfChar;
   const [inputType, setInputType] = useState<InputType>("text");
   const [content, setContent] = useState("");
   const [url, setUrl] = useState("");
@@ -223,8 +101,7 @@ export default function DashboardPage() {
     { platform: Platform; content: string }[]
   >([]);
   const [lastJobId, setLastJobId] = useState<string | null>(null);
-  const [regeneratingPlatform, setRegeneratingPlatform] =
-    useState<Platform | null>(null);
+  const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
   /** null until first /api/me — avoids treating paid users as free on first paint */
@@ -262,6 +139,7 @@ export default function DashboardPage() {
   >([]);
   const [platformFitLoading, setPlatformFitLoading] = useState(false);
   const [profileSyncFailed, setProfileSyncFailed] = useState(false);
+  const [refiningKey, setRefiningKey] = useState<string | null>(null);
 
   const topRef = useRef<HTMLDivElement>(null);
 
@@ -272,7 +150,7 @@ export default function DashboardPage() {
     setPlatformFitScores([]);
     setPlatformFitLoading(false);
     setCopiedPlatform(null);
-    setRegeneratingPlatform(null);
+    setRegeneratingKey(null);
   }, []);
 
   const handleStartNew = useCallback(() => {
@@ -282,7 +160,7 @@ export default function DashboardPage() {
     setPlatformFitScores([]);
     setPlatformFitLoading(false);
     setCopiedPlatform(null);
-    setRegeneratingPlatform(null);
+    setRegeneratingKey(null);
     setContent("");
     setUrl("");
     setBulkUrls("");
@@ -588,17 +466,19 @@ export default function DashboardPage() {
     setTimeout(() => setCopiedPlatform(null), 2000);
   }
 
-  async function handleRegenerate(platform: Platform) {
-    if (!lastJobId) {
+  async function handleRegenerate(platform: Platform, jobId?: string) {
+    const jid = jobId ?? lastJobId;
+    if (!jid) {
       toastT.error("toast.regenerateFirst");
       return;
     }
-    setRegeneratingPlatform(platform);
+    const rk = `${jid}-${platform}`;
+    setRegeneratingKey(rk);
     try {
       const res = await fetch("/api/repurpose/regenerate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: lastJobId, platform }),
+        body: JSON.stringify({ jobId: jid, platform }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -613,11 +493,78 @@ export default function DashboardPage() {
           o.platform === platform ? { ...o, content: data.content } : o
         )
       );
+      setBulkSources((prev) =>
+        prev.map((src) =>
+          src.jobId !== jid
+            ? src
+            : {
+                ...src,
+                outputs: src.outputs.map((o) =>
+                  o.platform === platform ? { ...o, content: data.content } : o
+                ),
+              }
+        )
+      );
       toastT.success("toast.regenerated");
     } catch {
       toastT.error("toast.networkErrorShort");
     } finally {
-      setRegeneratingPlatform(null);
+      setRegeneratingKey(null);
+    }
+  }
+
+  async function handleRefine(
+    platform: Platform,
+    intent: RefineIntent,
+    jobId?: string
+  ) {
+    const jid = jobId ?? lastJobId;
+    if (!jid) {
+      toastT.error("toast.regenerateFirst");
+      return;
+    }
+    const key = `${jid}-${platform}-${intent}`;
+    setRefiningKey(key);
+    try {
+      const res = await fetch("/api/repurpose/regenerate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobId: jid,
+          platform,
+          refineIntent: intent,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toastT.errorFromApi(
+          { error: data.error, code: data.code },
+          "toast.regenerationFailed"
+        );
+        return;
+      }
+      setOutputs((prev) =>
+        prev.map((o) =>
+          o.platform === platform ? { ...o, content: data.content } : o
+        )
+      );
+      setBulkSources((prev) =>
+        prev.map((src) =>
+          src.jobId !== jid
+            ? src
+            : {
+                ...src,
+                outputs: src.outputs.map((o) =>
+                  o.platform === platform ? { ...o, content: data.content } : o
+                ),
+              }
+        )
+      );
+      toastT.success("toast.regenerated");
+    } catch {
+      toastT.error("toast.networkErrorShort");
+    } finally {
+      setRefiningKey(null);
     }
   }
 
@@ -794,8 +741,40 @@ export default function DashboardPage() {
     }
   }
 
+  const limitReached =
+    !!usage && usage.limit != null && usage.count >= usage.limit;
+
+  const readinessItems = useMemo(
+    () =>
+      buildReadinessItems(d, {
+        inputType,
+        content,
+        url,
+        bulkUrls,
+        bulkMode,
+        pdfExtractedText,
+        selectedCount: selectedPlatforms.length,
+        limitReached,
+        isValidUrl,
+        parseBulkUrls,
+      }),
+    [
+      d,
+      inputType,
+      content,
+      url,
+      bulkUrls,
+      bulkMode,
+      pdfExtractedText,
+      selectedPlatforms.length,
+      limitReached,
+    ]
+  );
+
+  const canGenerate = readinessItems.every((i) => i.ok);
+
   return (
-    <div ref={topRef} className="space-y-6 sm:space-y-8 pb-8">
+    <div ref={topRef} className="pb-10">
       <OnboardingBanner />
       {profileSyncFailed && (
         <div
@@ -814,516 +793,143 @@ export default function DashboardPage() {
           </Button>
         </div>
       )}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
-              {d.title}
-            </span>
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground mt-1.5">
-            {d.subtitle}
-          </p>
-        </div>
-        {usage && (
-          <div className="flex flex-col items-start sm:items-end gap-2 min-w-[200px] max-w-sm bg-card border border-border/60 rounded-xl px-4 py-3 shadow-sm">
-            <span className="text-xs font-semibold text-muted-foreground text-right">
-              {usage.limit != null
-                ? df(d.usageLine, { count: usage.count, limit: usage.limit })
-                : df(d.usageLineUnlimited, { count: usage.count })}
-            </span>
-            {usage.limit != null && (
-              <div className="w-full h-2 rounded-full bg-muted overflow-hidden">
-                {(() => {
-                  const pct = Math.min(100, (usage.count / usage.limit!) * 100);
-                  const cls = pct >= 90 ? "usage-bar-fill danger" : pct >= 70 ? "usage-bar-fill warn" : "usage-bar-fill";
-                  return <div className={`h-full rounded-full ${cls}`} style={{ width: `${pct}%` }} />;
-                })()}
-              </div>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {df(d.resetsInDays, { days: usage.daysUntilReset })}
-            </span>
-            {usage.limit != null && usage.count >= Math.max(0, usage.limit - 2) && (
-              <Link href="/#pricing">
-                <Button size="sm" variant="outline" className="h-7 text-xs font-semibold border-primary/40 text-primary hover:bg-primary/5">
-                  {d.upgrade} ↑
-                </Button>
-              </Link>
-            )}
-          </div>
-        )}
-      </div>
+
+      <div className="flex flex-col xl:flex-row gap-8 xl:items-start mt-6">
+        <div className="flex-1 min-w-0 space-y-8">
+          <WorkspaceHeader
+            d={d}
+            df={df}
+            usage={usage}
+            loading={loading}
+            generateDisabled={!canGenerate}
+            onGenerate={handleRepurpose}
+            bulkMode={bulkMode}
+            inputType={inputType}
+            bulkUrlCount={parseBulkUrls(bulkUrls).filter(isValidUrl).length}
+            selectedPlatformCount={selectedPlatforms.length}
+          />
 
       {/* Content Agent CTA */}
       <Link href="/dashboard/agent">
-        <div className="relative overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-r from-primary/8 via-purple-500/5 to-transparent hover:from-primary/14 hover:border-primary/40 transition-all duration-300 cursor-pointer group shadow-sm hover:shadow-md hover:shadow-primary/10">
-          <div className="absolute top-0 right-0 w-32 h-full bg-gradient-to-l from-primary/5 to-transparent pointer-events-none" />
-          <div className="px-5 py-4 flex items-center gap-4">
-            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/15 flex items-center justify-center shrink-0 group-hover:from-primary/30 group-hover:to-purple-500/25 transition-all duration-300">
-              <Bot className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm">{d.contentAgentTitle}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {d.contentAgentSubtitle}
-              </p>
-            </div>
-            <div className="shrink-0 flex items-center gap-1.5 text-xs font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              Try it <ChevronRight className="h-4 w-4" />
-            </div>
-            <ChevronRight className="h-5 w-5 text-muted-foreground shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200" />
+        <div className="agent-cta-card rounded-xl border border-border/60 bg-card px-4 py-3 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg icon-gradient-purple flex items-center justify-center shrink-0">
+            <Bot className="h-5 w-5 text-primary" />
           </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm">{d.contentAgentTitle}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              {d.contentAgentSubtitle}
+            </p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0 transition-transform group-hover:translate-x-0.5" />
         </div>
       </Link>
 
-      {/* Input Section */}
-      <Card className="dash-card border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-bold">{d.yourContent}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs
-            value={inputType}
-            onValueChange={(v) => setInputType(v as InputType)}
+      <SourceInputPanel
+        d={d}
+        df={df}
+        toastT={toastT}
+        inputType={inputType}
+        setInputType={setInputType}
+        content={content}
+        setContent={setContent}
+        url={url}
+        setUrl={setUrl}
+        bulkMode={bulkMode}
+        setBulkMode={setBulkMode}
+        bulkUrls={bulkUrls}
+        setBulkUrls={setBulkUrls}
+        selectedPlatformCount={selectedPlatforms.length}
+        pdfExtracting={pdfExtracting}
+        setPdfExtracting={setPdfExtracting}
+        pdfFileName={pdfFileName}
+        setPdfFileName={setPdfFileName}
+        pdfExtractedText={pdfExtractedText}
+        setPdfExtractedText={setPdfExtractedText}
+      />
+
+      {/* Destinations — grouped platforms */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold text-foreground tracking-tight">
+          {d.outputPlatformsTitle}
+        </h2>
+        <PlatformPicker
+          d={d}
+          isFreePlan={isFreePlan}
+          freePlatformSet={FREE_PLATFORMS_SET}
+          selectedPlatforms={selectedPlatforms}
+          onToggle={togglePlatform}
+        />
+      </section>
+
+      <GenerationPreviewStrip
+        d={d}
+        df={df}
+        selectedPlatforms={selectedPlatforms}
+        bulkMode={bulkMode}
+        inputType={inputType}
+        bulkUrlCount={parseBulkUrls(bulkUrls).filter(isValidUrl).length}
+      />
+
+      {!loading &&
+        outputs.length === 0 &&
+        bulkSources.length === 0 && (
+          <div
+            className="rounded-xl border border-dashed border-primary/20 bg-primary/3 px-5 py-12 text-center space-y-2"
+            aria-live="polite"
           >
-            <TabsList className="grid grid-cols-4 w-full max-w-md min-h-[44px]">
-              {INPUT_TABS.map((tab) => (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className="gap-1.5 text-xs sm:text-sm min-h-[44px] touch-manipulation"
-                >
-                  <tab.icon className="h-3.5 w-3.5 shrink-0" />
-                  <span className="hidden sm:inline">
-                    {d.inputTabs[tab.id as keyof typeof d.inputTabs]}
-                  </span>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-
-            <TabsContent value="text" className="mt-4">
-              <Textarea
-                placeholder={d.placeholderText}
-                className="min-h-[200px] resize-y"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
-            </TabsContent>
-
-            <TabsContent value="url" className="mt-4 space-y-4">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBulkMode(false);
-                    setBulkUrls("");
-                  }}
-                  className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
-                    !bulkMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {d.singleUrl}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setBulkMode(true);
-                    setUrl("");
-                  }}
-                  className={`text-sm font-medium px-3 py-1.5 rounded-md transition-colors ${
-                    bulkMode ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
-                  }`}
-                >
-                  {d.bulkUrls}
-                </button>
-              </div>
-              {bulkMode ? (
-                <div>
-                  <Label htmlFor="bulk-urls">{d.bulkUrlsLabel}</Label>
-                  <Textarea
-                    id="bulk-urls"
-                    placeholder={"https://example.com/post-1\nhttps://example.com/post-2\nhttps://example.com/post-3"}
-                    className="min-h-[140px] mt-2 font-mono text-sm"
-                    value={bulkUrls}
-                    onChange={(e) => setBulkUrls(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {df(d.bulkUrlsHint, {
-                      platforms: selectedPlatforms.length,
-                      max: selectedPlatforms.length * 5,
-                    })}
-                  </p>
-                </div>
-              ) : (
-                <div>
-                  <Label htmlFor="blog-url">{d.blogUrlLabel}</Label>
-                  <Input
-                    id="blog-url"
-                    type="url"
-                    placeholder="https://example.com/my-blog-post"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {d.blogUrlHint}
-                  </p>
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="youtube" className="mt-4 space-y-3">
-              <div>
-                <Label htmlFor="yt-url">{d.youtubeLabel}</Label>
-                <Input
-                  id="yt-url"
-                  type="url"
-                  placeholder="https://youtube.com/watch?v=..."
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {d.youtubeHint}
-                </p>
-              </div>
-              <Link href="/dashboard/clips" className="block">
-                <p className="text-sm text-primary hover:underline flex items-center gap-1.5">
-                  <Scissors className="h-4 w-4" />
-                  {d.clipsLink}
-                </p>
-              </Link>
-            </TabsContent>
-
-            <TabsContent value="pdf" className="mt-4">
-              <div className="border-2 border-dashed rounded-lg p-6">
-                <Label htmlFor="pdf-upload" className="cursor-pointer block">
-                  <div className="text-center py-4">
-                    <FileText className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                    <p className="text-sm font-medium text-foreground">
-                      {pdfFileName ? pdfFileName : d.pdfUpload}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {d.pdfHint}
-                    </p>
-                    {pdfExtracting && (
-                      <Loader2 className="h-5 w-5 mx-auto mt-2 animate-spin text-muted-foreground" />
-                    )}
-                  </div>
-                </Label>
-                <input
-                  id="pdf-upload"
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  className="hidden"
-                  disabled={pdfExtracting}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setPdfExtracting(true);
-                    setPdfFileName("");
-                    setPdfExtractedText("");
-                    try {
-                      const formData = new FormData();
-                      formData.append("file", file);
-                      const res = await fetch("/api/pdf/extract", {
-                        method: "POST",
-                        body: formData,
-                      });
-                      let data: { error?: string; code?: string; text?: string };
-                      try {
-                        data = await res.json();
-                      } catch {
-                        toastT.error("toast.invalidServerResponse");
-                        return;
-                      }
-                      if (!res.ok) {
-                        toastT.errorFromApi(
-                          { error: data.error, code: data.code },
-                          "toast.failedExtractPdf"
-                        );
-                        return;
-                      }
-                      setPdfFileName(file.name);
-                      setPdfExtractedText(data.text ?? "");
-                      toastT.success("toast.pdfExtracted");
-                    } catch (err) {
-                      if (err instanceof Error && err.message) {
-                        toastT.errorFromApi({ error: err.message });
-                      } else {
-                        toastT.error("toast.failedProcessPdf");
-                      }
-                    } finally {
-                      setPdfExtracting(false);
-                      e.target.value = "";
-                    }
-                  }}
-                />
-                {pdfExtractedText && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {df(d.pdfChars, { count: pdfExtractedText.length })}
-                  </p>
-                )}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-
-      {/* Brand voice: native select on free plan (avoids Radix scroll-lock on some devices). */}
-      <Card className="dash-card border-border/60 shadow-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-bold">{d.brandVoiceCardTitle}</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              {useNativeBrandVoiceSelect
-                ? d.freeBrandVoiceCardSubtitle
-                : d.brandVoiceCardSubtitle}
-            </p>
-          </CardHeader>
-          <CardContent>
-            {useNativeBrandVoiceSelect ? (
-              <select
-                id="brand-voice-select-free"
-                className={cn(
-                  "flex h-9 w-full max-w-sm rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-xs",
-                  "focus-visible:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                )}
-                value={brandVoiceId || "none"}
-                onChange={(e) =>
-                  setBrandVoiceId(e.target.value === "none" ? "" : e.target.value)
-                }
-                aria-label={d.brandVoiceCardTitle}
-              >
-                <option value="none">{d.noBrandVoice}</option>
-                {brandVoices.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.name}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <Select
-                value={brandVoiceId || "none"}
-                onValueChange={(v) => setBrandVoiceId(v === "none" ? "" : v)}
-              >
-                <SelectTrigger className="w-full max-w-sm">
-                  <SelectValue placeholder={d.noBrandVoice} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">{d.noBrandVoice}</SelectItem>
-                  {brandVoices.map((v) => (
-                    <SelectItem key={v.id} value={v.id}>
-                      {v.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              <Link
-                href="/dashboard/brand-voice"
-                className="font-medium text-primary hover:underline"
-              >
-                {d.addVoiceLink}
-              </Link>
-              {" "}
-              {d.addVoiceSuffix}
-            </p>
-          </CardContent>
-        </Card>
-
-      {/* Platform Selection — touch-optimized (min 44px tap targets) */}
-      <Card className="dash-card border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg font-bold">{d.outputPlatformsTitle}</CardTitle>
-          {isFreePlan && (
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              {d.freePlanPlatformsBefore}{" "}
-              <Link href="/#pricing" className="text-primary hover:underline">
-                {d.freePlanPlatformsLink}
-              </Link>{" "}
-              {d.freePlanPlatformsAfter}
-            </p>
-          )}
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-3">
-            {SUPPORTED_PLATFORMS.map((platform) => {
-              const isLocked = isFreePlan && !FREE_PLATFORMS_SET.has(platform.id);
-              const isSelected = selectedPlatforms.includes(platform.id as Platform);
-              return (
-                <button
-                  key={platform.id}
-                  type="button"
-                  disabled={isLocked}
-                  onClick={() => !isLocked && togglePlatform(platform.id as Platform)}
-                  title={isLocked ? d.platformLockTitle : undefined}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-xl border text-sm font-semibold transition-all duration-200",
-                    "min-h-[44px] px-4 py-2.5 touch-manipulation select-none",
-                    isLocked
-                      ? "opacity-50 cursor-not-allowed border-muted bg-muted/30 text-muted-foreground"
-                      : isSelected
-                        ? "platform-chip-selected"
-                        : "bg-card hover:bg-muted/50 border-border/60 hover:border-primary/40 hover:text-primary"
-                  )}
-                >
-                  {isLocked && <Lock className="h-3.5 w-3.5 shrink-0" />}
-                  {isSelected && !isLocked && <Check className="h-3.5 w-3.5 shrink-0" />}
-                  {platform.name}
-                </button>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Content Angle + Hook Mode */}
-      <Card className="dash-card border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-bold">{d.generateAsTitle}</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            {d.generateAsSubtitle}
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">{d.contentAngleLabel}</Label>
-              <Select value={contentAngle} onValueChange={setContentAngle}>
-                <SelectTrigger className="w-full min-h-[44px] mt-1">
-                  <SelectValue placeholder={d.selectAngle} />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_ANGLES.map((angle) => (
-                    <SelectItem key={angle.id} value={angle.id} title={angle.description}>
-                      {angle.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="h-10 w-10 rounded-full icon-gradient-purple flex items-center justify-center mx-auto mb-3">
+              <Zap className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex-1">
-              <Label className="text-xs text-muted-foreground">{d.hookModeLabel}</Label>
-              <Select value={hookMode} onValueChange={setHookMode}>
-                <SelectTrigger className="w-full min-h-[44px] mt-1">
-                  <SelectValue placeholder={d.selectHook} />
-                </SelectTrigger>
-                <SelectContent>
-                  {HOOK_MODES.map((mode) => (
-                    <SelectItem key={mode.id} value={mode.id} title={mode.description}>
-                      {mode.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Language Selection */}
-      <Card className="dash-card border-border/60 shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-bold">{d.outputLanguageTitle}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <Select
-              value={outputLanguage}
-              onValueChange={(v) => setOutputLanguage(v as OutputLanguage)}
-            >
-              <SelectTrigger className="w-full sm:w-[220px] min-h-[44px]">
-                <SelectValue placeholder={d.selectLanguage} />
-              </SelectTrigger>
-              <SelectContent>
-                {SUPPORTED_LANGUAGES.map((lang) => (
-                  <SelectItem key={lang.id} value={lang.id} lang={lang.id}>
-                    <span className="flex items-center gap-2">
-                      <span>{lang.flag}</span>
-                      <span>{lang.name}</span>
-                      <span
-                        lang={lang.id}
-                        className="font-native-script text-muted-foreground text-xs"
-                      >
-                        ({lang.nativeName})
-                      </span>
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-sm text-muted-foreground">
-              {
-                d.outputLangHint[
-                  outputLanguage as keyof typeof d.outputLangHint
-                ]
-              }
+            <p className="text-sm font-semibold text-foreground">
+              {d.emptyCanvasTitle}
+            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed max-w-md mx-auto">
+              {d.emptyCanvasBody}
             </p>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* What you want — optional intent */}
-      <Card className="dash-card border-border/60 shadow-sm">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-bold">{d.intentTitle}</CardTitle>
-          <p className="text-sm text-muted-foreground font-normal">
-            {d.intentSubtitle}
-          </p>
-        </CardHeader>
-        <CardContent>
-          <Input
-            placeholder={d.intentPlaceholder}
-            value={userIntent}
-            onChange={(e) => setUserIntent(e.target.value)}
-            className="max-w-xl"
-            maxLength={300}
-          />
-          {userIntent.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">{userIntent.length}/300</p>
-          )}
-        </CardContent>
-      </Card>
-
-      <p className="flex items-center gap-2 text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5 shrink-0" />
-        {d.infoSerious}
-      </p>
-
-      {/* Generate Button — glowing CTA */}
-      <Button
-        size="lg"
-        className="w-full min-h-[56px] text-base sm:text-lg touch-manipulation btn-generate rounded-xl font-bold tracking-wide"
-        onClick={handleRepurpose}
-        disabled={loading}
-      >
-        {loading ? (
-          <>
-            <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-            {inputType === "url" && bulkMode
-              ? df(d.generatingBulk, {
-                  sources: parseBulkUrls(bulkUrls).filter(isValidUrl).length,
-                  platforms: selectedPlatforms.length,
-                })
-              : df(d.generatingSingle, {
-                  platforms: selectedPlatforms.length,
-                })}
-          </>
-        ) : (
-          <>
-            <RefreshCw className="h-5 w-5 mr-2" />
-            {inputType === "url" && bulkMode
-              ? df(d.repurposeBulk, { platforms: selectedPlatforms.length })
-              : df(d.repurposeSingle, {
-                  platforms: selectedPlatforms.length,
-                })}
-          </>
         )}
-      </Button>
 
-      {/* Output Section — single column on mobile */}
+      {loading && outputs.length === 0 && bulkSources.length === 0 && (
+        <div
+          className="rounded-xl border border-primary/20 bg-primary/4 px-5 py-12 flex flex-col items-center gap-3"
+          aria-busy="true"
+        >
+          <div className="relative">
+            <div className="h-12 w-12 rounded-full icon-gradient-purple flex items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-foreground">{d.repurposeLoading}</p>
+          <p className="text-xs text-muted-foreground">This usually takes 10–20 seconds</p>
+        </div>
+      )}
+
+        </div>
+
+        <aside className="w-full xl:w-[min(100%,340px)] shrink-0 space-y-5 xl:sticky xl:top-4 xl:self-start">
+          <QualityReadinessPanel d={d} items={readinessItems} />
+          <WorkspaceSettingsRail
+            d={d}
+            useNativeBrandVoiceSelect={useNativeBrandVoiceSelect}
+            brandVoiceId={brandVoiceId}
+            setBrandVoiceId={setBrandVoiceId}
+            brandVoices={brandVoices}
+            outputLanguage={outputLanguage}
+            setOutputLanguage={setOutputLanguage}
+            contentAngle={contentAngle}
+            setContentAngle={setContentAngle}
+            hookMode={hookMode}
+            setHookMode={setHookMode}
+            userIntent={userIntent}
+            setUserIntent={setUserIntent}
+          />
+        </aside>
+      </div>
+
+      {/* Output Section — full width below workspace + rail */}
       {(outputs.length > 0 || bulkSources.length > 0) && (
-        <div className="space-y-4">
+        <div className="mt-10 space-y-4 animate-page-in">
           <p className="text-sm text-muted-foreground">
             {d.generatedIntro}
             {isFreePlan && (
@@ -1339,7 +945,9 @@ export default function DashboardPage() {
           <div className="space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-xl sm:text-2xl font-bold">{d.generatedHeading}</h2>
+                <h2 className="text-lg sm:text-xl font-semibold tracking-tight">
+                  {d.assetsHeading}
+                </h2>
               </div>
               {hasPaidPlan && bulkSources.length === 0 && (
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -1367,8 +975,10 @@ export default function DashboardPage() {
             </div>
 
             {/* Quick action bar — change language or start fresh without scrolling */}
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/30 px-3 py-2.5">
-              <span className="text-xs font-medium text-muted-foreground shrink-0">Re-generate in:</span>
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm px-3 py-2.5 shadow-sm">
+              <span className="text-xs font-medium text-muted-foreground shrink-0">
+                {d.quickRegenerateInLabel}
+              </span>
               <Select
                 value={outputLanguage}
                 onValueChange={(v) => setOutputLanguage(v as OutputLanguage)}
@@ -1389,7 +999,8 @@ export default function DashboardPage() {
               </Select>
               <Button
                 size="sm"
-                className="h-8 text-xs px-3 gap-1.5 bg-gradient-to-r from-primary to-violet-500 hover:from-primary/90 hover:to-violet-500/90 font-semibold shadow-sm"
+                variant="default"
+                className="h-8 text-xs px-3 gap-1.5 font-semibold"
                 onClick={handleRepurpose}
                 disabled={loading}
               >
@@ -1398,7 +1009,7 @@ export default function DashboardPage() {
                 ) : (
                   <RefreshCw className="h-3 w-3" />
                 )}
-                Re-generate
+                {d.quickRegenerateBtn}
               </Button>
               <div className="flex-1" />
               <Button
@@ -1408,7 +1019,7 @@ export default function DashboardPage() {
                 className="h-8 text-xs px-3 gap-1.5 border-border/60"
                 onClick={handleStartNew}
               >
-                + New Post
+                + {d.quickNewPostBtn}
               </Button>
             </div>
           </div>
@@ -1542,84 +1153,66 @@ export default function DashboardPage() {
                   </div>
                   <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                     {source.outputs.map((output) => {
-                      const platformInfo = SUPPORTED_PLATFORMS.find((p) => p.id === output.platform);
+                      const platformInfo = SUPPORTED_PLATFORMS.find(
+                        (p) => p.id === output.platform
+                      );
                       const provider = platformProvider(output.platform);
-                      const account = provider ? connectedAccounts.find((a) => a.platform === provider) : null;
+                      const account = provider
+                        ? connectedAccounts.find((a) => a.platform === provider)
+                        : null;
+                      const copyKey = `${source.jobId}-${output.platform}`;
+                      const scopeId = source.jobId;
                       return (
-                        <Card key={output.platform}>
-                          <CardHeader className="pb-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <CardTitle className="text-base">{platformInfo?.name || output.platform}</CardTitle>
-                              <div className="flex gap-2 flex-wrap items-center">
-                                {provider && (
-                                  <>
-                                    <Button
-                                      size="sm"
-                                      variant="default"
-                                      className="min-h-[40px] touch-manipulation"
-                                      onClick={() => account && handlePostNow(output.platform, account.id, source.jobId)}
-                                      disabled={postingPlatform !== null || !account || bulkPosting}
-                                      title={
-                                        !account
-                                          ? df(d.connectProvider, {
-                                              provider: providerLabel(provider),
-                                            })
-                                          : undefined
-                                      }
-                                    >
-                                      {postingPlatform === output.platform ? (
-                                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                      ) : (
-                                        <>
-                                          <Send className="h-3.5 w-3.5 mr-1" /> {d.postNow}
-                                        </>
-                                      )}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="min-h-[40px] touch-manipulation"
-                                      onClick={() => openScheduleModal(output.platform, source.jobId)}
-                                      disabled={scheduleSubmitting}
-                                      title={
-                                        !account
-                                          ? df(d.connectToScheduleTitle, {
-                                              provider: providerLabel(provider),
-                                            })
-                                          : undefined
-                                      }
-                                    >
-                                      <CalendarClock className="h-3.5 w-3.5 mr-1" />
-                                      {d.schedule}
-                                    </Button>
-                                  </>
-                                )}
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  className="min-h-[40px] touch-manipulation"
-                                  onClick={() => handleCopy(output.platform, output.content, `${source.jobId}-${output.platform}`)}
-                                >
-                                  {copiedPlatform === `${source.jobId}-${output.platform}` ? (
-                                    <>
-                                      <Check className="h-3.5 w-3.5 mr-1" /> {d.copied}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Copy className="h-3.5 w-3.5 mr-1" /> {d.copy}
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                            </div>
-                          </CardHeader>
-                          <CardContent className="space-y-2">
-                            <div className="bg-muted/50 rounded-lg p-4 text-sm font-sans whitespace-pre-wrap max-h-80 overflow-y-auto">
-                              {output.content}
-                            </div>
-                            {platformInfo && <CharacterCount content={output.content} platformId={output.platform} maxLength={platformInfo.maxLength} platformName={platformInfo.name} />}
-                          </CardContent>
-                        </Card>
+                        <OutputAssetCard
+                          key={output.platform}
+                          d={d}
+                          output={output}
+                          platformName={platformInfo?.name ?? output.platform}
+                          maxLength={platformInfo?.maxLength ?? null}
+                          provider={provider}
+                          account={account ?? undefined}
+                          copied={copiedPlatform === copyKey}
+                          regenerating={
+                            regeneratingKey === `${scopeId}-${output.platform}`
+                          }
+                          refineBusyKey={refiningKey}
+                          refineScopeId={scopeId}
+                          posting={postingPlatform === output.platform}
+                          bulkPosting={bulkPosting}
+                          scheduleSubmitting={scheduleSubmitting}
+                          onCopy={() =>
+                            handleCopy(output.platform, output.content, copyKey)
+                          }
+                          onRegenerate={() =>
+                            handleRegenerate(output.platform, source.jobId)
+                          }
+                          onRefine={(intent) =>
+                            handleRefine(output.platform, intent, source.jobId)
+                          }
+                          onPostNow={() =>
+                            account &&
+                            handlePostNow(
+                              output.platform,
+                              account.id,
+                              source.jobId
+                            )
+                          }
+                          onSchedule={() =>
+                            openScheduleModal(output.platform, source.jobId)
+                          }
+                          connectHref={
+                            !account && provider
+                              ? "/dashboard/connections"
+                              : undefined
+                          }
+                          connectLabel={
+                            !account && provider
+                              ? df(d.connectProvider, {
+                                  provider: providerLabel(provider),
+                                })
+                              : undefined
+                          }
+                        />
                       );
                     })}
                   </div>
@@ -1627,113 +1220,60 @@ export default function DashboardPage() {
               ))
             ) : (
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-              {outputs.map((output) => {
-                const platformInfo = SUPPORTED_PLATFORMS.find(
-                  (p) => p.id === output.platform
-                );
-                const provider = platformProvider(output.platform);
-                const account = provider
-                  ? connectedAccounts.find((a) => a.platform === provider)
-                  : null;
-                return (
-                  <Card key={output.platform} className="output-card border-border/60 shadow-sm overflow-hidden">
-                  <CardHeader className="pb-3 bg-gradient-to-r from-muted/40 to-transparent border-b border-border/40">
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-primary inline-block" />
-                        {platformInfo?.name || output.platform}
-                      </CardTitle>
-                      <div className="flex gap-1.5 flex-wrap items-center">
-                        {provider && (
-                          <>
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="h-8 px-2.5 text-xs touch-manipulation font-semibold"
-                              onClick={() =>
-                                account
-                                  ? handlePostNow(output.platform, account.id)
-                                  : undefined
-                              }
-                              disabled={postingPlatform !== null || !account || bulkPosting}
-                              title={
-                                !account && provider
-                                  ? df(d.connectToPostTitle, {
-                                      provider: providerLabel(provider),
-                                    })
-                                  : undefined
-                              }
-                            >
-                              {postingPlatform === output.platform ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                <><Send className="h-3 w-3 mr-1" />{d.postNow}</>
-                              )}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 px-2.5 text-xs touch-manipulation"
-                              onClick={() => openScheduleModal(output.platform)}
-                              disabled={scheduleSubmitting}
-                            >
-                              <CalendarClock className="h-3 w-3 mr-1" />
-                              {d.schedule}
-                            </Button>
-                            {!account && provider && (
-                              <Link
-                                href="/dashboard/connections"
-                                className="text-xs text-primary hover:underline font-medium"
-                              >
-                                {df(d.connectProvider, { provider: providerLabel(provider) })}
-                              </Link>
-                            )}
-                          </>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 px-2 text-xs touch-manipulation text-muted-foreground hover:text-foreground"
-                          onClick={() => handleRegenerate(output.platform)}
-                          disabled={regeneratingPlatform !== null}
-                        >
-                          {regeneratingPlatform === output.platform ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-3 w-3" />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className={cn("h-8 px-2 text-xs touch-manipulation", copiedPlatform === output.platform ? "text-primary" : "text-muted-foreground hover:text-foreground")}
-                          onClick={() => handleCopy(output.platform, output.content)}
-                        >
-                          {copiedPlatform === output.platform ? (
-                            <Check className="h-3 w-3" />
-                          ) : (
-                            <Copy className="h-3 w-3" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2 pt-4">
-                    <div className="bg-muted/30 rounded-xl p-4 text-sm font-sans whitespace-pre-wrap max-h-80 overflow-y-auto leading-relaxed border border-border/30">
-                      {output.content}
-                    </div>
-                    {platformInfo && (
-                      <CharacterCount
-                        content={output.content}
-                        platformId={output.platform}
-                        maxLength={platformInfo.maxLength}
-                        platformName={platformInfo.name}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                {outputs.map((output) => {
+                  const platformInfo = SUPPORTED_PLATFORMS.find(
+                    (p) => p.id === output.platform
+                  );
+                  const provider = platformProvider(output.platform);
+                  const account = provider
+                    ? connectedAccounts.find((a) => a.platform === provider)
+                    : null;
+                  const scopeId = lastJobId ?? "";
+                  return (
+                    <OutputAssetCard
+                      key={output.platform}
+                      d={d}
+                      output={output}
+                      platformName={platformInfo?.name ?? output.platform}
+                      maxLength={platformInfo?.maxLength ?? null}
+                      provider={provider}
+                      account={account ?? undefined}
+                      copied={copiedPlatform === output.platform}
+                      regenerating={
+                        regeneratingKey === `${scopeId}-${output.platform}`
+                      }
+                      refineBusyKey={refiningKey}
+                      refineScopeId={scopeId}
+                      posting={postingPlatform === output.platform}
+                      bulkPosting={bulkPosting}
+                      scheduleSubmitting={scheduleSubmitting}
+                      onCopy={() =>
+                        handleCopy(output.platform, output.content)
+                      }
+                      onRegenerate={() => handleRegenerate(output.platform)}
+                      onRefine={(intent) =>
+                        handleRefine(output.platform, intent)
+                      }
+                      onPostNow={() =>
+                        account &&
+                        handlePostNow(output.platform, account.id)
+                      }
+                      onSchedule={() => openScheduleModal(output.platform)}
+                      connectHref={
+                        !account && provider
+                          ? "/dashboard/connections"
+                          : undefined
+                      }
+                      connectLabel={
+                        !account && provider
+                          ? df(d.connectProvider, {
+                              provider: providerLabel(provider),
+                            })
+                          : undefined
+                      }
+                    />
+                  );
+                })}
               </div>
             )}
           </div>

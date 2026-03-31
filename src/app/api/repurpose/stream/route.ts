@@ -1,6 +1,6 @@
 import { NextRequest }                   from "next/server";
 import { createClient }                  from "@/lib/supabase/server";
-import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
+import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import {
@@ -11,10 +11,7 @@ import {
 import { burstLimiter } from "@/lib/ratelimit";
 import { addFreeTierWatermark }          from "@/lib/watermark";
 import { captureError }                  from "@/lib/sentry";
-import {
-  insertRepurposeJobWithFallback,
-  isLikelyUserProfileFkError,
-} from "@/lib/supabase/insert-repurpose-job";
+import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 import { openai } from "@/lib/ai/client";
 import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
 import {
@@ -236,7 +233,7 @@ export async function POST(req: NextRequest) {
         if (authError || !user) { send({ type: "error", error: "Unauthorized." }); close(); return; }
 
         try {
-          await ensureProfileReadyForSession(user, supabase);
+          await ensureProfileForRepurposeInsert(user, supabase);
         } catch {
           send({
             type: "error",
@@ -370,15 +367,11 @@ export async function POST(req: NextRequest) {
               brand_voice_id: brandVoiceId || null,
               output_language: language,
             };
-            let { data: job, error: jobErr } = await insertRepurposeJobWithFallback(supabase, jobPayload);
-            if (jobErr && isLikelyUserProfileFkError(jobErr)) {
-              try {
-                await ensureProfileReadyForSession(user, supabase);
-              } catch {
-                /* keep jobErr; save skipped below */
-              }
-              ({ data: job, error: jobErr } = await insertRepurposeJobWithFallback(supabase, jobPayload));
-            }
+            const { data: job, error: jobErr } = await insertRepurposeJobWithProfileFixups(
+              supabase,
+              user,
+              jobPayload
+            );
             if (job && !jobErr) {
               const outputRows = Object.entries(resultsToSave).map(([p, gen]) => ({
                 job_id: job.id,

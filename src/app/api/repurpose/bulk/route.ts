@@ -10,11 +10,8 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
-import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
-import {
-  insertRepurposeJobWithFallback,
-  isLikelyUserProfileFkError,
-} from "@/lib/supabase/insert-repurpose-job";
+import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
+import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 
 const MAX_BULK_URLS = 5;
 const MIN_BULK_URLS = 2;
@@ -55,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await ensureProfileReadyForSession(user, supabase);
+      await ensureProfileForRepurposeInsert(user, supabase);
     } catch {
       return NextResponse.json(
         { error: "Could not prepare your account. Try again in a moment." },
@@ -253,17 +250,11 @@ export async function POST(request: NextRequest) {
         brand_voice_id: brandVoiceId || null,
         output_language: outputLanguage,
       };
-      let { data: job, error: jobInsertErr } =
-        await insertRepurposeJobWithFallback(supabase, jobPayload);
-      if (jobInsertErr && isLikelyUserProfileFkError(jobInsertErr)) {
-        try {
-          await ensureProfileReadyForSession(user, supabase);
-        } catch {
-          /* fall through */
-        }
-        ({ data: job, error: jobInsertErr } =
-          await insertRepurposeJobWithFallback(supabase, jobPayload));
-      }
+      const { data: job, error: jobInsertErr } = await insertRepurposeJobWithProfileFixups(
+        supabase,
+        user,
+        jobPayload
+      );
       if (jobInsertErr || !job) {
         console.error("bulk repurpose_jobs insert:", jobInsertErr);
         errors.push({ sourceUrl, error: jobInsertErr?.message ?? "Could not save repurpose job." });

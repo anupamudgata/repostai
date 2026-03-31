@@ -179,6 +179,21 @@ export const SUPPORTED_PLATFORMS = [
   { id: "whatsapp_status", name: "WhatsApp Status", icon: "message-circle", maxLength: 700 },
 ] as const;
 
+/** UI grouping for dashboard platform picker (each id must exist in SUPPORTED_PLATFORMS). */
+export const PLATFORM_GROUPS = [
+  {
+    id: "professional",
+    platformIds: ["linkedin", "twitter_thread", "twitter_single"],
+  },
+  {
+    id: "shortForm",
+    platformIds: ["instagram", "facebook", "whatsapp_status"],
+  },
+  { id: "video", platformIds: ["tiktok"] },
+  { id: "community", platformIds: ["reddit"] },
+  { id: "longForm", platformIds: ["email"] },
+] as const;
+
 export const INPUT_TYPES = [
   { id: "text", name: "Paste Text", icon: "type", description: "Paste any text content" },
   { id: "url", name: "Blog URL", icon: "link", description: "Auto-scrape blog content" },

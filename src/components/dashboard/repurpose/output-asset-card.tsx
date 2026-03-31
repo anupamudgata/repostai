@@ -1,0 +1,187 @@
+"use client";
+
+import Link from "next/link";
+import {
+  Loader2,
+  Copy,
+  Check,
+  RefreshCw,
+  Send,
+  CalendarClock,
+  Minimize2,
+  Maximize2,
+  Zap,
+  Briefcase,
+  PenLine,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CharacterCount } from "@/components/dashboard/repurpose/character-count";
+import type { Platform } from "@/types";
+import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
+import { cn } from "@/lib/utils";
+
+export type RefineIntent = "shorten" | "expand" | "punchy" | "professional" | "rewrite";
+
+export function OutputAssetCard({
+  d,
+  output,
+  platformName,
+  maxLength,
+  provider,
+  account,
+  copied,
+  regenerating,
+  refineBusyKey,
+  refineScopeId,
+  posting,
+  bulkPosting,
+  scheduleSubmitting,
+  onCopy,
+  onRegenerate,
+  onRefine,
+  onPostNow,
+  onSchedule,
+  connectHref,
+  connectLabel,
+}: {
+  d: DashboardBulk;
+  output: { platform: Platform; content: string };
+  platformName: string;
+  maxLength: number | null;
+  provider: string | null;
+  account: { id: string; platform: string } | undefined;
+  copied: boolean;
+  regenerating: boolean;
+  /** Matches `${refineScopeId}-${platform}-${intent}` while a refine request is in flight. */
+  refineBusyKey: string | null;
+  /** Job id used with the repurpose API for this card (single: last job; bulk: source job). */
+  refineScopeId: string;
+  posting: boolean;
+  bulkPosting: boolean;
+  scheduleSubmitting: boolean;
+  onCopy: () => void;
+  onRegenerate: () => void;
+  onRefine: (intent: RefineIntent) => void;
+  onPostNow: () => void;
+  onSchedule: () => void;
+  connectHref?: string;
+  connectLabel?: string;
+}) {
+  const refinements: { id: RefineIntent; label: string; icon: typeof Minimize2 }[] = [
+    { id: "shorten", label: d.refineShorten, icon: Minimize2 },
+    { id: "expand", label: d.refineExpand, icon: Maximize2 },
+    { id: "punchy", label: d.refinePunchy, icon: Zap },
+    { id: "professional", label: d.refineProfessional, icon: Briefcase },
+    { id: "rewrite", label: d.refineRewrite, icon: PenLine },
+  ];
+
+  return (
+    <article
+      className={cn(
+        "output-card rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm"
+      )}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 px-4 py-3 bg-gradient-to-r from-muted/30 to-muted/10">
+        <h3 className="text-sm font-semibold text-foreground">{platformName}</h3>
+        <div className="flex flex-wrap items-center gap-1">
+          {provider && (
+            <>
+              <Button
+                size="sm"
+                variant="default"
+                className="h-8 text-xs"
+                onClick={onPostNow}
+                disabled={posting || !account || bulkPosting}
+                title={!account ? connectLabel : undefined}
+              >
+                {posting ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>
+                    <Send className="h-3 w-3 mr-1" />
+                    {d.postNow}
+                  </>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                onClick={onSchedule}
+                disabled={scheduleSubmitting}
+              >
+                <CalendarClock className="h-3 w-3 mr-1" />
+                {d.schedule}
+              </Button>
+              {!account && connectHref && (
+                <Link
+                  href={connectHref}
+                  className="text-xs text-primary hover:underline font-medium px-1"
+                >
+                  {connectLabel}
+                </Link>
+              )}
+            </>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 text-xs"
+            onClick={onRegenerate}
+            disabled={regenerating}
+            title={d.refineRegenerate}
+          >
+            {regenerating ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3" />
+            )}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={cn("h-8 px-2 text-xs", copied && "text-primary")}
+            onClick={onCopy}
+          >
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+          </Button>
+        </div>
+      </div>
+      <div className="px-4 py-3 space-y-3">
+        <div className="rounded-lg border border-border/30 bg-muted/10 px-3 py-3 text-sm whitespace-pre-wrap max-h-72 overflow-y-auto leading-relaxed selection:bg-primary/20">
+          {output.content}
+        </div>
+        <CharacterCount
+          content={output.content}
+          platformId={output.platform}
+          maxLength={maxLength}
+          platformName={platformName}
+        />
+        <div className="flex flex-wrap gap-1 pt-1 border-t border-border/30">
+          {refinements.map((r) => {
+            const busy =
+              refineBusyKey === `${refineScopeId}-${output.platform}-${r.id}`;
+            return (
+              <Button
+                key={r.id}
+                type="button"
+                size="sm"
+                variant="secondary"
+                className="h-7 text-[11px] px-2 gap-1 font-normal"
+                disabled={regenerating || refineBusyKey !== null}
+                onClick={() => onRefine(r.id)}
+              >
+                {busy ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <r.icon className="h-3 w-3 opacity-70" />
+                )}
+                {r.label}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+    </article>
+  );
+}

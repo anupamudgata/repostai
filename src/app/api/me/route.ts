@@ -5,7 +5,7 @@ import {
   getEffectivePlan,
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
-import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
+import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
 
 export async function GET() {
   try {
@@ -18,10 +18,10 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await ensureProfileReadyForSession(user, supabase);
+    await ensureProfileForRepurposeInsert(user, supabase);
 
     let profile: { zapier_webhook_url: string | null } | null = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       const { data, error } = await supabase
         .from("profiles")
         .select("zapier_webhook_url")
@@ -34,12 +34,10 @@ export async function GET() {
           code: error.code,
           message: error.message,
         });
-        if (attempt === 0) {
-          try {
-            await ensureProfileReadyForSession(user, supabase);
-          } catch {
-            /* continue loop */
-          }
+        try {
+          await ensureProfileForRepurposeInsert(user, supabase);
+        } catch {
+          /* continue loop */
         }
         continue;
       }
@@ -48,12 +46,10 @@ export async function GET() {
         break;
       }
       console.warn("[me] no profile row for user", { userId: user.id, attempt });
-      if (attempt === 0) {
-        try {
-          await ensureProfileReadyForSession(user, supabase);
-        } catch {
-          /* continue loop */
-        }
+      try {
+        await ensureProfileForRepurposeInsert(user, supabase);
+      } catch {
+        /* continue loop */
       }
     }
     if (!profile) {

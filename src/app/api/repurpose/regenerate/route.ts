@@ -19,7 +19,31 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { jobId, platform } = body as { jobId?: string; platform: string };
+    const { jobId, platform, refineIntent } = body as {
+      jobId?: string;
+      platform: string;
+      refineIntent?: string;
+    };
+
+    const REFINE_HINTS: Record<string, string> = {
+      shorten:
+        "Make this output noticeably shorter while keeping the same message and respecting platform limits.",
+      expand:
+        "Expand with useful detail or examples; stay within platform norms and length limits.",
+      punchy:
+        "Sharpen hooks and word choice for more punch; keep platform-native voice.",
+      professional:
+        "Shift to a more polished, professional tone without sounding generic.",
+      rewrite:
+        "Fresh wording and structure; preserve meaning; stay appropriate for the platform.",
+    };
+    const hint =
+      refineIntent &&
+      typeof refineIntent === "string" &&
+      REFINE_HINTS[refineIntent]
+        ? REFINE_HINTS[refineIntent]
+        : "";
+    const userIntentForModel = hint.trim() || undefined;
 
     if (!platform) {
       return NextResponse.json(
@@ -159,7 +183,7 @@ export async function POST(request: NextRequest) {
       [platform as Platform],
       brandVoiceSample,
       outputLanguage,
-      undefined,
+      userIntentForModel,
       undefined,
       undefined,
       authenticityTuning

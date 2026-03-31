@@ -149,5 +149,49 @@ export async function ensureProfileReadyForSession(
   }
   if (await profileVisible()) return;
 
+  // Row may exist (FK OK) but session still not seeing it — force service-role upsert, then RPC again.
+  await upsertProfileRowAdmin(user);
+  if (await profileVisible()) return;
+
+  const { error: rpc3 } = await userSupabase.rpc("ensure_profile_from_auth");
+  if (rpc3) {
+    console.warn("[ensureProfileReadyForSession] ensure_profile_from_auth after admin upsert", rpc3.message);
+  }
+  if (await profileVisible()) return;
+
   throw new Error("Profile row still missing after ensure and RPC retries");
+}
+
+/** Force a `profiles` row via service role so FK checks on `repurpose_jobs` succeed (same DB the admin client uses). */
+export async function upsertProfileRowAdmin(user: User): Promise<void> {
+  let admin: ReturnType<typeof getSupabaseAdmin>;
+  try {
+    admin = getSupabaseAdmin();
+  } catch {
+    return;
+  }
+  const meta = user.user_metadata ?? {};
+  const emailRaw = user.email?.trim() ?? "";
+  const row = {
+    id: user.id,
+    email: emailRaw || `${user.id.replace(/-/g, "")}@users.repostai.local`,
+    name: (meta.full_name as string) ?? (meta.name as string) ?? null,
+    avatar_url: (meta.avatar_url as string) ?? null,
+    market_region: (meta.market_region as string) ?? null,
+  };
+  const { error } = await admin.from("profiles").upsert(row, { onConflict: "id" });
+  if (error) {
+    console.warn("[upsertProfileRowAdmin]", error.message, error.code);
+  }
+}
+
+/** Session-visible profile + admin upsert before any insert that FK-references `profiles`. */
+export async function ensureProfileForRepurposeInsert(
+  user: User,
+  userSupabase: SupabaseClient
+): Promise<void> {
+  // Create row with service role first when possible so FK + /api/me succeed even if JWT path lags.
+  await upsertProfileRowAdmin(user);
+  await ensureProfileReadyForSession(user, userSupabase);
+  await upsertProfileRowAdmin(user);
 }

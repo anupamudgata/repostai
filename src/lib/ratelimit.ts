@@ -35,7 +35,16 @@ function makeLimiter(
           const r = getRedis();
           if (!r) return noopLimit();
           if (!cached) cached = factory(r);
-          return cached.limit(id);
+          try {
+            return await cached.limit(id);
+          } catch (e) {
+            // Bad URL/token, DNS, firewall, or Upstash outage — message is often "fetch failed"
+            console.warn(
+              "[ratelimit] Redis limit failed, allowing request:",
+              e instanceof Error ? e.message : e
+            );
+            return noopLimit();
+          }
         };
       }
       const r = getRedis();

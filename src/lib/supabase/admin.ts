@@ -13,9 +13,15 @@ export function getSupabaseAdmin(): SupabaseClient {
   if (!_client) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!url) throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
     if (!key) throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+    if (anon && key.trim() === anon.trim()) {
+      console.error(
+        "[supabase admin] SUPABASE_SERVICE_ROLE_KEY matches the anon key — profile creation and server writes will fail RLS. Set the service_role key from Supabase → Settings → API."
+      );
+    }
 
     _client = createClient(url, key, {
       auth: {

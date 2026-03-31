@@ -374,6 +374,8 @@ export const landingBulkEn = {
     button: "Get Started Free",
     footnote: "No credit card required. Upgrade anytime.",
   },
+  /** Shown on homepage; {count} is pre-formatted with locale separators (e.g. 12,345). */
+  lifetimeRepurposeStat: "{count} lifetime repurposes",
   footer: {
     tagline: "AI-powered content repurposing. One post, every platform, under 60 seconds.",
     product: "Product",

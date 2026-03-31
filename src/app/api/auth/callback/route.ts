@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { sendWelcomeEmail } from "@/lib/email/send";
-import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
+import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
 
 function getBaseUrl(request: NextRequest): string {
   const allowed = process.env.NEXT_PUBLIC_APP_URL;
@@ -78,9 +78,9 @@ async function afterSession(
     const isNewUser = !existingProfile;
 
     try {
-      await ensureProfileReadyForSession(user, supabase);
+      await ensureProfileForRepurposeInsert(user, supabase);
     } catch (ensureErr) {
-      console.error("[auth callback] ensureProfileReadyForSession failed:", ensureErr);
+      console.error("[auth callback] ensureProfileForRepurposeInsert failed:", ensureErr);
     }
 
     // Only send welcome email on the very first sign-in

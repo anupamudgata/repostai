@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { ensureProfileReadyForSession } from "@/lib/supabase/ensure-profile";
+import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
 import { invalidateBrandVoiceCache, warmBrandVoiceCache } from "@/lib/ai/brand-voice-cache";
 import { brandVoiceWritingFields } from "@/lib/brand-voice-db";
 import {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     try {
-      await ensureProfileReadyForSession(user, supabase);
+      await ensureProfileForRepurposeInsert(user, supabase);
     } catch (e) {
       console.error("[brand-voice] ensure profile:", e);
       return NextResponse.json(
