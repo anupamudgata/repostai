@@ -10,10 +10,7 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
-import {
-  ensureProfileForRepurposeInsert,
-  profileEnsureConfigErrorMessage,
-} from "@/lib/supabase/ensure-profile";
+import { getOrCreateUserProfile } from "@/lib/supabase/ensure-profile";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 
 const MAX_BULK_URLS = 5;
@@ -54,18 +51,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    try {
-      await ensureProfileForRepurposeInsert(user, supabase);
-    } catch (e) {
-      const cfg = profileEnsureConfigErrorMessage(e);
-      if (cfg) {
+    const profileReady = await getOrCreateUserProfile(user, supabase);
+    if (!profileReady.ok) {
+      if (profileReady.kind === "config") {
         return NextResponse.json(
-          { error: cfg, code: "SUPABASE_CONFIG" },
+          { error: profileReady.message, code: "SUPABASE_CONFIG" },
           { status: 500 }
         );
       }
       return NextResponse.json(
-        { error: "Could not prepare your account. Try again in a moment." },
+        {
+          error:
+            "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.",
+          code: "PROFILE_SYNC_FAILED",
+        },
         { status: 503 }
       );
     }

@@ -1,9 +1,6 @@
 import { NextRequest }                   from "next/server";
 import { createClient }                  from "@/lib/supabase/server";
-import {
-  ensureProfileForRepurposeInsert,
-  profileEnsureConfigErrorMessage,
-} from "@/lib/supabase/ensure-profile";
+import { getOrCreateUserProfile } from "@/lib/supabase/ensure-profile";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import {
@@ -235,15 +232,14 @@ export async function POST(req: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) { send({ type: "error", error: "Unauthorized." }); close(); return; }
 
-        try {
-          await ensureProfileForRepurposeInsert(user, supabase);
-        } catch (ensureErr) {
-          const cfg = profileEnsureConfigErrorMessage(ensureErr);
+        const profileReady = await getOrCreateUserProfile(user, supabase);
+        if (!profileReady.ok) {
           send({
             type: "error",
             error:
-              cfg ??
-              "Could not prepare your account. Try again in a moment.",
+              profileReady.kind === "config"
+                ? profileReady.message
+                : "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.",
           });
           close();
           return;

@@ -66,6 +66,10 @@ import {
 
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
 
+/** Retries for /api/me after OAuth redirect or cold start (transient PROFILE_SYNC_FAILED). */
+const ME_FETCH_ATTEMPTS = 3;
+const ME_RETRY_DELAY_MS = 500;
+
 export default function DashboardPage() {
   const pathname = usePathname();
   const prevPathRef = useRef<string | null>(null);
@@ -138,6 +142,10 @@ export default function DashboardPage() {
     { platform: string; score: number; reason: string; recommendation: "post" | "consider" | "skip" }[]
   >([]);
   const [platformFitLoading, setPlatformFitLoading] = useState(false);
+  /** loading = first fetch or retry in flight; ready = got 200 or non-profile error; error = profile sync failed after retries */
+  const [meFetchState, setMeFetchState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
   const [profileSyncFailed, setProfileSyncFailed] = useState(false);
   const [refiningKey, setRefiningKey] = useState<string | null>(null);
 
@@ -179,8 +187,10 @@ export default function DashboardPage() {
     }
   }, [pathname, clearRepurposeResults]);
 
-  const isFreePlan = plan === "free";
-  const hasPaidPlan = plan !== null && plan !== "free";
+  /** Until /api/me completes, assume free limits so paid users briefly see stricter UI, not the reverse. */
+  const isFreePlan = meFetchState === "loading" ? true : plan === "free";
+  const hasPaidPlan =
+    meFetchState === "ready" && plan !== null && plan !== "free";
   /** Always use native select for brand voice — avoids Radix scroll-lock freezing the page. */
   const useNativeBrandVoiceSelect = true;
 
@@ -202,35 +212,91 @@ export default function DashboardPage() {
   }, []);
 
   const refreshMe = useCallback(async () => {
+    setMeFetchState("loading");
+    setProfileSyncFailed(false);
+
+    const applyOk = (data: {
+      plan?: string;
+      repurposeCount?: number;
+      repurposeLimit?: number | null;
+      daysUntilUsageReset?: number;
+    }) => {
+      setMeFetchState("ready");
+      setProfileSyncFailed(false);
+      setPlan(data.plan ?? "free");
+      setUsage({
+        count: data.repurposeCount ?? 0,
+        limit:
+          data.repurposeLimit === undefined ? null : data.repurposeLimit,
+        daysUntilReset: data.daysUntilUsageReset ?? 0,
+      });
+    };
+
     try {
-      const res = await fetch("/api/me", { cache: "no-store" });
-      const data = (await res.json().catch(() => ({}))) as {
-        plan?: string;
-        repurposeCount?: number;
-        repurposeLimit?: number | null;
-        daysUntilUsageReset?: number;
-        code?: string;
-      };
-      if (res.ok) {
-        setProfileSyncFailed(false);
-        setPlan(data.plan ?? "free");
-        setUsage({
-          count: data.repurposeCount ?? 0,
-          limit:
-            data.repurposeLimit === undefined ? null : data.repurposeLimit,
-          daysUntilReset: data.daysUntilUsageReset ?? 0,
-        });
-      } else {
-        if (data.code === "PROFILE_SYNC_FAILED") {
-          setProfileSyncFailed(true);
-        } else {
-          setProfileSyncFailed(false);
-          setPlan("free");
+      for (let attempt = 0; attempt < ME_FETCH_ATTEMPTS; attempt++) {
+        const res = await fetch("/api/me", { cache: "no-store" });
+        const data = (await res.json().catch(() => ({}))) as {
+          plan?: string;
+          repurposeCount?: number;
+          repurposeLimit?: number | null;
+          daysUntilUsageReset?: number;
+          code?: string;
+          profileReady?: boolean;
+        };
+
+        if (res.ok) {
+          applyOk(data);
+          return;
         }
+
+        const isProfileSync =
+          res.status === 503 && data.code === "PROFILE_SYNC_FAILED";
+        if (isProfileSync && attempt < ME_FETCH_ATTEMPTS - 1) {
+          await new Promise((r) => setTimeout(r, ME_RETRY_DELAY_MS));
+          continue;
+        }
+        if (isProfileSync) {
+          setMeFetchState("error");
+          setProfileSyncFailed(true);
+          return;
+        }
+
+        setMeFetchState("ready");
+        setProfileSyncFailed(false);
+        setPlan("free");
+        setUsage({
+          count: 0,
+          limit: null,
+          daysUntilReset: 0,
+        });
+        return;
       }
     } catch {
+      try {
+        await new Promise((r) => setTimeout(r, ME_RETRY_DELAY_MS));
+        const res = await fetch("/api/me", { cache: "no-store" });
+        const data = (await res.json().catch(() => ({}))) as {
+          plan?: string;
+          repurposeCount?: number;
+          repurposeLimit?: number | null;
+          daysUntilUsageReset?: number;
+          code?: string;
+        };
+        if (res.ok) {
+          applyOk(data);
+          return;
+        }
+      } catch {
+        /* fall through */
+      }
+      setMeFetchState("ready");
       setProfileSyncFailed(false);
       setPlan("free");
+      setUsage({
+        count: 0,
+        limit: null,
+        daysUntilReset: 0,
+      });
     }
   }, []);
 
@@ -776,7 +842,7 @@ export default function DashboardPage() {
   return (
     <div ref={topRef} className="pb-10">
       <OnboardingBanner />
-      {profileSyncFailed && (
+      {profileSyncFailed && meFetchState === "error" && (
         <div
           className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
           role="alert"
