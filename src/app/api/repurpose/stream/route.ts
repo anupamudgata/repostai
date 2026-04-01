@@ -12,6 +12,7 @@ import { burstLimiter } from "@/lib/ratelimit";
 import { addFreeTierWatermark }          from "@/lib/watermark";
 import { captureError }                  from "@/lib/sentry";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
+import { getSupabaseAdmin }              from "@/lib/supabase/admin";
 import { openai } from "@/lib/ai/client";
 import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
 import {
@@ -380,7 +381,8 @@ export async function POST(req: NextRequest) {
                 platform: p,
                 generated_content: gen,
               }));
-              await supabase.from("repurpose_outputs").insert(outputRows);
+              // Use admin client — avoids RLS issues when session may be partially expired mid-stream
+              await getSupabaseAdmin().from("repurpose_outputs").insert(outputRows);
             }
           } catch (saveErr) {
             captureError(saveErr, { userId: user.id, action: "stream_save_job" });

@@ -16,6 +16,7 @@ import { burstLimiter } from "@/lib/ratelimit";
 import { captureError } from "@/lib/sentry";
 import { getOrCreateUserProfile } from "@/lib/supabase/ensure-profile";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
 function messageForRepurposeJobInsertError(err: {
@@ -294,8 +295,12 @@ export async function POST(request: NextRequest) {
         platform,
         generated_content: generatedContent,
       }));
-      await supabase.from("repurpose_outputs").insert(outputRows);
-      await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
+      await getSupabaseAdmin().from("repurpose_outputs").insert(outputRows);
+      try {
+        await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
+      } catch (usageErr) {
+        console.error("[repurpose] increment_usage failed (cached path):", usageErr);
+      }
       notifyZapier(profile?.zapier_webhook_url, {
         jobId: job.id,
         outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
@@ -451,14 +456,15 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Update job with outputs and status (like repurposed_content pattern)
-    const { error: updateError } = await supabase
+    // Update job with outputs and status — use admin to bypass RLS and avoid JWT expiry issues
+    const { error: updateError } = await getSupabaseAdmin()
       .from("repurpose_jobs")
       .update({
         outputs: generatedOutputs,
         status: "completed",
       })
-      .eq("id", job.id);
+      .eq("id", job.id)
+      .eq("user_id", user.id);
 
     if (updateError) {
       console.error("Failed to save outputs:", updateError);
@@ -477,7 +483,7 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    const { error: outputsError } = await supabase
+    const { error: outputsError } = await getSupabaseAdmin()
       .from("repurpose_outputs")
       .insert(outputRows);
 
@@ -489,10 +495,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await supabase.rpc("increment_usage", {
-      p_user_id: user.id,
-      p_month: currentMonth,
-    });
+    try {
+      await supabase.rpc("increment_usage", {
+        p_user_id: user.id,
+        p_month: currentMonth,
+      });
+    } catch (usageErr) {
+      console.error("[repurpose] increment_usage failed:", usageErr);
+    }
 
     notifyZapier(profile?.zapier_webhook_url, {
       jobId: job.id,
