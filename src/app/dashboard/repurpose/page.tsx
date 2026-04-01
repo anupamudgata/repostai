@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Lock } from "lucide-react";
 import { useRepurposeStream } from "@/hooks/useRepurposeStream";
 import { RepurposeOutput }    from "@/components/dashboard/RepurposeOutput";
@@ -21,8 +21,11 @@ export default function RepurposePage() {
   const [content,            setContent]            = useState("");
   const [selectedPlatforms,  setSelectedPlatforms]  = useState<Platform[]>(DEFAULT_PLATFORMS);
   const [language,           setLanguage]           = useState<Language>("en");
+  const languageRef = useRef<Language>("en");
   const [inputType,          setInputType]          = useState<"text"|"url"|"youtube">("text");
   const [userPlan,           setUserPlan]           = useState<string | null>(null);
+
+  languageRef.current = language;
 
   const planLoading = userPlan === null;
   const isFreePlan = userPlan === "free";
@@ -49,7 +52,7 @@ export default function RepurposePage() {
 
   async function handleSubmit() {
     if (!content.trim() || selectedPlatforms.length === 0) return;
-    await start({ content, platforms: selectedPlatforms, language, inputType });
+    await start({ content, platforms: selectedPlatforms, language: languageRef.current, inputType });
   }
 
   return (

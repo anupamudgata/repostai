@@ -196,10 +196,14 @@ async function* streamPlatformAgent(
   }
 
   const promptBuilders = getPromptBuilders(brief, voice, language);
+  // For Indian languages falling back to GPT-4o-mini, inject the regional system prompt
+  // so the model has a strong language directive even without Claude.
+  const regional = getRegionalPrompts(language);
+  const gptSystemMsg = regional ? `${SYSTEM_MSG}\n\n${regional.getStreamSystemPrompt()}` : SYSTEM_MSG;
   const stream = await openai.chat.completions.create({
     model: "gpt-4o-mini", temperature: TEMPERATURES[platform], stream: true,
     messages: [
-      { role: "system", content: SYSTEM_MSG },
+      { role: "system", content: gptSystemMsg },
       { role: "user", content: promptBuilders[platform]() },
     ],
   });
