@@ -27,7 +27,7 @@ export default async function DashboardLayout({
     console.error("[dashboard/layout] getOrCreateUserProfile:", profileBootstrap);
   }
 
-  let { data: profile } = await supabase
+  const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
