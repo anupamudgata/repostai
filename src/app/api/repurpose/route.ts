@@ -14,7 +14,7 @@ import {
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
 import { captureError } from "@/lib/sentry";
-import { getOrCreateUserProfile } from "@/lib/supabase/ensure-profile";
+import { getOrCreateUserProfile, upsertProfileRowAdmin } from "@/lib/supabase/ensure-profile";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -97,14 +97,18 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      return NextResponse.json(
-        {
-          error:
-            "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.",
-          code: "PROFILE_SYNC_FAILED",
-        },
-        { status: 503 }
-      );
+      // kind === "missing": profile unreadable but may still exist as a FK target.
+      // Force one last admin upsert and continue — insertRepurposeJobWithProfileFixups
+      // has its own FK retry + profile creation loop, so blocking here helps no one.
+      captureError(new Error("getOrCreateUserProfile returned missing — continuing"), {
+        userId: user.id,
+        action: "profile_missing_continue",
+      });
+      try {
+        await upsertProfileRowAdmin(user);
+      } catch {
+        /* best-effort — job insert will retry on FK failure */
+      }
     }
 
     const body = await request.json();

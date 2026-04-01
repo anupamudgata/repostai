@@ -13,6 +13,7 @@ import { addFreeTierWatermark }          from "@/lib/watermark";
 import { captureError }                  from "@/lib/sentry";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 import { getSupabaseAdmin }              from "@/lib/supabase/admin";
+import { upsertProfileRowAdmin }         from "@/lib/supabase/ensure-profile";
 import { openai } from "@/lib/ai/client";
 import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
 import {
@@ -235,15 +236,22 @@ export async function POST(req: NextRequest) {
 
         const profileReady = await getOrCreateUserProfile(user, supabase);
         if (!profileReady.ok) {
-          send({
-            type: "error",
-            error:
-              profileReady.kind === "config"
-                ? profileReady.message
-                : "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.",
+          if (profileReady.kind === "config") {
+            send({ type: "error", error: profileReady.message });
+            close();
+            return;
+          }
+          // kind === "missing": profile unreadable but may still exist as FK target.
+          // Force one last admin upsert and continue rather than blocking the user.
+          captureError(new Error("getOrCreateUserProfile returned missing (stream) — continuing"), {
+            userId: user.id,
+            action: "profile_missing_continue_stream",
           });
-          close();
-          return;
+          try {
+            await upsertProfileRowAdmin(user);
+          } catch {
+            /* best-effort */
+          }
         }
 
         const burst = await burstLimiter.limit(user.id);
