@@ -247,11 +247,21 @@ export async function POST(req: NextRequest) {
             userId: user.id,
             action: "profile_missing_continue_stream",
           });
+          // 1. Try admin upsert (needs SUPABASE_SERVICE_ROLE_KEY)
+          try { await upsertProfileRowAdmin(user); } catch { /* best-effort */ }
+          // 2. Also try user-session upsert — works even without service role key
           try {
-            await upsertProfileRowAdmin(user);
-          } catch {
-            /* best-effort */
-          }
+            const emailRaw = user.email?.trim() ?? "";
+            await supabase.from("profiles").upsert(
+              {
+                id: user.id,
+                email: emailRaw || `${user.id.replace(/-/g, "")}@users.repostai.local`,
+                name: (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? null,
+                avatar_url: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+              },
+              { onConflict: "id" }
+            );
+          } catch { /* best-effort */ }
         }
 
         const burst = await burstLimiter.limit(user.id);
