@@ -297,7 +297,7 @@ export async function POST(request: NextRequest) {
       }));
       await getSupabaseAdmin().from("repurpose_outputs").insert(outputRows);
       try {
-        await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
+        await getSupabaseAdmin().rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
       } catch (usageErr) {
         console.error("[repurpose] increment_usage failed (cached path):", usageErr);
       }
@@ -496,7 +496,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await supabase.rpc("increment_usage", {
+      await getSupabaseAdmin().rpc("increment_usage", {
         p_user_id: user.id,
         p_month: currentMonth,
       });

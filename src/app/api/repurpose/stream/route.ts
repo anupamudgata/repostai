@@ -391,7 +391,7 @@ export async function POST(req: NextRequest) {
 
         if (!isSuperUser) {
           try {
-            await supabase.rpc("increment_usage", {
+            await getSupabaseAdmin().rpc("increment_usage", {
               p_user_id: user.id,
               p_month: currentMonth,
             });
