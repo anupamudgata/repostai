@@ -333,7 +333,7 @@ export async function POST(request: NextRequest) {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentJobs } = await supabase
       .from("repurpose_jobs")
-      .select("id, input_content, brand_voice_id")
+      .select("id, input_content, brand_voice_id, output_language")
       .eq("user_id", user.id)
       .gte("created_at", oneHourAgo)
       .order("created_at", { ascending: false })
@@ -342,7 +342,8 @@ export async function POST(request: NextRequest) {
     const duplicate = recentJobs?.find(
       (j) =>
         j.input_content === contentToSave &&
-        (j.brand_voice_id ?? null) === (brandVoiceId ?? null)
+        (j.brand_voice_id ?? null) === (brandVoiceId ?? null) &&
+        (j.output_language ?? "en") === (outputLanguage ?? "en")
     );
     if (!includeBaselineComparison && duplicate) {
       const { data: existingOutputs } = await supabase
