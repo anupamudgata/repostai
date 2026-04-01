@@ -104,13 +104,14 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         action: "profile_missing_continue",
       });
-      // 1. Try admin upsert (needs SUPABASE_SERVICE_ROLE_KEY)
+      // 1. RPC: security definer — works even without SUPABASE_SERVICE_ROLE_KEY
+      try { await supabase.rpc("ensure_profile_from_auth"); } catch { /* best-effort */ }
+      // 2. Admin upsert
       try { await upsertProfileRowAdmin(user); } catch { /* best-effort */ }
-      // 2. Also try user-session upsert — works even without service role key
-      //    because profiles has INSERT + UPDATE policies for auth.uid() = id
+      // 3. User-session upsert (INSERT + UPDATE RLS policy: auth.uid() = id)
       try {
         const emailRaw = user.email?.trim() ?? "";
-        await supabase.from("profiles").upsert(
+        const { error: upErr } = await supabase.from("profiles").upsert(
           {
             id: user.id,
             email: emailRaw || `${user.id.replace(/-/g, "")}@users.repostai.local`,
@@ -119,7 +120,8 @@ export async function POST(request: NextRequest) {
           },
           { onConflict: "id" }
         );
-      } catch { /* best-effort */ }
+        if (upErr) console.error("[repurpose] user-session profile upsert failed:", upErr.message, upErr.code);
+      } catch (e) { console.error("[repurpose] user-session profile upsert threw:", e); }
     }
 
     const body = await request.json();

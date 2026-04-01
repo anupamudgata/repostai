@@ -95,7 +95,11 @@ export async function insertRepurposeJobWithProfileFixups(
 ) {
   let result = await insertRepurposeJobWithFallback(supabase, payload);
   for (let attempt = 0; attempt < 2 && result.error && isLikelyUserProfileFkError(result.error); attempt++) {
+    // 1. RPC: security definer — most reliable, works without SUPABASE_SERVICE_ROLE_KEY
+    try { await supabase.rpc("ensure_profile_from_auth"); } catch { /* best-effort */ }
+    // 2. Admin upsert
     await upsertProfileRowAdmin(user);
+    // 3. Session-based ensure
     try {
       await ensureProfileReadyForSession(user, supabase);
     } catch {

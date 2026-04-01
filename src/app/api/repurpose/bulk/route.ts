@@ -10,7 +10,7 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
-import { getOrCreateUserProfile } from "@/lib/supabase/ensure-profile";
+import { getOrCreateUserProfile, upsertProfileRowAdmin } from "@/lib/supabase/ensure-profile";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 
 const MAX_BULK_URLS = 5;
@@ -59,14 +59,24 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
-      return NextResponse.json(
-        {
-          error:
-            "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.",
-          code: "PROFILE_SYNC_FAILED",
-        },
-        { status: 503 }
-      );
+      // kind === "missing": continue with 3-attempt profile creation rather than blocking
+      // 1. RPC: security definer — works even without SUPABASE_SERVICE_ROLE_KEY
+      try { await supabase.rpc("ensure_profile_from_auth"); } catch { /* best-effort */ }
+      // 2. Admin upsert
+      try { await upsertProfileRowAdmin(user); } catch { /* best-effort */ }
+      // 3. User-session upsert
+      try {
+        const emailRaw = user.email?.trim() ?? "";
+        await supabase.from("profiles").upsert(
+          {
+            id: user.id,
+            email: emailRaw || `${user.id.replace(/-/g, "")}@users.repostai.local`,
+            name: (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? null,
+            avatar_url: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+          },
+          { onConflict: "id" }
+        );
+      } catch { /* best-effort */ }
     }
 
     const body = await request.json();
