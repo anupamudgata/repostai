@@ -24,6 +24,7 @@ export default function RepurposePage() {
   const languageRef = useRef<Language>("en");
   const [inputType,          setInputType]          = useState<"text"|"url"|"youtube">("text");
   const [userPlan,           setUserPlan]           = useState<string | null>(null);
+  const [connectedAccounts,  setConnectedAccounts]  = useState<string[]>([]);
 
   languageRef.current = language;
 
@@ -43,6 +44,14 @@ export default function RepurposePage() {
         }
       })
       .catch(() => { setUserPlan("free"); });
+
+    fetch("/api/social/accounts")
+      .then((r) => r.json())
+      .then((d: { accounts?: { platform: string; status: string }[] }) => {
+        const connected = (d.accounts ?? []).filter((a) => a.status === "connected").map((a) => a.platform);
+        setConnectedAccounts(connected);
+      })
+      .catch(() => {});
   }, []);
 
   function togglePlatform(p: Platform) {
@@ -165,7 +174,7 @@ export default function RepurposePage() {
               {state.status === "done" && <button onClick={reset} style={{ padding: "7px 16px", borderRadius: "8px", border: "none", background: "#1E3A5F", color: "#FFFFFF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>+ New repurpose</button>}
             </div>
           </div>
-          <RepurposeOutput status={state.status} platforms={state.platforms} totalMs={state.totalMs} remaining={state.remaining} error={state.error} progress={state.progress} onReset={reset} />
+          <RepurposeOutput status={state.status} platforms={state.platforms} totalMs={state.totalMs} remaining={state.remaining} error={state.error} progress={state.progress} onReset={reset} connectedAccounts={connectedAccounts} />
         </>
       )}
     </div>
