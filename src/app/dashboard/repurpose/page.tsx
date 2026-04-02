@@ -16,6 +16,8 @@ const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
 /** All four free-tier platforms — default must not include Starter+ only IDs or /api/repurpose/stream rejects free users. */
 const DEFAULT_PLATFORMS: Platform[] = [...FREE_PLATFORM_IDS];
 
+type ScoreResult = { score: number; label: string; feedback: string; improved: string };
+
 export default function RepurposePage() {
   const { state, start, cancel, reset } = useRepurposeStream();
   const [content,            setContent]            = useState("");
@@ -25,6 +27,41 @@ export default function RepurposePage() {
   const [inputType,          setInputType]          = useState<"text"|"url"|"youtube">("text");
   const [userPlan,           setUserPlan]           = useState<string | null>(null);
   const [connectedAccounts,  setConnectedAccounts]  = useState<string[]>([]);
+  const [scoreResult,        setScoreResult]        = useState<ScoreResult | null>(null);
+  const [scoring,            setScoring]            = useState(false);
+  const [showScore,          setShowScore]          = useState(false);
+  const [copied,             setCopied]             = useState(false);
+
+  async function handleScore() {
+    if (!content.trim()) return;
+    setScoring(true);
+    setShowScore(true);
+    setScoreResult(null);
+    try {
+      const res = await fetch("/api/score-text", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: content }) });
+      const data = await res.json();
+      if (res.ok) setScoreResult(data);
+      else setScoreResult(null);
+    } catch {
+      setScoreResult(null);
+    } finally {
+      setScoring(false);
+    }
+  }
+
+  function handleCopyImproved() {
+    if (!scoreResult?.improved) return;
+    navigator.clipboard.writeText(scoreResult.improved);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleUseImproved() {
+    if (!scoreResult?.improved) return;
+    setContent(scoreResult.improved);
+    setShowScore(false);
+    setScoreResult(null);
+  }
 
   const planLoading = userPlan === null;
   const isFreePlan = userPlan === "free";
@@ -92,7 +129,79 @@ export default function RepurposePage() {
               onFocus={(e) => { e.target.style.borderColor = "#BFDBFE"; }}
               onBlur={(e)  => { e.target.style.borderColor = "#E5E7EB"; }}
             />
-            {inputType === "text" && <div style={{ textAlign: "right", fontSize: "11px", color: "#CBD5E1", marginTop: "4px" }}>{content.length.toLocaleString()} characters</div>}
+            {inputType === "text" && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" }}>
+                <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{content.length.toLocaleString()} characters</div>
+                {content.trim().length >= 10 && (
+                  <button
+                    onClick={handleScore}
+                    disabled={scoring || isRunning}
+                    style={{ padding: "5px 14px", borderRadius: "8px", border: "1.5px solid #6366F1", background: scoring ? "#EEF2FF" : "#F5F3FF", color: "#6366F1", fontSize: "12px", fontWeight: 600, cursor: scoring ? "wait" : "pointer", transition: "all .15s", display: "flex", alignItems: "center", gap: "5px" }}
+                  >
+                    {scoring ? "Scoring..." : "Score text"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Score result panel */}
+            {inputType === "text" && showScore && (
+              <div style={{ marginTop: "12px", border: "1px solid #E0E7FF", borderRadius: "12px", overflow: "hidden", background: "#FAFBFF" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid #E0E7FF", background: "#EEF2FF" }}>
+                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#4338CA" }}>Text Score</span>
+                  <button onClick={() => setShowScore(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", fontSize: "16px", lineHeight: 1 }}>×</button>
+                </div>
+
+                {scoring && (
+                  <div style={{ padding: "20px", textAlign: "center", fontSize: "13px", color: "#94A3B8" }}>Analyzing your text...</div>
+                )}
+
+                {!scoring && scoreResult && (
+                  <div style={{ padding: "14px" }}>
+                    {/* Score display */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                      <div style={{ position: "relative", width: "56px", height: "56px", flexShrink: 0 }}>
+                        <svg width="56" height="56" viewBox="0 0 56 56">
+                          <circle cx="28" cy="28" r="24" fill="none" stroke="#E0E7FF" strokeWidth="5" />
+                          <circle cx="28" cy="28" r="24" fill="none"
+                            stroke={scoreResult.score >= 80 ? "#22C55E" : scoreResult.score >= 60 ? "#F59E0B" : scoreResult.score >= 40 ? "#F97316" : "#EF4444"}
+                            strokeWidth="5"
+                            strokeDasharray={`${(scoreResult.score / 100) * 150.8} 150.8`}
+                            strokeLinecap="round"
+                            transform="rotate(-90 28 28)"
+                          />
+                        </svg>
+                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 700, color: "#1E293B" }}>{scoreResult.score}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: "15px", fontWeight: 700, color: scoreResult.score >= 80 ? "#16A34A" : scoreResult.score >= 60 ? "#D97706" : scoreResult.score >= 40 ? "#EA580C" : "#DC2626" }}>{scoreResult.label}</div>
+                        <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px", lineHeight: 1.5 }}>{scoreResult.feedback}</div>
+                      </div>
+                    </div>
+
+                    {/* Improved text */}
+                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#94A3B8", letterSpacing: ".07em", textTransform: "uppercase", marginBottom: "6px" }}>Improved version</div>
+                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "10px 12px", fontSize: "13px", color: "#334155", lineHeight: 1.7, whiteSpace: "pre-wrap", maxHeight: "160px", overflowY: "auto" }}>
+                      {scoreResult.improved}
+                    </div>
+
+                    {/* Actions */}
+                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                      <button onClick={handleCopyImproved} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1.5px solid #E2E8F0", background: "white", color: "#374151", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                        {copied ? "Copied!" : "Copy improved text"}
+                      </button>
+                      <button onClick={handleUseImproved} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "none", background: "#1E3A5F", color: "white", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                        Use this text
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {!scoring && !scoreResult && (
+                  <div style={{ padding: "16px", textAlign: "center", fontSize: "13px", color: "#EF4444" }}>Failed to score. Please try again.</div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Platform selector */}
