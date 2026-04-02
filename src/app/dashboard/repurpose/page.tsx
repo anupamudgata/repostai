@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Lock } from "lucide-react";
 import { useRepurposeStream } from "@/hooks/useRepurposeStream";
 import { RepurposeOutput }    from "@/components/dashboard/RepurposeOutput";
@@ -32,13 +32,15 @@ export default function RepurposePage() {
   const [showScore,          setShowScore]          = useState(false);
   const [copied,             setCopied]             = useState(false);
 
-  async function handleScore() {
-    if (!content.trim()) return;
+  const scoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerScore = useCallback(async (text: string) => {
+    if (text.trim().length < 50) { setShowScore(false); setScoreResult(null); return; }
     setScoring(true);
     setShowScore(true);
     setScoreResult(null);
     try {
-      const res = await fetch("/api/score-text", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: content }) });
+      const res = await fetch("/api/score-text", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
       const data = await res.json();
       if (res.ok) setScoreResult(data);
       else setScoreResult(null);
@@ -47,6 +49,20 @@ export default function RepurposePage() {
     } finally {
       setScoring(false);
     }
+  }, []);
+
+  function handleTextChange(val: string) {
+    setContent(val);
+    if (inputType !== "text") return;
+    if (scoreTimerRef.current) clearTimeout(scoreTimerRef.current);
+    if (val.trim().length < 50) { setShowScore(false); setScoreResult(null); return; }
+    scoreTimerRef.current = setTimeout(() => triggerScore(val), 2000);
+  }
+
+  async function handleScore() {
+    if (!content.trim()) return;
+    if (scoreTimerRef.current) clearTimeout(scoreTimerRef.current);
+    await triggerScore(content);
   }
 
   function handleCopyImproved() {
@@ -122,7 +138,7 @@ export default function RepurposePage() {
           {/* Content input */}
           <div style={{ padding: "16px" }}>
             <textarea
-              value={content} onChange={(e) => setContent(e.target.value)} disabled={isRunning}
+              value={content} onChange={(e) => handleTextChange(e.target.value)} disabled={isRunning}
               placeholder={inputType === "text" ? "Paste your blog post, article, or any text here..." : inputType === "url" ? "https://yourblog.com/post-title" : "https://youtube.com/watch?v=..."}
               rows={inputType === "text" ? 8 : 3}
               style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", fontSize: "14px", lineHeight: 1.7, color: "#1E293B", background: isRunning ? "#F9FAFB" : "#FFFFFF", resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box", transition: "border-color .15s" }}
@@ -132,13 +148,13 @@ export default function RepurposePage() {
             {inputType === "text" && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{content.length.toLocaleString()} characters</div>
-                {content.trim().length >= 10 && (
+                {content.trim().length >= 50 && (
                   <button
                     onClick={handleScore}
                     disabled={scoring || isRunning}
                     style={{ padding: "5px 14px", borderRadius: "8px", border: "1.5px solid #6366F1", background: scoring ? "#EEF2FF" : "#F5F3FF", color: "#6366F1", fontSize: "12px", fontWeight: 600, cursor: scoring ? "wait" : "pointer", transition: "all .15s", display: "flex", alignItems: "center", gap: "5px" }}
                   >
-                    {scoring ? "Scoring..." : "Score text"}
+                    {scoring ? "Analyzing..." : scoreResult ? "Re-score" : "Score & Improve"}
                   </button>
                 )}
               </div>
