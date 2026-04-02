@@ -26,8 +26,6 @@ export default function RepurposePage() {
   const [userPlan,           setUserPlan]           = useState<string | null>(null);
   const [connectedAccounts,  setConnectedAccounts]  = useState<string[]>([]);
 
-  languageRef.current = language;
-
   const planLoading = userPlan === null;
   const isFreePlan = userPlan === "free";
   const isRunning = state.status === "extracting" || state.status === "streaming";
@@ -61,6 +59,7 @@ export default function RepurposePage() {
 
   async function handleSubmit() {
     if (!content.trim() || selectedPlatforms.length === 0) return;
+    languageRef.current = language;
     await start({ content, platforms: selectedPlatforms, language: languageRef.current, inputType });
   }
 
