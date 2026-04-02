@@ -72,6 +72,14 @@ function PostButton({ text, platform }: { text: string; platform: string }) {
   }
 
   if (postState === "error") {
+    const isNotConnected = errMsg.toLowerCase().includes("not connected") || errMsg.toLowerCase().includes("expired");
+    if (isNotConnected) {
+      return (
+        <a href="/dashboard/connections" style={{ fontSize: "11px", color: "#2563EB", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+          Connect LinkedIn →
+        </a>
+      );
+    }
     return (
       <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
         <span style={{ fontSize: "11px", color: "#EF4444" }}>{errMsg}</span>
