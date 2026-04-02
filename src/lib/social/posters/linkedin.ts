@@ -14,7 +14,7 @@ export async function postToLinkedIn(userId: string, text: string): Promise<Post
         Authorization: `Bearer ${token.accessToken}`,
         "Content-Type": "application/json",
         "X-Restli-Protocol-Version": "2.0.0",
-        "LinkedIn-Version": "202501",
+        "LinkedIn-Version": "202412",
       },
       body: JSON.stringify({
         author: `urn:li:person:${token.platformUserId}`,
