@@ -31,6 +31,8 @@ export default function RepurposePage() {
   const [scoring,            setScoring]            = useState(false);
   const [showScore,          setShowScore]          = useState(false);
   const [copied,             setCopied]             = useState(false);
+  const [showImproved,       setShowImproved]       = useState(false);
+  const [animatedScore,      setAnimatedScore]      = useState(0);
 
   const scoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -42,8 +44,22 @@ export default function RepurposePage() {
     try {
       const res = await fetch("/api/score-text", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
       const data = await res.json();
-      if (res.ok) setScoreResult(data);
-      else setScoreResult(null);
+      if (res.ok) {
+        setScoreResult(data);
+        setShowImproved(false);
+        setAnimatedScore(0);
+        // animate score from 0 to actual
+        let current = 0;
+        const target = Math.min(100, Math.max(0, Number(data.score) || 0));
+        const step = Math.ceil(target / 40);
+        const timer = setInterval(() => {
+          current = Math.min(current + step, target);
+          setAnimatedScore(current);
+          if (current >= target) clearInterval(timer);
+        }, 30);
+      } else {
+        setScoreResult(null);
+      }
     } catch {
       setScoreResult(null);
     } finally {
@@ -162,59 +178,70 @@ export default function RepurposePage() {
 
             {/* Score result panel */}
             {inputType === "text" && showScore && (
-              <div style={{ marginTop: "12px", border: "1px solid #E0E7FF", borderRadius: "12px", overflow: "hidden", background: "#FAFBFF" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: "1px solid #E0E7FF", background: "#EEF2FF" }}>
-                  <span style={{ fontSize: "13px", fontWeight: 700, color: "#4338CA" }}>Text Score</span>
-                  <button onClick={() => setShowScore(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", fontSize: "16px", lineHeight: 1 }}>×</button>
+              <div style={{ marginTop: "12px", border: "1px solid #E0E7FF", borderRadius: "12px", background: "#FAFBFF", overflow: "hidden" }}>
+
+                {/* Score row */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                    {/* Circular gauge */}
+                    <div style={{ position: "relative", width: "60px", height: "60px", flexShrink: 0 }}>
+                      <svg width="60" height="60" viewBox="0 0 60 60">
+                        <circle cx="30" cy="30" r="26" fill="none" stroke="#E0E7FF" strokeWidth="5" />
+                        <circle cx="30" cy="30" r="26" fill="none"
+                          stroke={animatedScore >= 80 ? "#22C55E" : animatedScore >= 60 ? "#F59E0B" : animatedScore >= 40 ? "#F97316" : "#EF4444"}
+                          strokeWidth="5"
+                          strokeDasharray={`${(animatedScore / 100) * 163.4} 163.4`}
+                          strokeLinecap="round"
+                          transform="rotate(-90 30 30)"
+                          style={{ transition: "stroke-dasharray 0.03s linear, stroke 0.3s" }}
+                        />
+                      </svg>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 800, color: "#1E293B" }}>
+                        {scoring ? "…" : animatedScore}
+                      </div>
+                    </div>
+                    <div>
+                      {scoring
+                        ? <div style={{ fontSize: "13px", color: "#94A3B8" }}>Analyzing your text...</div>
+                        : scoreResult
+                          ? <>
+                              <div style={{ fontSize: "15px", fontWeight: 700, color: scoreResult.score >= 80 ? "#16A34A" : scoreResult.score >= 60 ? "#D97706" : scoreResult.score >= 40 ? "#EA580C" : "#DC2626" }}>{scoreResult.label}</div>
+                              <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px", lineHeight: 1.5, maxWidth: "340px" }}>{scoreResult.feedback}</div>
+                            </>
+                          : <div style={{ fontSize: "13px", color: "#EF4444" }}>Failed to analyze. Try again.</div>
+                      }
+                    </div>
+                  </div>
+
+                  {/* Right: improved dropdown toggle */}
+                  {!scoring && scoreResult && (
+                    <button
+                      onClick={() => setShowImproved((v) => !v)}
+                      style={{ display: "flex", alignItems: "center", gap: "6px", padding: "7px 14px", borderRadius: "8px", border: "1.5px solid #6366F1", background: showImproved ? "#EEF2FF" : "#F5F3FF", color: "#6366F1", fontSize: "12px", fontWeight: 700, cursor: "pointer", flexShrink: 0, transition: "all .15s" }}
+                    >
+                      Improved version
+                      <span style={{ display: "inline-block", transition: "transform .2s", transform: showImproved ? "rotate(180deg)" : "rotate(0deg)", fontSize: "10px" }}>▼</span>
+                    </button>
+                  )}
+
+                  <button onClick={() => { setShowScore(false); setShowImproved(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#CBD5E1", fontSize: "18px", lineHeight: 1, marginLeft: "8px" }}>×</button>
                 </div>
 
-                {scoring && (
-                  <div style={{ padding: "20px", textAlign: "center", fontSize: "13px", color: "#94A3B8" }}>Analyzing your text...</div>
-                )}
-
-                {!scoring && scoreResult && (
-                  <div style={{ padding: "14px" }}>
-                    {/* Score display */}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
-                      <div style={{ position: "relative", width: "56px", height: "56px", flexShrink: 0 }}>
-                        <svg width="56" height="56" viewBox="0 0 56 56">
-                          <circle cx="28" cy="28" r="24" fill="none" stroke="#E0E7FF" strokeWidth="5" />
-                          <circle cx="28" cy="28" r="24" fill="none"
-                            stroke={scoreResult.score >= 80 ? "#22C55E" : scoreResult.score >= 60 ? "#F59E0B" : scoreResult.score >= 40 ? "#F97316" : "#EF4444"}
-                            strokeWidth="5"
-                            strokeDasharray={`${(scoreResult.score / 100) * 150.8} 150.8`}
-                            strokeLinecap="round"
-                            transform="rotate(-90 28 28)"
-                          />
-                        </svg>
-                        <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "13px", fontWeight: 700, color: "#1E293B" }}>{scoreResult.score}</div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: "15px", fontWeight: 700, color: scoreResult.score >= 80 ? "#16A34A" : scoreResult.score >= 60 ? "#D97706" : scoreResult.score >= 40 ? "#EA580C" : "#DC2626" }}>{scoreResult.label}</div>
-                        <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px", lineHeight: 1.5 }}>{scoreResult.feedback}</div>
-                      </div>
-                    </div>
-
-                    {/* Improved text */}
-                    <div style={{ fontSize: "11px", fontWeight: 700, color: "#94A3B8", letterSpacing: ".07em", textTransform: "uppercase", marginBottom: "6px" }}>Improved version</div>
-                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "10px 12px", fontSize: "13px", color: "#334155", lineHeight: 1.7, whiteSpace: "pre-wrap", maxHeight: "160px", overflowY: "auto" }}>
+                {/* Improved content dropdown */}
+                {!scoring && scoreResult && showImproved && (
+                  <div style={{ borderTop: "1px solid #E0E7FF", padding: "14px 16px", background: "#F8FAFF" }}>
+                    <div style={{ fontSize: "13px", color: "#334155", lineHeight: 1.8, whiteSpace: "pre-wrap", maxHeight: "200px", overflowY: "auto", marginBottom: "12px" }}>
                       {scoreResult.improved}
                     </div>
-
-                    {/* Actions */}
-                    <div style={{ display: "flex", gap: "8px", marginTop: "10px" }}>
+                    <div style={{ display: "flex", gap: "8px" }}>
                       <button onClick={handleCopyImproved} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1.5px solid #E2E8F0", background: "white", color: "#374151", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                        {copied ? "Copied!" : "Copy improved text"}
+                        {copied ? "Copied!" : "Copy"}
                       </button>
-                      <button onClick={handleUseImproved} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "none", background: "#1E3A5F", color: "white", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
-                        Use this text
+                      <button onClick={handleUseImproved} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "none", background: "#1E3A5F", color: "white", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+                        Use this text →
                       </button>
                     </div>
                   </div>
-                )}
-
-                {!scoring && !scoreResult && (
-                  <div style={{ padding: "16px", textAlign: "center", fontSize: "13px", color: "#EF4444" }}>Failed to score. Please try again.</div>
                 )}
               </div>
             )}
