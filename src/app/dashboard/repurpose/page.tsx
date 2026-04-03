@@ -154,7 +154,18 @@ export default function RepurposePage() {
           {/* Content input */}
           <div style={{ padding: "16px" }}>
             <textarea
-              value={content} onChange={(e) => handleTextChange(e.target.value)} disabled={isRunning}
+              value={content}
+              onChange={(e) => handleTextChange(e.target.value)}
+              onPaste={(e) => {
+                if (inputType !== "text") return;
+                const pasted = e.clipboardData.getData("text");
+                const full = content + pasted;
+                if (full.trim().length >= 20) {
+                  if (scoreTimerRef.current) clearTimeout(scoreTimerRef.current);
+                  scoreTimerRef.current = setTimeout(() => triggerScore(full), 800);
+                }
+              }}
+              disabled={isRunning}
               placeholder={inputType === "text" ? "Paste your blog post, article, or any text here..." : inputType === "url" ? "https://yourblog.com/post-title" : "https://youtube.com/watch?v=..."}
               rows={inputType === "text" ? 8 : 3}
               style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", fontSize: "14px", lineHeight: 1.7, color: "#1E293B", background: isRunning ? "#F9FAFB" : "#FFFFFF", resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box", transition: "border-color .15s" }}
@@ -162,13 +173,13 @@ export default function RepurposePage() {
               onBlur={(e)  => { e.target.style.borderColor = "#E5E7EB"; }}
             />
             {inputType === "text" && (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "10px" }}>
                 <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{content.length.toLocaleString()} characters</div>
                 {content.trim().length >= 20 && (
                   <button
                     onClick={handleScore}
                     disabled={scoring || isRunning}
-                    style={{ padding: "5px 14px", borderRadius: "8px", border: "1.5px solid #6366F1", background: scoring ? "#EEF2FF" : "#F5F3FF", color: "#6366F1", fontSize: "12px", fontWeight: 600, cursor: scoring ? "wait" : "pointer", transition: "all .15s", display: "flex", alignItems: "center", gap: "5px" }}
+                    style={{ padding: "7px 18px", borderRadius: "8px", border: "none", background: scoring ? "#C7D2FE" : "#6366F1", color: "white", fontSize: "13px", fontWeight: 700, cursor: scoring ? "wait" : "pointer", transition: "all .15s" }}
                   >
                     {scoring ? "Analyzing..." : scoreResult ? "Re-score" : "Score & Improve"}
                   </button>
