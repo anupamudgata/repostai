@@ -37,7 +37,7 @@ export default function RepurposePage() {
   const scoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerScore = useCallback(async (text: string) => {
-    if (text.trim().length < 50) { setShowScore(false); setScoreResult(null); return; }
+    if (text.trim().length < 20) { setShowScore(false); setScoreResult(null); return; }
     setScoring(true);
     setShowScore(true);
     setScoreResult(null);
@@ -71,7 +71,7 @@ export default function RepurposePage() {
     setContent(val);
     if (inputType !== "text") return;
     if (scoreTimerRef.current) clearTimeout(scoreTimerRef.current);
-    if (val.trim().length < 50) { setShowScore(false); setScoreResult(null); return; }
+    if (val.trim().length < 20) { setShowScore(false); setScoreResult(null); return; }
     scoreTimerRef.current = setTimeout(() => triggerScore(val), 2000);
   }
 
@@ -164,7 +164,7 @@ export default function RepurposePage() {
             {inputType === "text" && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" }}>
                 <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{content.length.toLocaleString()} characters</div>
-                {content.trim().length >= 50 && (
+                {content.trim().length >= 20 && (
                   <button
                     onClick={handleScore}
                     disabled={scoring || isRunning}
