@@ -14,27 +14,47 @@ export default async function ScheduledPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Repurpose scheduled posts
   const { data: scheduled } = await supabase
     .from("scheduled_posts")
     .select(
-      `
-      id,
-      platform,
-      scheduled_at,
-      status,
-      posted_at,
-      error_message,
-      created_at,
-      repurpose_outputs (
-        generated_content,
-        edited_content
-      )
-    `
+      `id, platform, scheduled_at, status, posted_at, error_message, created_at,
+       repurpose_outputs ( generated_content, edited_content )`
     )
     .eq("user_id", user.id)
     .order("scheduled_at", { ascending: true });
 
-  const allPosts = (scheduled ?? []) as unknown as ScheduledPostData[];
+  // Photo caption posts (posted + scheduled)
+  const { data: photoPosts } = await supabase
+    .from("photo_caption_runs")
+    .select("id, platforms, captions, status, scheduled_for, posted_at, created_at, error")
+    .eq("user_id", user.id)
+    .in("status", ["posted", "scheduled", "failed"])
+    .order("created_at", { ascending: true });
+
+  // Normalise photo posts into the same shape as ScheduledPostData
+  const photoNormalised: ScheduledPostData[] = (photoPosts ?? []).flatMap((run) => {
+    const platforms: string[] = run.platforms ?? [];
+    const captions: Record<string, string> = (run.captions as Record<string, string>) ?? {};
+    return platforms.map((platform) => ({
+      id: `${run.id}__${platform}`,
+      platform,
+      scheduled_at: run.scheduled_for ?? run.posted_at ?? run.created_at,
+      status: run.status === "posted" ? "posted" : run.status === "failed" ? "failed" : "pending",
+      posted_at: run.posted_at ?? null,
+      error_message: run.error ?? null,
+      created_at: run.created_at,
+      repurpose_outputs: {
+        generated_content: captions[platform] ?? null,
+        edited_content: null,
+      },
+    }));
+  });
+
+  const allPosts = [
+    ...((scheduled ?? []) as unknown as ScheduledPostData[]),
+    ...photoNormalised,
+  ].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
   const pending = allPosts.filter((s) => s.status === "pending");
   const past = allPosts.filter((s) => s.status !== "pending");
 
