@@ -44,12 +44,12 @@ export async function postPhotoCaptionsToPlatforms(
         break;
       }
       case "twitter": {
-        const r = await postToTwitter(userId, text);
+        const r = await postToTwitter(userId, text, publicImageUrl);
         results.push(r);
         break;
       }
       case "linkedin": {
-        const r = await postToLinkedIn(userId, text);
+        const r = await postToLinkedIn(userId, text, publicImageUrl);
         results.push(r);
         break;
       }

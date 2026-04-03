@@ -14,13 +14,43 @@ async function refreshTwitterToken(userId: string, refreshToken: string): Promis
   return data.access_token;
 }
 
-/** Post a single tweet using a raw (decrypted) access token. */
-export async function postToTwitterWithToken(text: string, accessToken: string): Promise<{ id: string }> {
+/** Upload an image to Twitter and return the media_id_string, or null on failure. */
+async function uploadImageToTwitter(imageUrl: string, accessToken: string): Promise<string | null> {
+  try {
+    const imgRes = await fetch(imageUrl);
+    if (!imgRes.ok) return null;
+    const imgBuffer = await imgRes.arrayBuffer();
+    const form = new FormData();
+    form.append("media", new Blob([imgBuffer]));
+    const res = await fetch("https://upload.twitter.com/1.1/media/upload.json", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      body: form,
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { media_id_string?: string };
+    return data.media_id_string ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Post a single tweet using a raw (decrypted) access token. Attaches image if imageUrl provided. */
+export async function postToTwitterWithToken(text: string, accessToken: string, imageUrl?: string): Promise<{ id: string }> {
   const tweetText = text.length > 280 ? text.slice(0, 277) + "..." : text;
+
+  let mediaId: string | null = null;
+  if (imageUrl) {
+    mediaId = await uploadImageToTwitter(imageUrl, accessToken);
+  }
+
+  const body: Record<string, unknown> = { text: tweetText };
+  if (mediaId) body.media = { media_ids: [mediaId] };
+
   const response = await fetch("https://api.twitter.com/2/tweets", {
     method: "POST",
     headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ text: tweetText }),
+    body: JSON.stringify(body),
   });
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -115,7 +145,7 @@ function splitLongText(text: string, maxLen: number): string[] {
   return result;
 }
 
-export async function postToTwitter(userId: string, text: string): Promise<PostResult> {
+export async function postToTwitter(userId: string, text: string, imageUrl?: string): Promise<PostResult> {
   const token = await getToken(userId, "twitter");
   if (!token) return { platform: "twitter", success: false, error: "Twitter not connected" };
   let accessToken = token.accessToken;
@@ -125,7 +155,7 @@ export async function postToTwitter(userId: string, text: string): Promise<PostR
     accessToken = newToken;
   }
   try {
-    const tweet = await postToTwitterWithToken(text, accessToken);
+    const tweet = await postToTwitterWithToken(text, accessToken, imageUrl);
     const postId = tweet.id;
     return { platform: "twitter", success: true, postId, postUrl: `https://x.com/${token.platformUsername}/status/${postId}` };
   } catch (err) {
