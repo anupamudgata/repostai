@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { ensureProfileForRepurposeInsert } from "@/lib/supabase/ensure-profile";
+import { getOrCreateUserProfile } from "@/lib/supabase/ensure-profile";
 import { invalidateBrandVoiceCache, warmBrandVoiceCache } from "@/lib/ai/brand-voice-cache";
 import { brandVoiceWritingFields } from "@/lib/brand-voice-db";
 import {
@@ -42,13 +42,22 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    try {
-      await ensureProfileForRepurposeInsert(user, supabase);
-    } catch (e) {
-      console.error("[brand-voice] ensure profile:", e);
+    const profileReady = await getOrCreateUserProfile(user, supabase);
+    if (!profileReady.ok) {
+      console.error("[brand-voice] getOrCreateUserProfile:", profileReady);
+      if (profileReady.kind === "config") {
+        return NextResponse.json(
+          { error: profileReady.message, code: "SUPABASE_CONFIG" },
+          { status: 500 }
+        );
+      }
       return NextResponse.json(
-        { error: "Could not prepare your account. Please try again or contact support." },
-        { status: 500 }
+        {
+          error:
+            "Your account profile isn’t ready yet. Refresh the page or sign out and sign in again.",
+          code: "PROFILE_SYNC_FAILED",
+        },
+        { status: 503 }
       );
     }
     const { plan } = await getEffectivePlan(supabase, user.id, user.email);

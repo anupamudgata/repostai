@@ -28,6 +28,83 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+type PostState = "idle" | "posting" | "success" | "error";
+
+function PostButton({ text, platform }: { text: string; platform: string }) {
+  const [postState, setPostState] = useState<PostState>("idle");
+  const [postUrl,   setPostUrl]   = useState<string | null>(null);
+  const [errMsg,    setErrMsg]    = useState("");
+
+  async function handlePost() {
+    setPostState("posting");
+    setErrMsg("");
+    try {
+      const res = await fetch("/api/social/post", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ posts: [{ platform, text }] }),
+      });
+      const data = await res.json();
+      const result = data.results?.[0];
+      if (result?.success) {
+        setPostState("success");
+        setPostUrl(result.postUrl ?? null);
+      } else {
+        setPostState("error");
+        setErrMsg(result?.error ?? "Post failed");
+      }
+    } catch {
+      setPostState("error");
+      setErrMsg("Network error");
+    }
+  }
+
+  if (postState === "success") {
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: "5px", fontSize: "11px", fontWeight: 600, color: "#16A34A" }}>
+        ✓ Posted
+        {postUrl && (
+          <a href={postUrl} target="_blank" rel="noopener noreferrer"
+            style={{ fontSize: "11px", color: "#2563EB", fontWeight: 400 }}>View →</a>
+        )}
+      </span>
+    );
+  }
+
+  if (postState === "error") {
+    const isNotConnected = errMsg.toLowerCase().includes("not connected") || errMsg.toLowerCase().includes("expired");
+    if (isNotConnected) {
+      return (
+        <a href="/dashboard/connections" style={{ fontSize: "11px", color: "#2563EB", fontWeight: 600, textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+          Connect LinkedIn →
+        </a>
+      );
+    }
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
+        <span style={{ fontSize: "11px", color: "#EF4444" }}>{errMsg}</span>
+        <button onClick={() => setPostState("idle")} style={{ fontSize: "10px", color: "#6B7280", background: "none", border: "none", cursor: "pointer", padding: 0 }}>Retry</button>
+      </span>
+    );
+  }
+
+  return (
+    <button
+      onClick={handlePost}
+      disabled={postState === "posting"}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: "5px",
+        padding: "5px 12px", borderRadius: "6px",
+        border: "1.5px solid #0A66C2", background: postState === "posting" ? "#EFF6FF" : "transparent",
+        color: "#0A66C2", fontSize: "11px", fontWeight: 600,
+        cursor: postState === "posting" ? "wait" : "pointer", transition: "all .15s",
+      }}
+    >
+      {postState === "posting" ? "Posting…" : "Post now"}
+    </button>
+  );
+}
+
 function Cursor() {
   return <span className="ro-cursor" />;
 }
@@ -36,7 +113,16 @@ function SkeletonLine({ width = "100%", delay = 0 }: { width?: string; delay?: n
   return <div className="ro-skeleton" style={{ width, animationDelay: `${delay}ms` }} />;
 }
 
-function PlatformCard({ state, index }: { state: PlatformState; index: number }) {
+/** Repurpose platform → social post platform mapping */
+const SOCIAL_PLATFORM: Partial<Record<Platform, string>> = {
+  linkedin:       "linkedin",
+  twitter_thread: "twitter",
+  twitter_single: "twitter",
+  facebook:       "facebook",
+  reddit:         "reddit",
+};
+
+function PlatformCard({ state, index, connectedAccounts }: { state: PlatformState; index: number; connectedAccounts: string[] }) {
   const meta        = PLATFORM_META[state.platform] ?? { label: state.platform, color: "#6B7280", icon: "?" };
   const isStreaming = state.status === "streaming";
   const isDone      = state.status === "done";
@@ -88,6 +174,9 @@ function PlatformCard({ state, index }: { state: PlatformState; index: number })
           {isDone && state.platform === "email"  && state.subject && <span style={{ fontSize: "11px", color: meta.color, background: accentBg, border: `0.5px solid ${accentBorder}`, padding: "2px 8px", borderRadius: "4px", maxWidth: "160px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{state.subject}</span>}
           {isDone && state.platform === "reddit" && state.title   && <span style={{ fontSize: "11px", color: meta.color, background: accentBg, border: `0.5px solid ${accentBorder}`, padding: "2px 8px", borderRadius: "4px", maxWidth: "160px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{state.title}</span>}
           {isDone && copyText && <CopyButton text={copyText} />}
+          {isDone && copyText && SOCIAL_PLATFORM[state.platform] && connectedAccounts.includes(SOCIAL_PLATFORM[state.platform]!) && (
+            <PostButton text={copyText} platform={SOCIAL_PLATFORM[state.platform]!} />
+          )}
         </div>
       </div>
 
@@ -150,16 +239,17 @@ function ProgressBar({ progress, status }: { progress: number; status: StreamSta
 }
 
 export interface RepurposeOutputProps {
-  status:    StreamStatus;
-  platforms: Partial<Record<Platform, PlatformState>>;
-  totalMs:   number;
-  remaining: number | null;
-  error:     string;
-  progress:  number;
-  onReset?:  () => void;
+  status:            StreamStatus;
+  platforms:         Partial<Record<Platform, PlatformState>>;
+  totalMs:           number;
+  remaining:         number | null;
+  error:             string;
+  progress:          number;
+  onReset?:          () => void;
+  connectedAccounts?: string[];
 }
 
-export function RepurposeOutput({ status, platforms, totalMs, remaining, error, progress, onReset }: RepurposeOutputProps) {
+export function RepurposeOutput({ status, platforms, totalMs, remaining, error, progress, onReset, connectedAccounts = [] }: RepurposeOutputProps) {
   const platformEntries = Object.values(platforms) as PlatformState[];
   const doneCount = platformEntries.filter((p) => p.status === "done").length;
 
@@ -200,7 +290,7 @@ export function RepurposeOutput({ status, platforms, totalMs, remaining, error, 
 
       {platformEntries.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(340px,1fr))", gap: "14px" }}>
-          {platformEntries.map((s, i) => <PlatformCard key={s.platform} state={s} index={i} />)}
+          {platformEntries.map((s, i) => <PlatformCard key={s.platform} state={s} index={i} connectedAccounts={connectedAccounts} />)}
         </div>
       )}
     </div>

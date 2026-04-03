@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Lock } from "lucide-react";
 import { useRepurposeStream } from "@/hooks/useRepurposeStream";
 import { RepurposeOutput }    from "@/components/dashboard/RepurposeOutput";
@@ -16,13 +16,84 @@ const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
 /** All four free-tier platforms — default must not include Starter+ only IDs or /api/repurpose/stream rejects free users. */
 const DEFAULT_PLATFORMS: Platform[] = [...FREE_PLATFORM_IDS];
 
+type ScoreResult = { score: number; label: string; feedback: string; improved: string };
+
 export default function RepurposePage() {
   const { state, start, cancel, reset } = useRepurposeStream();
   const [content,            setContent]            = useState("");
   const [selectedPlatforms,  setSelectedPlatforms]  = useState<Platform[]>(DEFAULT_PLATFORMS);
   const [language,           setLanguage]           = useState<Language>("en");
+  const languageRef = useRef<Language>("en");
   const [inputType,          setInputType]          = useState<"text"|"url"|"youtube">("text");
   const [userPlan,           setUserPlan]           = useState<string | null>(null);
+  const [connectedAccounts,  setConnectedAccounts]  = useState<string[]>([]);
+  const [scoreResult,        setScoreResult]        = useState<ScoreResult | null>(null);
+  const [scoring,            setScoring]            = useState(false);
+  const [showScore,          setShowScore]          = useState(false);
+  const [copied,             setCopied]             = useState(false);
+  const [showImproved,       setShowImproved]       = useState(false);
+  const [animatedScore,      setAnimatedScore]      = useState(0);
+
+  const scoreTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const triggerScore = useCallback(async (text: string) => {
+    if (text.trim().length < 50) { setShowScore(false); setScoreResult(null); return; }
+    setScoring(true);
+    setShowScore(true);
+    setScoreResult(null);
+    try {
+      const res = await fetch("/api/score-text", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
+      const data = await res.json();
+      if (res.ok) {
+        setScoreResult(data);
+        setShowImproved(false);
+        setAnimatedScore(0);
+        // animate score from 0 to actual
+        let current = 0;
+        const target = Math.min(100, Math.max(0, Number(data.score) || 0));
+        const step = Math.ceil(target / 40);
+        const timer = setInterval(() => {
+          current = Math.min(current + step, target);
+          setAnimatedScore(current);
+          if (current >= target) clearInterval(timer);
+        }, 30);
+      } else {
+        setScoreResult(null);
+      }
+    } catch {
+      setScoreResult(null);
+    } finally {
+      setScoring(false);
+    }
+  }, []);
+
+  function handleTextChange(val: string) {
+    setContent(val);
+    if (inputType !== "text") return;
+    if (scoreTimerRef.current) clearTimeout(scoreTimerRef.current);
+    if (val.trim().length < 50) { setShowScore(false); setScoreResult(null); return; }
+    scoreTimerRef.current = setTimeout(() => triggerScore(val), 2000);
+  }
+
+  async function handleScore() {
+    if (!content.trim()) return;
+    if (scoreTimerRef.current) clearTimeout(scoreTimerRef.current);
+    await triggerScore(content);
+  }
+
+  function handleCopyImproved() {
+    if (!scoreResult?.improved) return;
+    navigator.clipboard.writeText(scoreResult.improved);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleUseImproved() {
+    if (!scoreResult?.improved) return;
+    setContent(scoreResult.improved);
+    setShowScore(false);
+    setScoreResult(null);
+  }
 
   const planLoading = userPlan === null;
   const isFreePlan = userPlan === "free";
@@ -40,6 +111,14 @@ export default function RepurposePage() {
         }
       })
       .catch(() => { setUserPlan("free"); });
+
+    fetch("/api/social/accounts")
+      .then((r) => r.json())
+      .then((d: { accounts?: { platform: string; status: string }[] }) => {
+        const connected = (d.accounts ?? []).filter((a) => a.status === "connected").map((a) => a.platform);
+        setConnectedAccounts(connected);
+      })
+      .catch(() => {});
   }, []);
 
   function togglePlatform(p: Platform) {
@@ -49,7 +128,8 @@ export default function RepurposePage() {
 
   async function handleSubmit() {
     if (!content.trim() || selectedPlatforms.length === 0) return;
-    await start({ content, platforms: selectedPlatforms, language, inputType });
+    languageRef.current = language;
+    await start({ content, platforms: selectedPlatforms, language: languageRef.current, inputType });
   }
 
   return (
@@ -74,14 +154,97 @@ export default function RepurposePage() {
           {/* Content input */}
           <div style={{ padding: "16px" }}>
             <textarea
-              value={content} onChange={(e) => setContent(e.target.value)} disabled={isRunning}
+              value={content} onChange={(e) => handleTextChange(e.target.value)} disabled={isRunning}
               placeholder={inputType === "text" ? "Paste your blog post, article, or any text here..." : inputType === "url" ? "https://yourblog.com/post-title" : "https://youtube.com/watch?v=..."}
               rows={inputType === "text" ? 8 : 3}
               style={{ width: "100%", padding: "12px", borderRadius: "10px", border: "1px solid #E5E7EB", fontSize: "14px", lineHeight: 1.7, color: "#1E293B", background: isRunning ? "#F9FAFB" : "#FFFFFF", resize: "vertical", outline: "none", fontFamily: "inherit", boxSizing: "border-box", transition: "border-color .15s" }}
               onFocus={(e) => { e.target.style.borderColor = "#BFDBFE"; }}
               onBlur={(e)  => { e.target.style.borderColor = "#E5E7EB"; }}
             />
-            {inputType === "text" && <div style={{ textAlign: "right", fontSize: "11px", color: "#CBD5E1", marginTop: "4px" }}>{content.length.toLocaleString()} characters</div>}
+            {inputType === "text" && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px" }}>
+                <div style={{ fontSize: "11px", color: "#CBD5E1" }}>{content.length.toLocaleString()} characters</div>
+                {content.trim().length >= 50 && (
+                  <button
+                    onClick={handleScore}
+                    disabled={scoring || isRunning}
+                    style={{ padding: "5px 14px", borderRadius: "8px", border: "1.5px solid #6366F1", background: scoring ? "#EEF2FF" : "#F5F3FF", color: "#6366F1", fontSize: "12px", fontWeight: 600, cursor: scoring ? "wait" : "pointer", transition: "all .15s", display: "flex", alignItems: "center", gap: "5px" }}
+                  >
+                    {scoring ? "Analyzing..." : scoreResult ? "Re-score" : "Score & Improve"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Score result panel */}
+            {inputType === "text" && showScore && (
+              <div style={{ marginTop: "12px", border: "1px solid #E0E7FF", borderRadius: "12px", background: "#FAFBFF", overflow: "hidden" }}>
+
+                {/* Score row */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                    {/* Circular gauge */}
+                    <div style={{ position: "relative", width: "60px", height: "60px", flexShrink: 0 }}>
+                      <svg width="60" height="60" viewBox="0 0 60 60">
+                        <circle cx="30" cy="30" r="26" fill="none" stroke="#E0E7FF" strokeWidth="5" />
+                        <circle cx="30" cy="30" r="26" fill="none"
+                          stroke={animatedScore >= 80 ? "#22C55E" : animatedScore >= 60 ? "#F59E0B" : animatedScore >= 40 ? "#F97316" : "#EF4444"}
+                          strokeWidth="5"
+                          strokeDasharray={`${(animatedScore / 100) * 163.4} 163.4`}
+                          strokeLinecap="round"
+                          transform="rotate(-90 30 30)"
+                          style={{ transition: "stroke-dasharray 0.03s linear, stroke 0.3s" }}
+                        />
+                      </svg>
+                      <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "14px", fontWeight: 800, color: "#1E293B" }}>
+                        {scoring ? "…" : animatedScore}
+                      </div>
+                    </div>
+                    <div>
+                      {scoring
+                        ? <div style={{ fontSize: "13px", color: "#94A3B8" }}>Analyzing your text...</div>
+                        : scoreResult
+                          ? <>
+                              <div style={{ fontSize: "15px", fontWeight: 700, color: scoreResult.score >= 80 ? "#16A34A" : scoreResult.score >= 60 ? "#D97706" : scoreResult.score >= 40 ? "#EA580C" : "#DC2626" }}>{scoreResult.label}</div>
+                              <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px", lineHeight: 1.5, maxWidth: "340px" }}>{scoreResult.feedback}</div>
+                            </>
+                          : <div style={{ fontSize: "13px", color: "#EF4444" }}>Failed to analyze. Try again.</div>
+                      }
+                    </div>
+                  </div>
+
+                  {/* Right: improved dropdown toggle */}
+                  {!scoring && scoreResult && (
+                    <button
+                      onClick={() => setShowImproved((v) => !v)}
+                      style={{ display: "flex", alignItems: "center", gap: "6px", padding: "7px 14px", borderRadius: "8px", border: "1.5px solid #6366F1", background: showImproved ? "#EEF2FF" : "#F5F3FF", color: "#6366F1", fontSize: "12px", fontWeight: 700, cursor: "pointer", flexShrink: 0, transition: "all .15s" }}
+                    >
+                      Improved version
+                      <span style={{ display: "inline-block", transition: "transform .2s", transform: showImproved ? "rotate(180deg)" : "rotate(0deg)", fontSize: "10px" }}>▼</span>
+                    </button>
+                  )}
+
+                  <button onClick={() => { setShowScore(false); setShowImproved(false); }} style={{ background: "none", border: "none", cursor: "pointer", color: "#CBD5E1", fontSize: "18px", lineHeight: 1, marginLeft: "8px" }}>×</button>
+                </div>
+
+                {/* Improved content dropdown */}
+                {!scoring && scoreResult && showImproved && (
+                  <div style={{ borderTop: "1px solid #E0E7FF", padding: "14px 16px", background: "#F8FAFF" }}>
+                    <div style={{ fontSize: "13px", color: "#334155", lineHeight: 1.8, whiteSpace: "pre-wrap", maxHeight: "200px", overflowY: "auto", marginBottom: "12px" }}>
+                      {scoreResult.improved}
+                    </div>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button onClick={handleCopyImproved} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "1.5px solid #E2E8F0", background: "white", color: "#374151", fontSize: "12px", fontWeight: 600, cursor: "pointer" }}>
+                        {copied ? "Copied!" : "Copy"}
+                      </button>
+                      <button onClick={handleUseImproved} style={{ flex: 1, padding: "8px", borderRadius: "8px", border: "none", background: "#1E3A5F", color: "white", fontSize: "12px", fontWeight: 700, cursor: "pointer" }}>
+                        Use this text →
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Platform selector */}
@@ -162,7 +325,7 @@ export default function RepurposePage() {
               {state.status === "done" && <button onClick={reset} style={{ padding: "7px 16px", borderRadius: "8px", border: "none", background: "#1E3A5F", color: "#FFFFFF", fontSize: "13px", fontWeight: 600, cursor: "pointer" }}>+ New repurpose</button>}
             </div>
           </div>
-          <RepurposeOutput status={state.status} platforms={state.platforms} totalMs={state.totalMs} remaining={state.remaining} error={state.error} progress={state.progress} onReset={reset} />
+          <RepurposeOutput status={state.status} platforms={state.platforms} totalMs={state.totalMs} remaining={state.remaining} error={state.error} progress={state.progress} onReset={reset} connectedAccounts={connectedAccounts} />
         </>
       )}
     </div>

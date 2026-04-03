@@ -10,10 +10,7 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
-import {
-  ensureProfileForRepurposeInsert,
-  profileEnsureConfigErrorMessage,
-} from "@/lib/supabase/ensure-profile";
+import { getOrCreateUserProfile, upsertProfileRowAdmin } from "@/lib/supabase/ensure-profile";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
 
 const MAX_BULK_URLS = 5;
@@ -54,20 +51,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    try {
-      await ensureProfileForRepurposeInsert(user, supabase);
-    } catch (e) {
-      const cfg = profileEnsureConfigErrorMessage(e);
-      if (cfg) {
+    const profileReady = await getOrCreateUserProfile(user, supabase);
+    if (!profileReady.ok) {
+      if (profileReady.kind === "config") {
         return NextResponse.json(
-          { error: cfg, code: "SUPABASE_CONFIG" },
+          { error: profileReady.message, code: "SUPABASE_CONFIG" },
           { status: 500 }
         );
       }
-      return NextResponse.json(
-        { error: "Could not prepare your account. Try again in a moment." },
-        { status: 503 }
-      );
+      // kind === "missing": continue with 3-attempt profile creation rather than blocking
+      // 1. RPC: security definer — works even without SUPABASE_SERVICE_ROLE_KEY
+      try { await supabase.rpc("ensure_profile_from_auth"); } catch { /* best-effort */ }
+      // 2. Admin upsert
+      try { await upsertProfileRowAdmin(user); } catch { /* best-effort */ }
+      // 3. User-session upsert
+      try {
+        const emailRaw = user.email?.trim() ?? "";
+        await supabase.from("profiles").upsert(
+          {
+            id: user.id,
+            email: emailRaw || `${user.id.replace(/-/g, "")}@users.repostai.local`,
+            name: (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? null,
+            avatar_url: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+          },
+          { onConflict: "id" }
+        );
+      } catch { /* best-effort */ }
     }
 
     const body = await request.json();

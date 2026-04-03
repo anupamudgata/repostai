@@ -153,7 +153,70 @@ where p.id is null
 on conflict (id) do nothing;
 
 -- -----------------------------------------------------------------------------
--- 5) Verify: expect 0 rows
+-- 5) CRITICAL: Backfill public.users (legacy table) + fix repurpose_jobs FK
+-- The live DB was created with repurpose_jobs.user_id → public.users (only 2 rows).
+-- This fixes both the legacy table and the FK so all users can repurpose.
+-- -----------------------------------------------------------------------------
+
+-- 5a) Backfill public.users for all missing auth users
+do $$ begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'users') then
+    execute $sql$
+      insert into public.users (id, email, name, avatar_url)
+      select
+        u.id,
+        u.email,
+        coalesce(u.raw_user_meta_data->>'full_name', u.raw_user_meta_data->>'name'),
+        u.raw_user_meta_data->>'avatar_url'
+      from auth.users u
+      left join public.users pu on u.id = pu.id
+      where pu.id is null
+      on conflict (id) do nothing
+    $sql$;
+  end if;
+end $$;
+
+-- 5b) Fix repurpose_jobs.user_id FK to point to public.profiles (correct target)
+do $$ begin
+  if exists (
+    select 1 from pg_constraint
+    where conname = 'repurpose_jobs_user_id_fkey'
+      and conrelid = 'public.repurpose_jobs'::regclass
+  ) then
+    alter table public.repurpose_jobs drop constraint repurpose_jobs_user_id_fkey;
+  end if;
+  alter table public.repurpose_jobs
+    add constraint repurpose_jobs_user_id_fkey
+    foreign key (user_id) references public.profiles(id) on delete cascade;
+exception when others then
+  raise warning 'repurpose_jobs FK repair failed: %', sqlerrm;
+end $$;
+
+-- 5c) Keep public.users in sync for new signups
+create or replace function public.sync_auth_user_to_users_table()
+returns trigger language plpgsql security definer set search_path = public
+as $$
+begin
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'users') then
+    insert into public.users (id, email, name, avatar_url)
+    values (
+      new.id, new.email,
+      coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'name'),
+      new.raw_user_meta_data->>'avatar_url'
+    )
+    on conflict (id) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created_sync_users on auth.users;
+create trigger on_auth_user_created_sync_users
+  after insert on auth.users
+  for each row execute function public.sync_auth_user_to_users_table();
+
+-- -----------------------------------------------------------------------------
+-- 6) Verify: expect 0 rows
 -- -----------------------------------------------------------------------------
 select u.id, u.email
 from auth.users u

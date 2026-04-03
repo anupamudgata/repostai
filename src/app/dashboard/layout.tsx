@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getEffectivePlan } from "@/lib/billing/plan-entitlements";
 import {
-  bootstrapProfileFromAuthAdmin,
-  ensureProfileForRepurposeInsert,
+  getOrCreateUserProfile,
+  getProfileDisplayFromAdmin,
 } from "@/lib/supabase/ensure-profile";
-import { SUPERUSER_EMAIL } from "@/config/constants";
 import { DashboardShell } from "@/components/dashboard/dashboard-sidebar";
 import { SupportChatWidget } from "@/components/support/SupportChatWidget";
 
@@ -22,44 +22,42 @@ export default async function DashboardLayout({
 
   if (!user) redirect("/login");
 
-  let { data: profile } = await supabase
+  const profileBootstrap = await getOrCreateUserProfile(user, supabase);
+  if (!profileBootstrap.ok) {
+    console.error("[dashboard/layout] getOrCreateUserProfile:", profileBootstrap);
+  }
+
+  const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
+  let name =
+    profile?.name ?? (user.user_metadata?.full_name as string | undefined) ?? "";
+  let avatar_url =
+    profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | undefined);
+
   if (!profile) {
-    try {
-      await ensureProfileForRepurposeInsert(user, supabase);
-      const refetch = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-      profile = refetch.data;
-    } catch (e) {
-      console.error("[dashboard/layout] ensureProfileForRepurposeInsert:", e);
+    const fromAdmin = await getProfileDisplayFromAdmin(user.id);
+    if (fromAdmin) {
+      name = name || fromAdmin.name || "";
+      avatar_url = avatar_url || fromAdmin.avatar_url || undefined;
     }
   }
-  if (!profile) {
-    await bootstrapProfileFromAuthAdmin(user.id);
-    const { data: refetch2 } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
-    profile = refetch2 ?? profile;
-  }
 
-  const isSuperUser = user.email === SUPERUSER_EMAIL;
-  const plan = isSuperUser ? "pro" : (profile?.plan || "free");
+  const { plan } = await getEffectivePlan(
+    supabase,
+    user.id,
+    user.email ?? undefined
+  );
 
   return (
     <DashboardShell
       user={{
         email: user.email || "",
-        name: profile?.name || user.user_metadata?.full_name || "",
-        avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url,
+        name,
+        avatar_url,
         plan,
       }}
     >

@@ -1,9 +1,6 @@
 import { NextRequest }                   from "next/server";
 import { createClient }                  from "@/lib/supabase/server";
-import {
-  ensureProfileForRepurposeInsert,
-  profileEnsureConfigErrorMessage,
-} from "@/lib/supabase/ensure-profile";
+import { getOrCreateUserProfile } from "@/lib/supabase/ensure-profile";
 import { extractBrief }                  from "@/lib/ai/repurpose";
 import { getOrGeneratePersona }          from "@/lib/ai/brand-voice-cache";
 import {
@@ -15,6 +12,8 @@ import { burstLimiter } from "@/lib/ratelimit";
 import { addFreeTierWatermark }          from "@/lib/watermark";
 import { captureError }                  from "@/lib/sentry";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
+import { getSupabaseAdmin }              from "@/lib/supabase/admin";
+import { upsertProfileRowAdmin }         from "@/lib/supabase/ensure-profile";
 import { openai } from "@/lib/ai/client";
 import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/lib/ai/anthropic";
 import {
@@ -197,10 +196,14 @@ async function* streamPlatformAgent(
   }
 
   const promptBuilders = getPromptBuilders(brief, voice, language);
+  // For Indian languages falling back to GPT-4o-mini, inject the regional system prompt
+  // so the model has a strong language directive even without Claude.
+  const regional = getRegionalPrompts(language);
+  const gptSystemMsg = regional ? `${SYSTEM_MSG}\n\n${regional.getStreamSystemPrompt()}` : SYSTEM_MSG;
   const stream = await openai.chat.completions.create({
     model: "gpt-4o-mini", temperature: TEMPERATURES[platform], stream: true,
     messages: [
-      { role: "system", content: SYSTEM_MSG },
+      { role: "system", content: gptSystemMsg },
       { role: "user", content: promptBuilders[platform]() },
     ],
   });
@@ -235,18 +238,37 @@ export async function POST(req: NextRequest) {
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) { send({ type: "error", error: "Unauthorized." }); close(); return; }
 
-        try {
-          await ensureProfileForRepurposeInsert(user, supabase);
-        } catch (ensureErr) {
-          const cfg = profileEnsureConfigErrorMessage(ensureErr);
-          send({
-            type: "error",
-            error:
-              cfg ??
-              "Could not prepare your account. Try again in a moment.",
+        const profileReady = await getOrCreateUserProfile(user, supabase);
+        if (!profileReady.ok) {
+          if (profileReady.kind === "config") {
+            send({ type: "error", error: profileReady.message });
+            close();
+            return;
+          }
+          // kind === "missing": profile unreadable but may still exist as FK target.
+          // Force one last admin upsert and continue rather than blocking the user.
+          captureError(new Error("getOrCreateUserProfile returned missing (stream) — continuing"), {
+            userId: user.id,
+            action: "profile_missing_continue_stream",
           });
-          close();
-          return;
+          // 1. RPC: security definer — works even without SUPABASE_SERVICE_ROLE_KEY
+          try { await supabase.rpc("ensure_profile_from_auth"); } catch { /* best-effort */ }
+          // 2. Admin upsert
+          try { await upsertProfileRowAdmin(user); } catch { /* best-effort */ }
+          // 3. User-session upsert (INSERT + UPDATE RLS policy: auth.uid() = id)
+          try {
+            const emailRaw = user.email?.trim() ?? "";
+            const { error: upErr } = await supabase.from("profiles").upsert(
+              {
+                id: user.id,
+                email: emailRaw || `${user.id.replace(/-/g, "")}@users.repostai.local`,
+                name: (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? null,
+                avatar_url: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+              },
+              { onConflict: "id" }
+            );
+            if (upErr) console.error("[stream] user-session profile upsert failed:", upErr.message, upErr.code);
+          } catch (e) { console.error("[stream] user-session profile upsert threw:", e); }
         }
 
         const burst = await burstLimiter.limit(user.id);
@@ -384,7 +406,8 @@ export async function POST(req: NextRequest) {
                 platform: p,
                 generated_content: gen,
               }));
-              await supabase.from("repurpose_outputs").insert(outputRows);
+              // Use admin client — avoids RLS issues when session may be partially expired mid-stream
+              await getSupabaseAdmin().from("repurpose_outputs").insert(outputRows);
             }
           } catch (saveErr) {
             captureError(saveErr, { userId: user.id, action: "stream_save_job" });
@@ -393,7 +416,7 @@ export async function POST(req: NextRequest) {
 
         if (!isSuperUser) {
           try {
-            await supabase.rpc("increment_usage", {
+            await getSupabaseAdmin().rpc("increment_usage", {
               p_user_id: user.id,
               p_month: currentMonth,
             });

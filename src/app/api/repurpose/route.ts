@@ -14,11 +14,9 @@ import {
 } from "@/lib/billing/plan-entitlements";
 import { burstLimiter } from "@/lib/ratelimit";
 import { captureError } from "@/lib/sentry";
-import {
-  ensureProfileForRepurposeInsert,
-  profileEnsureConfigErrorMessage,
-} from "@/lib/supabase/ensure-profile";
+import { getOrCreateUserProfile, upsertProfileRowAdmin } from "@/lib/supabase/ensure-profile";
 import { insertRepurposeJobWithProfileFixups } from "@/lib/supabase/insert-repurpose-job";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 /** Map PostgREST / Postgres errors from repurpose_jobs insert to a safe user message. */
 function messageForRepurposeJobInsertError(err: {
@@ -91,20 +89,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    try {
-      await ensureProfileForRepurposeInsert(user, supabase);
-    } catch (e) {
-      const cfg = profileEnsureConfigErrorMessage(e);
-      if (cfg) {
+    const profileReady = await getOrCreateUserProfile(user, supabase);
+    if (!profileReady.ok) {
+      if (profileReady.kind === "config") {
         return NextResponse.json(
-          { error: cfg, code: "SUPABASE_CONFIG" },
+          { error: profileReady.message, code: "SUPABASE_CONFIG" },
           { status: 500 }
         );
       }
-      return NextResponse.json(
-        { error: "Could not prepare your account. Try again in a moment." },
-        { status: 503 }
-      );
+      // kind === "missing": profile unreadable but may still exist as a FK target.
+      // Force one last admin upsert and continue — insertRepurposeJobWithProfileFixups
+      // has its own FK retry + profile creation loop, so blocking here helps no one.
+      captureError(new Error("getOrCreateUserProfile returned missing — continuing"), {
+        userId: user.id,
+        action: "profile_missing_continue",
+      });
+      // 1. RPC: security definer — works even without SUPABASE_SERVICE_ROLE_KEY
+      try { await supabase.rpc("ensure_profile_from_auth"); } catch { /* best-effort */ }
+      // 2. Admin upsert
+      try { await upsertProfileRowAdmin(user); } catch { /* best-effort */ }
+      // 3. User-session upsert (INSERT + UPDATE RLS policy: auth.uid() = id)
+      try {
+        const emailRaw = user.email?.trim() ?? "";
+        const { error: upErr } = await supabase.from("profiles").upsert(
+          {
+            id: user.id,
+            email: emailRaw || `${user.id.replace(/-/g, "")}@users.repostai.local`,
+            name: (user.user_metadata?.full_name as string | undefined) ?? (user.user_metadata?.name as string | undefined) ?? null,
+            avatar_url: (user.user_metadata?.avatar_url as string | undefined) ?? null,
+          },
+          { onConflict: "id" }
+        );
+        if (upErr) console.error("[repurpose] user-session profile upsert failed:", upErr.message, upErr.code);
+      } catch (e) { console.error("[repurpose] user-session profile upsert threw:", e); }
     }
 
     const body = await request.json();
@@ -295,8 +312,12 @@ export async function POST(request: NextRequest) {
         platform,
         generated_content: generatedContent,
       }));
-      await supabase.from("repurpose_outputs").insert(outputRows);
-      await supabase.rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
+      await getSupabaseAdmin().from("repurpose_outputs").insert(outputRows);
+      try {
+        await getSupabaseAdmin().rpc("increment_usage", { p_user_id: user.id, p_month: currentMonth });
+      } catch (usageErr) {
+        console.error("[repurpose] increment_usage failed (cached path):", usageErr);
+      }
       notifyZapier(profile?.zapier_webhook_url, {
         jobId: job.id,
         outputs: Object.entries(outputsToUse).map(([platform, content]) => ({ platform, content })),
@@ -312,7 +333,7 @@ export async function POST(request: NextRequest) {
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
     const { data: recentJobs } = await supabase
       .from("repurpose_jobs")
-      .select("id, input_content, brand_voice_id")
+      .select("id, input_content, brand_voice_id, output_language")
       .eq("user_id", user.id)
       .gte("created_at", oneHourAgo)
       .order("created_at", { ascending: false })
@@ -321,7 +342,8 @@ export async function POST(request: NextRequest) {
     const duplicate = recentJobs?.find(
       (j) =>
         j.input_content === contentToSave &&
-        (j.brand_voice_id ?? null) === (brandVoiceId ?? null)
+        (j.brand_voice_id ?? null) === (brandVoiceId ?? null) &&
+        (j.output_language ?? "en") === (outputLanguage ?? "en")
     );
     if (!includeBaselineComparison && duplicate) {
       const { data: existingOutputs } = await supabase
@@ -452,14 +474,15 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    // Update job with outputs and status (like repurposed_content pattern)
-    const { error: updateError } = await supabase
+    // Update job with outputs and status — use admin to bypass RLS and avoid JWT expiry issues
+    const { error: updateError } = await getSupabaseAdmin()
       .from("repurpose_jobs")
       .update({
         outputs: generatedOutputs,
         status: "completed",
       })
-      .eq("id", job.id);
+      .eq("id", job.id)
+      .eq("user_id", user.id);
 
     if (updateError) {
       console.error("Failed to save outputs:", updateError);
@@ -478,7 +501,7 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    const { error: outputsError } = await supabase
+    const { error: outputsError } = await getSupabaseAdmin()
       .from("repurpose_outputs")
       .insert(outputRows);
 
@@ -490,10 +513,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await supabase.rpc("increment_usage", {
-      p_user_id: user.id,
-      p_month: currentMonth,
-    });
+    try {
+      await getSupabaseAdmin().rpc("increment_usage", {
+        p_user_id: user.id,
+        p_month: currentMonth,
+      });
+    } catch (usageErr) {
+      console.error("[repurpose] increment_usage failed:", usageErr);
+    }
 
     notifyZapier(profile?.zapier_webhook_url, {
       jobId: job.id,

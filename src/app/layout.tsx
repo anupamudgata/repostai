@@ -23,6 +23,7 @@ import en from "../../messages/en.json";
 import hi from "../../messages/hi.json";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { APP_URL } from "@/config/constants";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -78,7 +79,13 @@ const fontVariables = [
 
 const CATALOG: Record<Locale, Messages> = { en, hi };
 
+/** Absolute base for OG / Twitter image URLs (metadataBase must be set in Next 14+). */
+const metadataBaseUrl =
+  process.env.NEXT_PUBLIC_APP_URL?.trim() ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : APP_URL);
+
 export const metadata: Metadata = {
+  metadataBase: new URL(metadataBaseUrl),
   title: "RepostAI - Repurpose Content for Every Platform in 60 Seconds",
   description:
     "Paste one piece of content. Get 10+ ready-to-post versions for LinkedIn, Twitter/X, Instagram, Email & more. AI-powered, brand-voice aware. Start free.",

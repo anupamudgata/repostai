@@ -7,26 +7,26 @@ export async function postToLinkedIn(userId: string, text: string): Promise<Post
   if (!token) return { platform: "linkedin", success: false, error: "LinkedIn not connected" };
   if (isTokenExpired(token.tokenExpiresAt)) return { platform: "linkedin", success: false, error: "LinkedIn token expired. Please reconnect." };
   try {
-    // Use the newer Posts API (ugcPosts is deprecated and being shut down)
-    const response = await fetch("https://api.linkedin.com/rest/posts", {
+    // UGC Posts API — works on development tier without app verification
+    const response = await fetch("https://api.linkedin.com/v2/ugcPosts", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token.accessToken}`,
         "Content-Type": "application/json",
         "X-Restli-Protocol-Version": "2.0.0",
-        "LinkedIn-Version": "202402",
       },
       body: JSON.stringify({
         author: `urn:li:person:${token.platformUserId}`,
-        commentary: text,
-        visibility: "PUBLIC",
-        distribution: {
-          feedDistribution: "MAIN_FEED",
-          targetEntities: [],
-          thirdPartyDistributionChannels: [],
-        },
         lifecycleState: "PUBLISHED",
-        isReshareDisabledByAuthor: false,
+        specificContent: {
+          "com.linkedin.ugc.ShareContent": {
+            shareCommentary: { text },
+            shareMediaCategory: "NONE",
+          },
+        },
+        visibility: {
+          "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
+        },
       }),
     });
 
@@ -36,8 +36,8 @@ export async function postToLinkedIn(userId: string, text: string): Promise<Post
       return { platform: "linkedin", success: false, error: errMsg };
     }
 
-    // The Posts API returns the post ID in the x-restli-id header
-    const postId = response.headers.get("x-restli-id") ?? "";
+    const data = await response.json().catch(() => ({}));
+    const postId = (data as { id?: string }).id ?? response.headers.get("x-restli-id") ?? "";
     return {
       platform: "linkedin",
       success: true,

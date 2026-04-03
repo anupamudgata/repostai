@@ -48,6 +48,184 @@ export async function getProfileZapierAdmin(
 }
 
 /**
+ * `/api/me` needs a `profiles` row for Zapier settings. User JWT first; if RLS hides
+ * the row (common misconfiguration), read with service role so the dashboard does not
+ * show PROFILE_SYNC_FAILED while subscriptions still resolve as paid.
+ */
+export async function getProfileZapierForSession(
+  userId: string,
+  userSupabase: SupabaseClient
+): Promise<{ zapier_webhook_url: string | null } | null> {
+  const { data, error } = await userSupabase
+    .from("profiles")
+    .select("zapier_webhook_url")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!error && data) {
+    return { zapier_webhook_url: data.zapier_webhook_url ?? null };
+  }
+  if (error) {
+    console.warn(
+      "[getProfileZapierForSession] user JWT select failed",
+      userId,
+      error.code,
+      error.message
+    );
+  }
+  try {
+    const admin = getSupabaseAdmin();
+    const { data: ad, error: adErr } = await admin
+      .from("profiles")
+      .select("zapier_webhook_url")
+      .eq("id", userId)
+      .maybeSingle();
+    if (adErr) {
+      console.warn(
+        "[getProfileZapierForSession] admin select failed",
+        userId,
+        adErr.code,
+        adErr.message
+      );
+      return null;
+    }
+    if (ad) {
+      console.warn(
+        "[getProfileZapierForSession] using service-role read (fix SELECT RLS on public.profiles — scripts/supabase-paste-full-profile-fix.sql)",
+        { userId }
+      );
+      return { zapier_webhook_url: ad.zapier_webhook_url ?? null };
+    }
+  } catch (e) {
+    console.warn("[getProfileZapierForSession] admin client unavailable", e);
+  }
+  return null;
+}
+
+/** Update Zapier webhook when JWT UPDATE on profiles fails (RLS). */
+export async function updateProfileZapierUrlAdmin(
+  userId: string,
+  zapier_webhook_url: string | null
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const admin = getSupabaseAdmin();
+    const { error } = await admin
+      .from("profiles")
+      .update({ zapier_webhook_url })
+      .eq("id", userId);
+    if (error) {
+      return { ok: false, error: error.message };
+    }
+    return { ok: true };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: msg };
+  }
+}
+
+/** Name/avatar for dashboard shell when JWT cannot SELECT `profiles` but row exists (service role). */
+export async function getProfileDisplayFromAdmin(
+  userId: string
+): Promise<{ name: string | null; avatar_url: string | null } | null> {
+  try {
+    const admin = getSupabaseAdmin();
+    const { data, error } = await admin
+      .from("profiles")
+      .select("name, avatar_url")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error || !data) return null;
+    return {
+      name: data.name ?? null,
+      avatar_url: data.avatar_url ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export type GetOrCreateUserProfileResult =
+  | { ok: true; zapier_webhook_url: string | null }
+  | { ok: false; kind: "config"; message: string }
+  | { ok: false; kind: "missing"; message: string };
+
+/**
+ * Idempotent profile bootstrap + read for `/api/me`, dashboard layout, and auth callback.
+ * Ensures FK targets exist and returns Zapier field using JWT or service-role read (RLS-safe).
+ */
+export async function getOrCreateUserProfile(
+  user: User,
+  userSupabase: SupabaseClient
+): Promise<GetOrCreateUserProfileResult> {
+  try {
+    await ensureProfileForRepurposeInsert(user, userSupabase);
+  } catch (e) {
+    const cfg = profileEnsureConfigErrorMessage(e);
+    if (cfg) {
+      return { ok: false, kind: "config", message: cfg };
+    }
+    console.warn(
+      "[getOrCreateUserProfile] ensureProfileForRepurposeInsert threw (continuing)",
+      e instanceof Error ? e.message : e
+    );
+  }
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const row = await getProfileZapierForSession(user.id, userSupabase);
+    if (row) {
+      return { ok: true, zapier_webhook_url: row.zapier_webhook_url };
+    }
+    console.warn("[getOrCreateUserProfile] profile unreadable", {
+      userId: user.id,
+      attempt,
+    });
+    try {
+      await ensureProfileForRepurposeInsert(user, userSupabase);
+    } catch (e2) {
+      const cfg2 = profileEnsureConfigErrorMessage(e2);
+      if (cfg2) {
+        return { ok: false, kind: "config", message: cfg2 };
+      }
+    }
+  }
+
+  await bootstrapProfileFromAuthAdmin(user.id);
+  try {
+    await userSupabase.rpc("ensure_profile_from_auth");
+  } catch {
+    /* RPC optional */
+  }
+
+  let row = await getProfileZapierForSession(user.id, userSupabase);
+  if (row) {
+    return { ok: true, zapier_webhook_url: row.zapier_webhook_url };
+  }
+
+  try {
+    await ensureProfileForRepurposeInsert(user, userSupabase);
+  } catch (e3) {
+    const cfg3 = profileEnsureConfigErrorMessage(e3);
+    if (cfg3) {
+      return { ok: false, kind: "config", message: cfg3 };
+    }
+  }
+
+  row = await getProfileZapierForSession(user.id, userSupabase);
+  if (row) {
+    return { ok: true, zapier_webhook_url: row.zapier_webhook_url };
+  }
+
+  console.error("[getOrCreateUserProfile] exhausted retries", {
+    userId: user.id,
+  });
+  return {
+    ok: false,
+    kind: "missing",
+    message:
+      "Profile could not be created or read. Set SUPABASE_SERVICE_ROLE_KEY (same project as NEXT_PUBLIC_SUPABASE_URL) and run scripts/supabase-paste-full-profile-fix.sql.",
+  };
+}
+
+/**
  * `brand_voices`, `repurpose_jobs`, etc. reference `profiles(id)`. Ensures a row exists.
  *
  * 1) When `userSupabase` is passed (server client with the user's session), calls

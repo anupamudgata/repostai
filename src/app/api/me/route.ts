@@ -6,11 +6,8 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import {
-  bootstrapProfileFromAuthAdmin,
-  ensureProfileForRepurposeInsert,
-  getProfileZapierAdmin,
-  profileEnsureConfigErrorMessage,
-  profileRowExistsAdmin,
+  getOrCreateUserProfile,
+  updateProfileZapierUrlAdmin,
 } from "@/lib/supabase/ensure-profile";
 
 export async function GET() {
@@ -24,99 +21,22 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    try {
-      await ensureProfileForRepurposeInsert(user, supabase);
-    } catch (e) {
-      const cfg = profileEnsureConfigErrorMessage(e);
-      if (cfg) {
+    const profileResult = await getOrCreateUserProfile(user, supabase);
+    if (!profileResult.ok) {
+      if (profileResult.kind === "config") {
         return NextResponse.json(
-          { error: cfg, code: "SUPABASE_CONFIG" },
+          { error: profileResult.message, code: "SUPABASE_CONFIG" },
           { status: 500 }
         );
       }
-      throw e;
-    }
-
-    let profile: { zapier_webhook_url: string | null } | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("zapier_webhook_url")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (error) {
-        console.error("[me] profile query error", {
-          userId: user.id,
-          attempt,
-          code: error.code,
-          message: error.message,
-        });
-        try {
-          await ensureProfileForRepurposeInsert(user, supabase);
-        } catch {
-          /* continue loop */
-        }
-        continue;
-      }
-      if (data) {
-        profile = data;
-        break;
-      }
-      console.warn("[me] no profile row for user", { userId: user.id, attempt });
-      try {
-        await ensureProfileForRepurposeInsert(user, supabase);
-      } catch {
-        /* continue loop */
-      }
-    }
-    if (!profile) {
-      const exists = await profileRowExistsAdmin(user.id);
-      if (exists) {
-        const zapier = await getProfileZapierAdmin(user.id);
-        console.warn(
-          "[me] using admin read for profile — fix SELECT RLS on public.profiles (run scripts/supabase-paste-full-profile-fix.sql)",
-          { userId: user.id }
-        );
-        profile = { zapier_webhook_url: zapier };
-      }
-    }
-    if (!profile) {
-      await bootstrapProfileFromAuthAdmin(user.id);
-      try {
-        await supabase.rpc("ensure_profile_from_auth");
-      } catch {
-        /* RPC may be missing */
-      }
-      const { data: afterBootstrap } = await supabase
-        .from("profiles")
-        .select("zapier_webhook_url")
-        .eq("id", user.id)
-        .maybeSingle();
-      if (afterBootstrap) {
-        profile = afterBootstrap;
-      }
-    }
-    if (!profile) {
-      const exists = await profileRowExistsAdmin(user.id);
-      if (exists) {
-        profile = {
-          zapier_webhook_url: await getProfileZapierAdmin(user.id),
-        };
-      }
-    }
-    if (!profile) {
-      console.error("[me] profile still missing after ensure+retry", {
-        userId: user.id,
-      });
       return NextResponse.json(
         {
           error: "Could not load your profile. Try again or refresh the page.",
           code: "PROFILE_SYNC_FAILED",
+          hint:
+            "Check Vercel: SUPABASE_SERVICE_ROLE_KEY (service_role JWT) and NEXT_PUBLIC_SUPABASE_URL match the same Supabase project. In SQL Editor run scripts/supabase-paste-full-profile-fix.sql or SUPABASE_SCHEMA_FINAL.sql.",
           ...(process.env.NODE_ENV === "development" && {
-            debug: {
-              userId: user.id,
-              hint: "Set SUPABASE_SERVICE_ROLE_KEY to the service_role JWT and run scripts/supabase-paste-full-profile-fix.sql on your Supabase project.",
-            },
+            debug: { userId: user.id },
           }),
         },
         { status: 503 }
@@ -149,7 +69,8 @@ export async function GET() {
       repurposeLimit,
       daysUntilUsageReset: daysUntilUsageReset(),
       isSuperUser,
-      zapier_webhook_url: profile?.zapier_webhook_url ?? null,
+      zapier_webhook_url: profileResult.zapier_webhook_url,
+      profileReady: true,
     });
   } catch (err) {
     console.error("[me] Error:", err);
@@ -189,7 +110,11 @@ export async function PATCH(request: Request) {
         .update({ zapier_webhook_url: toSet })
         .eq("id", user.id);
       if (error) {
-        return NextResponse.json({ error: "Could not update profile" }, { status: 500 });
+        const adminUp = await updateProfileZapierUrlAdmin(user.id, toSet);
+        if (!adminUp.ok) {
+          console.error("[me] PATCH profile update", error.message, adminUp.error);
+          return NextResponse.json({ error: "Could not update profile" }, { status: 500 });
+        }
       }
     }
 
