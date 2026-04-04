@@ -106,13 +106,14 @@ export default function ConnectionsPage() {
   }, []);
 
   async function handleDisconnect(platformId: string) {
-    if (!confirm(`Disconnect ${platformId}?`)) return;
+    const platformName = PLATFORMS.find((p) => p.id === platformId)?.name ?? platformId;
+    if (!confirm(`Disconnect ${platformName}?`)) return;
     const res = await fetch(`/api/social/accounts?platform=${platformId}`, {
       method: "DELETE",
     });
     if (res.ok) {
       setAccounts((prev) => prev.filter((a) => a.platform !== platformId));
-      showToast(`${platformId} disconnected.`);
+      showToast(`${platformName} disconnected.`);
     }
   }
 

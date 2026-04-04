@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 
 const PHRASE = "DELETE MY ACCOUNT";
 
@@ -48,6 +49,7 @@ export default function DeleteAccountPage() {
         return;
       }
       setStatus("done");
+      await createClient().auth.signOut();
       window.location.href = "/";
     } catch {
       setError("Network error");

@@ -58,11 +58,14 @@ export async function GET(req: NextRequest) {
 
     for (const post of posts) {
       try {
-        // Mark as processing to prevent double-publish
-        await supabaseAdmin
+        // Lock the row — only proceed if it was still pending (prevents double-publish)
+        const { data: locked } = await supabaseAdmin
           .from("scheduled_posts")
-          .update({ status: "processing", updated_at: new Date().toISOString() })
-          .eq("id", post.id);
+          .update({ status: "failed" })
+          .eq("id", post.id)
+          .eq("status", "pending")
+          .select("id");
+        if (!locked?.length) continue; // already picked up by another run
 
         // Process each platform in the post
         // Schedule API inserts one row per platform with output_id; cron uses platforms[] + content_segments
@@ -127,15 +130,14 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Mark as published or failed based on results
-        const finalStatus = publishedCount > 0 ? "published" : "failed";
+        // Mark as completed or failed — use column names matching the schema
+        const finalStatus = publishedCount > 0 ? "completed" : "failed";
 
         await supabaseAdmin
           .from("scheduled_posts")
           .update({
-            status:       finalStatus,
-            published_at: publishedCount > 0 ? new Date().toISOString() : null,
-            updated_at:   new Date().toISOString(),
+            status:    finalStatus,
+            posted_at: publishedCount > 0 ? new Date().toISOString() : null,
           })
           .eq("id", post.id);
 
@@ -151,11 +153,10 @@ export async function GET(req: NextRequest) {
         results.errors.push(`${post.id}: ${msg}`);
         results.failed++;
 
-        // Mark as failed so it doesn't get stuck in "processing"
         try {
           await supabaseAdmin
             .from("scheduled_posts")
-            .update({ status: "failed", updated_at: new Date().toISOString() })
+            .update({ status: "failed" })
             .eq("id", post.id);
         } catch {
           // Don't throw if this update also fails

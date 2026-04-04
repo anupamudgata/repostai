@@ -53,7 +53,7 @@ async function uploadImageToLinkedIn(imageUrl: string, accessToken: string, pers
 export async function postToLinkedIn(userId: string, text: string, imageUrl?: string): Promise<PostResult> {
   const token = await getToken(userId, "linkedin");
   if (!token) return { platform: "linkedin", success: false, error: "LinkedIn not connected" };
-  if (isTokenExpired(token.tokenExpiresAt)) return { platform: "linkedin", success: false, error: "LinkedIn token expired. Please reconnect." };
+  if (isTokenExpired(token.tokenExpiresAt)) return { platform: "linkedin", success: false, error: "LinkedIn token expired. Go to Connections to reconnect." };
   try {
     let assetUrn: string | null = null;
     if (imageUrl) {
