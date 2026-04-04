@@ -109,7 +109,8 @@ Save ਕਰੋ ਤੇ daily ਯਾਦ ਕਰਾਓ ਆਪਣੇ ਆਪ ਨੂੰ
     instagram: `PUNJABI + INSTAGRAM:
 - Killer first line. High-energy Punjabi hook. ਬੱਲੇ ਬੱਲੇ vibe.
 - Structure: [HOOK] → [Story/value] → [CTA: Save ਕਰੋ/Share ਕਰੋ/Comment ਵਿੱਚ ਦੱਸੋ].
-- 8–15 hashtags. Casual ਤੂੰ/ਯਾਰ tone.`,
+- 8–15 hashtags. Casual ਤੂੰ/ਯਾਰ tone.
+- TONE OVERRIDE: If topic is serious/emotional/agricultural (ਕਿਸਾਨ, ਕਰਜ਼ਾ, grief, social injustice, ਮੌਤ), switch to grounded respectful tone — NO ਬੱਲੇ ਬੱਲੇ, use ਦਿਲ ਦੀ ਗੱਲ / ਸੱਚ ਦੱਸਣਾ hooks instead.`,
     twitter: `PUNJABI + X:
 - Thread: numbered, <280 chars, punchy Punglish hook.
 - Single: <260 chars.`,
@@ -122,7 +123,8 @@ Save ਕਰੋ ਤੇ daily ਯਾਦ ਕਰਾਓ ਆਪਣੇ ਆਪ ਨੂੰ
     reddit: `PUNJABI + REDDIT:
 - Helpful, non-promotional; no hashtags.`,
     tiktok: `PUNJABI + TIKTOK SCRIPT:
-- Spoken Punglish; hook in 2 seconds; high ਬੱਲੇ ਬੱਲੇ energy; verbal Punjabi CTA.`,
+- Spoken Punglish; hook in 2 seconds; high ਬੱਲੇ ਬੱਲੇ energy; verbal Punjabi CTA.
+- TONE OVERRIDE: If topic is serious/emotional/agricultural (ਕਿਸਾਨ, ਕਰਜ਼ਾ, grief, social injustice, ਮੌਤ), use grounded respectful tone — NO ਬੱਲੇ ਬੱਲੇ, NO excited energy. Use ਦਿਲ ਦੀ ਗੱਲ / ਸੱਚ ਦੱਸਣਾ hooks instead.`,
   },
 
   platformOverrides: {
@@ -130,7 +132,7 @@ Save ਕਰੋ ਤੇ daily ਯਾਦ ਕਰਾਓ ਆਪਣੇ ਆਪ ਨੂੰ
 - ਮੈਂ/ਮੇਰਾ is natural. End with: "ਤੁਹਾਡਾ ਤਜ਼ਰਬਾ ਕੀ ਰਿਹਾ?", "Comments ਵਿੱਚ ਦੱਸੋ"`,
     instagram: `PUNJABI-SPECIFIC INSTAGRAM:
 - CTA: "Save ਕਰੋ", "Tag ਕਰੋ ਉਸ ਯਾਰ ਨੂੰ", "Comment ਵਿੱਚ ਦੱਸੋ"
-- ਬੱਲੇ ਬੱਲੇ energy: dramatic, enthusiastic, loud-and-proud Punjabi vibe`,
+- ਬੱਲੇ ਬੱਲੇ energy: dramatic, enthusiastic, loud-and-proud Punjabi vibe (serious topics: use ਦਿਲ ਛੂਹਣ ਵਾਲੀ ਗੱਲ CTA instead)`,
     tiktok: `PUNJABI-SPECIFIC TIKTOK:
 - Hooks: "ਸੁਣੋ ਇਹ", "ਰੁਕੋ ਜ਼ਰਾ", "ਇਹ ਦੇਖੋ ਪਹਿਲਾਂ"
 - End CTA: "Follow ਕਰੋ", "Save ਕਰੋ"`,
@@ -140,7 +142,9 @@ Save ਕਰੋ ਤੇ daily ਯਾਦ ਕਰਾਓ ਆਪਣੇ ਆਪ ਨੂੰ
 PUNJABI/PUNGLISH QUALITY RULES:
 - Gurmukhi consistency: Punjabi words MUST be in Gurmukhi script. Romanized = CRITICAL FAIL.
 - Code-switching: English tech terms OK, full English sentences = FAIL.
-- Must sound like a real Punjabi creator with ਬੱਲੇ ਬੱਲੇ energy.
+- Default energy: sound like a real Punjabi creator with ਬੱਲੇ ਬੱਲੇ energy.
+- TONE AWARENESS: Serious/emotional/agrarian topics (ਕਿਸਾਨ, ਕਰਜ਼ਾ, grief, social injustice) = grounded respectful tone, NO ਬੱਲੇ ਬੱਲੇ. Forcing hype on sensitive topics = CRITICAL FAIL.
+- TOPIC-AWARE SCRIPT: Cultural/agrarian/social topics (ਕਿਸਾਨ, ਵਾਢੀ, ਪਿੰਡ, social issues) → Gurmukhi-dominant (~85% Gurmukhi, only unavoidable English nouns that have no Punjabi equivalent). Tech/startup/business → Punglish (~55% Punjabi / ~45% English).
 - LinkedIn = ਤੁਸੀਂ professional. Instagram = casual ਤੂੰ/ਯਾਰ.`,
 
   extractorGuard: `

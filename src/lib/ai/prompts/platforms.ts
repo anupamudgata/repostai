@@ -318,6 +318,7 @@ RULES:
 5. ONE CTA only — make it low-friction ("Hit reply if you've seen this")
 6. Sign off: Personal and simple
 7. NEVER: "I hope this email finds you well"
+8. COMMERCIAL CTA RULE: If the content does NOT promote a product, service, or offer, do NOT use "Offer ends soon", "Don't miss out", "Limited time", or any e-commerce urgency CTA. For non-commercial content, use engagement CTAs instead ("Hit reply", "Share this", "What do you think?").
 
 OUTPUT FORMAT — respond with JSON only:
 {
