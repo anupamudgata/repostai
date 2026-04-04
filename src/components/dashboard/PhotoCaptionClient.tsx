@@ -21,6 +21,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import Link from "next/link";
+import { SUPPORTED_LANGUAGES } from "@/config/constants";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -169,6 +177,7 @@ export function PhotoCaptionClient() {
   // ── Platform step ──
   const [accounts, setAccounts] = useState<AccountRow[]>([]);
   const [selected, setSelected] = useState<Set<PlatformId>>(new Set());
+  const [outputLanguage, setOutputLanguage] = useState("en");
 
   // ── Caption step ──
   const [generating, setGenerating] = useState(false);
@@ -381,7 +390,7 @@ export function PhotoCaptionClient() {
           body: JSON.stringify({
             photoId: primaryPhotoId,
             platforms: Array.from(selected),
-            outputLanguage: "en",
+            outputLanguage,
             count: 3,
           }),
           signal: abortRef.current.signal,
@@ -405,7 +414,7 @@ export function PhotoCaptionClient() {
           body: JSON.stringify({
             photoId: primaryPhotoId,
             platforms: Array.from(selected),
-            outputLanguage: "en",
+            outputLanguage,
           }),
         });
         const capData = (await capRes.json()) as {
@@ -526,7 +535,7 @@ export function PhotoCaptionClient() {
         body: JSON.stringify({
           photoId: primaryPhotoId,
           platforms: [platform],
-          outputLanguage: "en",
+          outputLanguage,
           count: 3,
         }),
       });
@@ -633,6 +642,7 @@ export function PhotoCaptionClient() {
     setContext("");
     setPostMode("single");
     setSelected(new Set());
+    setOutputLanguage("en");
     setVariations({});
     setEditedCaptions({});
     setHashtags({});
@@ -927,6 +937,28 @@ export function PhotoCaptionClient() {
                 </button>
               );
             })}
+
+            {/* Language selector */}
+            <div className="space-y-1.5 pt-1">
+              <Label className="text-xs text-muted-foreground">Caption language</Label>
+              <Select value={outputLanguage} onValueChange={setOutputLanguage}>
+                <SelectTrigger className="w-full sm:w-56">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {SUPPORTED_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.id} value={lang.id}>
+                      {lang.flag} {lang.name}
+                      {lang.nativeName !== lang.name && (
+                        <span className="ml-1 text-muted-foreground">
+                          · {lang.nativeName}
+                        </span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
               <Button
