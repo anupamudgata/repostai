@@ -7,7 +7,7 @@ import { HINDI_PHOTO_CAPTION_HINT, getHindiPhotoCaptionSystemPrompt } from "@/li
 import { isIndianLanguage } from "@/lib/ai/types";
 import { getRegionalPrompts } from "@/lib/prompts/regional";
 
-export type PhotoPostPlatform = "instagram" | "facebook" | "twitter" | "linkedin";
+export type PhotoPostPlatform = "instagram" | "facebook" | "twitter" | "linkedin" | "telegram";
 
 const PLATFORM_INSTRUCTIONS: Record<
   PhotoPostPlatform,
@@ -31,6 +31,11 @@ const PLATFORM_INSTRUCTIONS: Record<
 - Professional but human; 4–6 sentences
 - Insight or lesson tied to the image
 - 3–5 professional hashtags at the end`,
+
+  telegram: `Telegram channel post:
+- Conversational, newsletter-style; 3–5 sentences
+- Use emojis naturally to break up text
+- 2–4 hashtags at the end only`,
 };
 
 export async function generatePhotoCaptionsForPlatforms(
