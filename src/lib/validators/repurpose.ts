@@ -20,6 +20,7 @@ export const repurposeSchema = z.object({
         "reddit",
         "tiktok",
         "whatsapp_status",
+        "telegram",
       ])
     )
     .min(1, "Select at least one platform"),

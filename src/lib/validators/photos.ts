@@ -6,6 +6,7 @@ export const photoPostPlatformSchema = z.enum([
   "facebook",
   "twitter",
   "linkedin",
+  "telegram",
 ]);
 
 export const photoCaptionsBodySchema = z.object({
