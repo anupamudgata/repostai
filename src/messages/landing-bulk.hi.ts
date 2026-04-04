@@ -211,7 +211,7 @@ export const landingBulkHi: LandingBulk = {
     ],
   },
   platformsSection: {
-    title: "एक इनपुट। नौ प्लेटफ़ॉर्म। शून्य मेहनत।",
+    title: "एक इनपुट। दस प्लेटफ़ॉर्म। शून्य मेहनत।",
     subtitle: "हर आउटपुट उस प्लेटफ़ॉर्म के दर्शकों और फ़ॉर्मेट के लिए तैयार किया जाता है।",
     names: [
       "LinkedIn",
@@ -223,6 +223,7 @@ export const landingBulkHi: LandingBulk = {
       "Reddit",
       "TikTok",
       "WhatsApp स्टेटस",
+      "Telegram",
     ],
   },
   useCasesSection: {

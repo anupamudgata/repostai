@@ -9,6 +9,7 @@ const PLATFORM_META: Record<Platform, { label: string; color: string; connectUrl
   facebook:  { label: "Facebook",    color: "#1877F2", connectUrl: "" },
   instagram: { label: "Instagram",   color: "#E1306C", connectUrl: "" },
   reddit:    { label: "Reddit",      color: "#FF4500", connectUrl: "" },
+  telegram:  { label: "Telegram",    color: "#0088CC", connectUrl: "/dashboard/connections" },
 };
 
 export function ConnectedAccounts() {

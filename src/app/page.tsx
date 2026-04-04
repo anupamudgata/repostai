@@ -60,6 +60,7 @@ const PLATFORM_ICONS = [
   { icon: MessageCircle, color: "bg-orange-500" },
   { icon: PlayIcon, color: "bg-black" },
   { icon: MessageCircle, color: "bg-green-500" },
+  { icon: Send, color: "bg-sky-500" },
 ];
 
 export default function LandingPage() {

@@ -86,6 +86,13 @@ export const PLATFORM_DISPLAY: Record<string, {
     bg:    "#F0FDF4",
     icon:  "WA",
   },
+  telegram: {
+    label: "Telegram",
+    short: "TG",
+    color: "#0088CC",
+    bg:    "#E8F4FD",
+    icon:  "TG",
+  },
 };
 
 // Get display name — falls back to capitalised platform ID if not found

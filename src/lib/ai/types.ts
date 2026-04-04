@@ -7,7 +7,8 @@ export type Platform =
   | "reddit"
   | "email"
   | "tiktok"
-  | "whatsapp_status";
+  | "whatsapp_status"
+  | "telegram";
 
 export type Language = "en" | "hi" | "mr" | "bn" | "te" | "kn" | "or" | "pa" | "es" | "pt" | "fr";
 

@@ -67,12 +67,27 @@ const PLATFORMS = [
     connectUrl:   "/api/social/connect/instagram",
     requiredPlan: "pro" as const,
   },
+  {
+    id:           "telegram",
+    name:         "Telegram",
+    description:  "Post to your channel or group",
+    color:        "#0088CC",
+    bg:           "#E8F4FD",
+    border:       "#BAE0F9",
+    icon:         "TG",
+    connectUrl:   "TELEGRAM_FORM",
+    requiredPlan: "free" as const,
+  },
 ];
 
 export default function ConnectionsPage() {
   const { plan }                = useUserPlan();
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [toast,    setToast]    = useState("");
+  const [telegramForm,  setTelegramForm]  = useState(false);
+  const [tgBotToken,    setTgBotToken]    = useState("");
+  const [tgChatId,      setTgChatId]      = useState("");
+  const [tgConnecting,  setTgConnecting]  = useState(false);
 
   // FIX: declare showToast BEFORE useEffect so it's hoisted correctly
   // Using useCallback pattern with regular function declaration at top scope
@@ -114,6 +129,31 @@ export default function ConnectionsPage() {
     if (res.ok) {
       setAccounts((prev) => prev.filter((a) => a.platform !== platformId));
       showToast(`${platformName} disconnected.`);
+    }
+  }
+
+  async function handleTelegramConnect() {
+    if (!tgBotToken.trim() || !tgChatId.trim()) return;
+    setTgConnecting(true);
+    try {
+      const res = await fetch("/api/social/connect/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ botToken: tgBotToken.trim(), chatId: tgChatId.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Connection failed");
+      setTelegramForm(false);
+      setTgBotToken("");
+      setTgChatId("");
+      const r2 = await fetch("/api/social/accounts");
+      const d2 = await r2.json();
+      setAccounts(d2.accounts ?? []);
+      showToast("Telegram connected successfully!");
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : "Connection failed");
+    } finally {
+      setTgConnecting(false);
     }
   }
 
@@ -173,8 +213,8 @@ export default function ConnectionsPage() {
             const isLocked    = platform.requiredPlan === "pro" && plan === "free";
 
             return (
+              <div key={platform.id}>
               <div
-                key={platform.id}
                 style={{
                   background:   "#FFFFFF",
                   border:       isConnected
@@ -277,7 +317,25 @@ export default function ConnectionsPage() {
                   {/* Action */}
                   <div style={{ flexShrink: 0 }}>
                     {!account ? (
-                      !platform.connectUrl ? (
+                      platform.connectUrl === "TELEGRAM_FORM" ? (
+                        <button
+                          onClick={() => setTelegramForm((v) => !v)}
+                          style={{
+                            display:      "inline-flex",
+                            alignItems:   "center",
+                            padding:      "8px 16px",
+                            borderRadius: "8px",
+                            border:       `1.5px solid ${platform.color}`,
+                            background:   telegramForm ? platform.bg : "transparent",
+                            color:        platform.color,
+                            fontSize:     "12px",
+                            fontWeight:   600,
+                            cursor:       "pointer",
+                          }}
+                        >
+                          Connect
+                        </button>
+                      ) : !platform.connectUrl ? (
                         <span
                           style={{
                             display:      "inline-flex",
@@ -346,6 +404,92 @@ export default function ConnectionsPage() {
                     )}
                   </div>
                 </div>
+              </div>
+
+              {/* Telegram inline form */}
+              {platform.id === "telegram" && !account && telegramForm && (
+                <div style={{
+                  marginTop:    "8px",
+                  background:   "#F0F9FF",
+                  border:       "1px solid #BAE0F9",
+                  borderRadius: "12px",
+                  padding:      "16px",
+                }}>
+                  <p style={{ fontSize: "12px", color: "#374151", marginBottom: "12px", lineHeight: 1.6 }}>
+                    Create a bot via <strong>@BotFather</strong>, add it as admin to your channel, then paste the token and your channel username.
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "12px" }}>
+                    <input
+                      type="text"
+                      value={tgBotToken}
+                      onChange={(e) => setTgBotToken(e.target.value)}
+                      placeholder="123456789:AABBccdd... (from @BotFather)"
+                      style={{
+                        width:        "100%",
+                        padding:      "9px 12px",
+                        borderRadius: "8px",
+                        border:       "1px solid #BAE0F9",
+                        fontSize:     "13px",
+                        color:        "#111827",
+                        background:   "#FFFFFF",
+                        outline:      "none",
+                        boxSizing:    "border-box",
+                        fontFamily:   "monospace",
+                      }}
+                    />
+                    <input
+                      type="text"
+                      value={tgChatId}
+                      onChange={(e) => setTgChatId(e.target.value)}
+                      placeholder="@yourchannel or -1001234567890"
+                      style={{
+                        width:        "100%",
+                        padding:      "9px 12px",
+                        borderRadius: "8px",
+                        border:       "1px solid #BAE0F9",
+                        fontSize:     "13px",
+                        color:        "#111827",
+                        background:   "#FFFFFF",
+                        outline:      "none",
+                        boxSizing:    "border-box",
+                        fontFamily:   "monospace",
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button
+                      onClick={handleTelegramConnect}
+                      disabled={tgConnecting || !tgBotToken.trim() || !tgChatId.trim()}
+                      style={{
+                        padding:      "8px 20px",
+                        borderRadius: "8px",
+                        border:       "none",
+                        background:   tgConnecting || !tgBotToken.trim() || !tgChatId.trim() ? "#93C5FD" : "#0088CC",
+                        color:        "#FFFFFF",
+                        fontSize:     "13px",
+                        fontWeight:   600,
+                        cursor:       tgConnecting || !tgBotToken.trim() || !tgChatId.trim() ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      {tgConnecting ? "Connecting..." : "Connect"}
+                    </button>
+                    <button
+                      onClick={() => { setTelegramForm(false); setTgBotToken(""); setTgChatId(""); }}
+                      style={{
+                        padding:      "8px 16px",
+                        borderRadius: "8px",
+                        border:       "1px solid #BAE0F9",
+                        background:   "transparent",
+                        color:        "#6B7280",
+                        fontSize:     "13px",
+                        cursor:       "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               </div>
             );
           })}

@@ -177,6 +177,7 @@ export const SUPPORTED_PLATFORMS = [
   { id: "reddit", name: "Reddit Post", icon: "message-circle", maxLength: 40000 },
   { id: "tiktok", name: "TikTok Video Script", icon: "play", maxLength: 2200 },
   { id: "whatsapp_status", name: "WhatsApp Status", icon: "message-circle", maxLength: 700 },
+  { id: "telegram", name: "Telegram Channel", icon: "telegram", description: "Post to your Telegram channel or group", maxLength: 4096 },
 ] as const;
 
 /** UI grouping for dashboard platform picker (each id must exist in SUPPORTED_PLATFORMS). */
@@ -192,6 +193,7 @@ export const PLATFORM_GROUPS = [
   { id: "video", platformIds: ["tiktok"] },
   { id: "community", platformIds: ["reddit"] },
   { id: "longForm", platformIds: ["email"] },
+  { id: "messaging", label: "Messaging", platformIds: ["telegram", "whatsapp_status"] },
 ] as const;
 
 export const INPUT_TYPES = [

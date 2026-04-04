@@ -209,7 +209,7 @@ export const landingBulkEn = {
     ],
   },
   platformsSection: {
-    title: "One input. Nine platforms. Zero effort.",
+    title: "One input. Ten platforms. Zero effort.",
     subtitle:
       "Each output is crafted for that specific platform's audience and format.",
     names: [
@@ -222,6 +222,7 @@ export const landingBulkEn = {
       "Reddit",
       "TikTok",
       "WhatsApp Status",
+      "Telegram",
     ],
   },
   useCasesSection: {

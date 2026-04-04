@@ -38,7 +38,7 @@ type Step = "upload" | "platforms" | "generating" | "review" | "post";
 
 type PostMode = "single" | "carousel";
 
-type PlatformId = "instagram" | "facebook" | "twitter" | "linkedin";
+type PlatformId = "instagram" | "facebook" | "twitter" | "linkedin" | "telegram";
 
 type UploadedPhoto = {
   id: string;
@@ -112,6 +112,15 @@ const PLATFORMS: {
     badge:
       "text-sky-700 bg-sky-100 dark:text-sky-300 dark:bg-sky-900/40",
     limit: 3000,
+    supportsCarousel: false,
+  },
+  {
+    id: "telegram" as PlatformId,
+    name: "Telegram",
+    connectPath: "/dashboard/connections",
+    color: "bg-sky-500",
+    badge: "text-sky-700 bg-sky-100 dark:text-sky-300 dark:bg-sky-900/40",
+    limit: 4096,
     supportsCarousel: false,
   },
 ];

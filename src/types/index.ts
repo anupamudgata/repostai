@@ -44,7 +44,8 @@ export type Platform =
   | "email"
   | "reddit"
   | "tiktok"
-  | "whatsapp_status";
+  | "whatsapp_status"
+  | "telegram";
 
 export interface User {
   id: string;

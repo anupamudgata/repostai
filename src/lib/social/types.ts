@@ -1,7 +1,7 @@
 // src/lib/social/types.ts
 
 /** Platforms that have social posting / OAuth integration. */
-export type SocialPlatform = "linkedin" | "twitter" | "instagram" | "facebook" | "reddit";
+export type SocialPlatform = "linkedin" | "twitter" | "instagram" | "facebook" | "reddit" | "telegram";
 
 /** Re-export for backward compat — social module uses SocialPlatform internally. */
 export type Platform = SocialPlatform;
