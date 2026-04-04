@@ -21,6 +21,8 @@ const BEST_PRACTICES: Record<Platform, string> = {
   tiktok: `BEST PRACTICES (from high-performing TikTok videos): Hook viewers in the first 1–2 seconds with a bold statement, question, or pattern interrupt. Keep scripts tight and visual — describe what’s on screen alongside dialogue. Use short sentences and natural, spoken language. End with a clear CTA (follow, comment, save, click link in bio).`,
 
   whatsapp_status: `BEST PRACTICES (from high-performing WhatsApp Status posts): Keep text short, clear, and personal. Avoid heavy formatting. Use 1–2 concise lines plus an optional link or CTA. Emojis are okay in moderation. Remember people skim quickly.`,
+
+  telegram: `BEST PRACTICES (from high-performing Telegram channel posts): Write like a newsletter — informative but conversational. Use emojis to break up text naturally. Up to 4096 characters so use the space; don't truncate value. 2–4 hashtags at the end only. Indian audiences respond well to relatable, direct advice.`,
 };
 
 /** Short structure examples (tone + format). Model uses these as in-context "training" without fine-tuning. */
@@ -42,6 +44,8 @@ const STRUCTURE_EXAMPLES: Record<Platform, string> = {
   tiktok: `Example structure: [Hook line said on camera] → [1–3 short points or story beats] → [CTA said on camera, e.g. “Follow for more”, “Save this for later”, or “Link in bio for details”]. Include brief bracketed notes for visuals when helpful.`,
 
   whatsapp_status: `Example structure: [1–2 short lines of text] → [Optional link or CTA]. Keep it scannable and friendly.`,
+
+  telegram: `Example structure: [Hook or emoji-led opener] → [2–4 short paragraphs with value] → [CTA or question] → [2–4 hashtags]. Newsletter-style, personal tone.`,
 };
 
 const PLATFORM_INSTRUCTIONS: Record<Platform, string> = {
@@ -83,9 +87,13 @@ Start with a hook line that can be spoken in under 3 seconds.
 Use 3–7 very short spoken lines total. You may optionally include brief bracketed stage directions like [Text on screen: ...] or [B-roll of ...]. 
 Make it feel like a real creator talking to camera. End with a natural CTA (e.g. follow, comment, save, or check link in bio).`,
 
-  whatsapp_status: `Write a short WhatsApp Status text update. 
-Use 1–3 short lines max. Keep it personal and conversational. 
+  whatsapp_status: `Write a short WhatsApp Status text update.
+Use 1–3 short lines max. Keep it personal and conversational.
 You may include one link or CTA if relevant. Avoid cluttered formatting or long paragraphs. Max ~700 characters.`,
+
+  telegram: `Write a Telegram channel post. Use a conversational, newsletter-style tone.
+Use emojis naturally to break up text. Up to 4096 characters — use the space to deliver real value.
+Add 2–4 relevant hashtags at the very end only. Keep it personal, direct, and useful.`,
 };
 
 const LANGUAGE_INSTRUCTIONS: Record<OutputLanguage, string> = {

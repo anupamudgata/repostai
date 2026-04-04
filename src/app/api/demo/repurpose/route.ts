@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
       : DEMO_PLATFORMS;
     const platforms = requestedPlatforms.length > 0 ? requestedPlatforms.slice(0, 4) : DEMO_PLATFORMS;
 
-    const raw = await repurposeContentForTier("basic", text, platforms);
+    const raw = await repurposeContentForTier("standard", text, platforms);
     const watermarked = addFreeTierWatermark(raw);
 
     return NextResponse.json({ outputs: watermarked });

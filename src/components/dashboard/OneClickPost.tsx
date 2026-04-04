@@ -34,7 +34,7 @@ export function OneClickPost({ content, platform, disabled }: OneClickPostProps)
     }
   }
 
-  const labels: Record<Platform, string> = { linkedin: "LinkedIn", twitter: "X", facebook: "Facebook", reddit: "Reddit", instagram: "Instagram" };
+  const labels: Record<Platform, string> = { linkedin: "LinkedIn", twitter: "X", facebook: "Facebook", reddit: "Reddit", instagram: "Instagram", telegram: "Telegram" };
 
   return (
     <button
