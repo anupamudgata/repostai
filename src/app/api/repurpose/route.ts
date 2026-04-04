@@ -464,6 +464,7 @@ export async function POST(request: NextRequest) {
       reddit: "post",
       tiktok: "script",
       whatsapp_status: "status",
+      telegram: "post",
     };
     const generatedOutputs = Object.entries(outputs).map(([platformId, content]) => {
       const platformInfo = SUPPORTED_PLATFORMS.find((p) => p.id === platformId);

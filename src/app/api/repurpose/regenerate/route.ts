@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       "reddit",
       "tiktok",
       "whatsapp_status",
+      "telegram",
     ];
     if (!validPlatforms.includes(platform as Platform)) {
       return NextResponse.json(

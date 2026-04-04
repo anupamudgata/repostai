@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
       reddit: "Reddit",
       tiktok: "TikTok",
       whatsapp_status: "WhatsApp Status",
+      telegram: "Telegram",
     };
 
     const contentForAnalysis = entries

@@ -20,7 +20,7 @@ interface HistorySearchProps {
 
 const FILTER_PLATFORMS = [
   "all", "linkedin", "twitter_thread", "twitter_single",
-  "instagram", "facebook", "reddit", "email",
+  "instagram", "facebook", "reddit", "email", "tiktok", "whatsapp_status", "telegram",
 ];
 
 export function HistorySearch({ items, onFilter }: HistorySearchProps) {
