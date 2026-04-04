@@ -154,9 +154,8 @@ export async function POST(req: NextRequest) {
         );
       } catch (e) {
         console.error("[photos/batch-upload] r2", e);
-        const msg = e instanceof Error ? e.message : String(e);
         return NextResponse.json(
-          { error: `Failed to upload photo to storage: ${msg}` },
+          { error: "Failed to upload photo to storage." },
           { status: 500 }
         );
       }
