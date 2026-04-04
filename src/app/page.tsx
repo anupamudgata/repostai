@@ -137,6 +137,13 @@ export default function LandingPage() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
+              <Link
+                href="/demo"
+                className="text-sm font-semibold text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 border border-primary/30 hover:border-primary/60 rounded-xl px-5 py-2.5 min-h-[52px]"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Try live demo
+              </Link>
               <a
                 href="#demo"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1.5"
