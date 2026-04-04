@@ -83,7 +83,33 @@ export async function POST(req: NextRequest) {
       photo.user_context ?? undefined
     );
 
-    return NextResponse.json({ variations });
+    // Use first variation of each platform as the default captions for the run
+    const defaultCaptions: Record<string, string> = {};
+    for (const [platform, vars] of Object.entries(variations)) {
+      if (Array.isArray(vars) && vars[0]) defaultCaptions[platform] = vars[0];
+    }
+
+    const { data: run, error: runError } = await supabase
+      .from("photo_caption_runs")
+      .insert({
+        photo_id: photoId,
+        user_id: user.id,
+        platforms,
+        captions: defaultCaptions,
+        status: "draft",
+      })
+      .select("id")
+      .single();
+
+    if (runError || !run) {
+      console.error("[photos/captions/variations] insert run", runError);
+      return NextResponse.json(
+        { error: "Could not save caption draft." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ variations, runId: run.id });
   } catch (e) {
     console.error("[photos/captions/variations]", e);
     return NextResponse.json(

@@ -377,9 +377,11 @@ export function PhotoCaptionClient() {
         const variData = (await variRes.json()) as {
           error?: string;
           variations?: Partial<CaptionVariations>;
+          runId?: string;
         };
         if (variRes.ok && variData.variations) {
           vars = variData.variations;
+          runId = variData.runId ?? null;
         } else {
           throw new Error("variations endpoint error");
         }
