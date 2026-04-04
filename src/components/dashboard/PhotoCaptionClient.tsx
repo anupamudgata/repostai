@@ -143,6 +143,18 @@ function extractHashtags(text: string): string[] {
 
 export function PhotoCaptionClient() {
   const { plan, loading: planLoading } = useUserPlan();
+  const [photoCount, setPhotoCount] = useState<number | null>(null);
+  const [photoLimit, setPhotoLimit] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/me", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d: { photoCount?: number; photoLimit?: number }) => {
+        if (typeof d.photoCount === "number") setPhotoCount(d.photoCount);
+        if (typeof d.photoLimit === "number") setPhotoLimit(d.photoLimit);
+      })
+      .catch(() => {});
+  }, []);
 
   // ── Navigation ──
   const [step, setStep] = useState<Step>("upload");
@@ -753,6 +765,16 @@ export function PhotoCaptionClient() {
               </div>
             </div>
 
+            {/* Monthly usage indicator */}
+            {photoCount !== null && photoLimit !== null && photoLimit > 0 && (
+              <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+                <span>Photos this month</span>
+                <span className={photoCount >= photoLimit ? "text-destructive font-medium" : ""}>
+                  {photoCount} / {photoLimit}
+                </span>
+              </div>
+            )}
+
             {/* Thumbnail grid */}
             {photos.length > 0 && (
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
@@ -802,20 +824,31 @@ export function PhotoCaptionClient() {
             )}
 
             {/* Action */}
-            <Button
-              className="w-full sm:w-auto"
-              onClick={analyzePhotos}
-              disabled={uploading || photos.length === 0}
-            >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Uploading & analyzing…
-                </>
-              ) : (
-                "Analyze photos"
+            <div className="flex flex-wrap gap-2">
+              {photos.some((p) => p.progress === -1) && !uploading && (
+                <Button
+                  variant="outline"
+                  className="w-full sm:w-auto"
+                  onClick={() => setPhotos((prev) => prev.filter((p) => p.progress !== -1))}
+                >
+                  Remove failed &amp; retry
+                </Button>
               )}
-            </Button>
+              <Button
+                className="w-full sm:w-auto"
+                onClick={analyzePhotos}
+                disabled={uploading || photos.length === 0}
+              >
+                {uploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Uploading & analyzing…
+                  </>
+                ) : (
+                  "Analyze photos"
+                )}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

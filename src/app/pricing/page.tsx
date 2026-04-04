@@ -85,12 +85,12 @@ export default function PricingPage() {
                 {hasAnnual && (
                   <p className="mt-1 text-xs text-muted-foreground">
                     or ₹{(plan as { annualPrice: number }).annualPrice}/yr (save{" "}
-                    {Math.round(
+                    {Math.max(1, Math.round(
                       (1 -
                         (plan as { annualPrice: number }).annualPrice /
                           (plan.monthlyPrice * 12)) *
                         100
-                    )}
+                    ))}
                     %)
                   </p>
                 )}

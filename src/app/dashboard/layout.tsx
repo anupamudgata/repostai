@@ -46,7 +46,7 @@ export default async function DashboardLayout({
     }
   }
 
-  const { plan } = await getEffectivePlan(
+  const { plan, isSuperUser } = await getEffectivePlan(
     supabase,
     user.id,
     user.email ?? undefined
@@ -59,6 +59,7 @@ export default async function DashboardLayout({
         name,
         avatar_url,
         plan,
+        isSuperUser,
       }}
     >
       <>

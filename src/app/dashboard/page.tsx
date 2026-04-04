@@ -1361,6 +1361,7 @@ export default function DashboardPage() {
                 onChange={(e) => setScheduleAt(e.target.value)}
                 min={new Date().toISOString().slice(0, 16)}
               />
+              <p className="text-xs text-muted-foreground mt-1">Your local time ({Intl.DateTimeFormat().resolvedOptions().timeZone})</p>
             </div>
           </div>
           <DialogFooter>

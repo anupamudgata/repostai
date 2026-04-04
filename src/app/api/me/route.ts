@@ -63,10 +63,25 @@ export async function GET() {
       ? null
       : entitlements.repurposesPerMonth;
 
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("photos_uploaded_this_month, photos_usage_month")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const monthKey = currentMonth;
+    const photoCount =
+      profile?.photos_usage_month === monthKey
+        ? (profile?.photos_uploaded_this_month ?? 0)
+        : 0;
+    const photoLimit = isSuperUser ? null : (entitlements.photosPerMonth ?? 0);
+
     return NextResponse.json({
       plan,
       repurposeCount,
       repurposeLimit,
+      photoCount,
+      photoLimit,
       daysUntilUsageReset: daysUntilUsageReset(),
       isSuperUser,
       zapier_webhook_url: profileResult.zapier_webhook_url,

@@ -34,10 +34,12 @@ export interface DashboardSidebarUser {
   name: string;
   avatar_url?: string;
   plan: string;
+  isSuperUser?: boolean;
 }
 
 const PLAN_BADGE: Record<string, string> = {
   free: "bg-muted/80 text-muted-foreground border-border",
+  superuser: "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25",
   starter: "bg-teal-500/10 text-teal-700 dark:text-teal-400 border-teal-500/25",
   pro: "bg-primary/10 text-primary border-primary/25",
   agency: "bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-500/25",
@@ -141,12 +143,12 @@ export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
         <div
           className={cn(
             "flex items-center gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold",
-            PLAN_BADGE[user.plan] || PLAN_BADGE.free
+            user.isSuperUser ? PLAN_BADGE.superuser : (PLAN_BADGE[user.plan] || PLAN_BADGE.free)
           )}
         >
-          {user.plan !== "free" && <Crown className="h-3.5 w-3.5 shrink-0" />}
+          {(user.plan !== "free" || user.isSuperUser) && <Crown className="h-3.5 w-3.5 shrink-0" />}
           <span className="truncate">
-            {user.plan === "free" ? t("common.free") : user.plan.charAt(0).toUpperCase() + user.plan.slice(1) + " Plan"}
+            {user.isSuperUser ? "Super" : user.plan === "free" ? t("common.free") : user.plan.charAt(0).toUpperCase() + user.plan.slice(1) + " Plan"}
           </span>
         </div>
         {user.plan === "free" && (
