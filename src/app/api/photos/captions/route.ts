@@ -6,7 +6,7 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { photoCaptionsBodySchema } from "@/lib/validators/photos";
-import { generatePhotoCaptionsForPlatforms } from "@/lib/photos/generate-captions";
+import { generatePhotoCaptionsForPlatforms, type PhotoPostPlatform } from "@/lib/photos/generate-captions";
 import type { VisionAnalysis } from "@/lib/ai/photo-vision";
 
 export const maxDuration = 120;
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     const analysis = photo.vision_analysis as VisionAnalysis;
     const captions = await generatePhotoCaptionsForPlatforms(
       analysis,
-      platforms,
+      platforms as PhotoPostPlatform[],
       entitlements.aiTier,
       outputLanguage,
       photo.user_context ?? undefined

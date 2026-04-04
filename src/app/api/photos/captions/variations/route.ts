@@ -6,7 +6,7 @@ import {
   getEntitlements,
 } from "@/lib/billing/plan-entitlements";
 import { photoCaptionsBodySchema } from "@/lib/validators/photos";
-import { generatePhotoCaptionVariations } from "@/lib/photos/generate-captions";
+import { generatePhotoCaptionVariations, type PhotoPostPlatform } from "@/lib/photos/generate-captions";
 import type { VisionAnalysis } from "@/lib/ai/photo-vision";
 import { z } from "zod";
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     const analysis = photo.vision_analysis as VisionAnalysis;
     const variations = await generatePhotoCaptionVariations(
       analysis,
-      platforms,
+      platforms as PhotoPostPlatform[],
       entitlements.aiTier,
       outputLanguage,
       count,
