@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Loader2,
@@ -15,8 +15,11 @@ import {
   Briefcase,
   PenLine,
   ChevronDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +39,40 @@ import { cn } from "@/lib/utils";
 
 export type RefineIntent = "shorten" | "expand" | "punchy" | "professional" | "rewrite";
 
+function computeOutputQualityScore(
+  content: string,
+  maxLength: number | null
+): number {
+  let score = 0;
+  const len = content.length;
+  const trimmed = content.trim();
+
+  if (len > 50) score += 20;
+
+  if (maxLength != null && maxLength > 0) {
+    const low = Math.max(40, Math.floor(maxLength * 0.22));
+    if (len >= low && len <= maxLength) score += 30;
+  } else if (len >= 320 && len <= 10000) {
+    score += 30;
+  }
+
+  if (/\p{Extended_Pictographic}/u.test(content)) score += 10;
+
+  if (/#\w/u.test(trimmed)) score += 15;
+
+  const tail = trimmed.slice(-160);
+  if (
+    /\?\s*$/.test(trimmed) ||
+    /(learn more|comment below|sign up|subscribe|let me know|link in bio|dm me|try it|get started|read more|share your|thoughts\?)/i.test(
+      tail
+    )
+  ) {
+    score += 25;
+  }
+
+  return Math.min(100, score);
+}
+
 const REGENERATE_TONE_HINTS: { label: string; hint: string }[] = [
   { label: "Make it more casual", hint: "Make it more casual" },
   { label: "Make it more professional", hint: "Make it more professional" },
@@ -45,6 +82,7 @@ const REGENERATE_TONE_HINTS: { label: string; hint: string }[] = [
 
 export function OutputAssetCard({
   d,
+  df,
   output,
   platformName,
   maxLength,
@@ -64,8 +102,10 @@ export function OutputAssetCard({
   onSchedule,
   connectHref,
   connectLabel,
+  cardReorder,
 }: {
   d: DashboardBulk;
+  df: (template: string, vars: Record<string, string | number>) => string;
   output: { platform: Platform; content: string };
   platformName: string;
   maxLength: number | null;
@@ -87,6 +127,12 @@ export function OutputAssetCard({
   onSchedule: () => void;
   connectHref?: string;
   connectLabel?: string;
+  cardReorder?: {
+    canUp: boolean;
+    canDown: boolean;
+    onMoveUp: () => void;
+    onMoveDown: () => void;
+  };
 }) {
   // Derive expanded state from content key — auto-collapses when content changes
   const contentKey = `${output.platform}::${output.content}`;
@@ -112,6 +158,17 @@ export function OutputAssetCard({
   const outputCharCount = output.content.length;
   const showOutputStats = trimmedOut.length > 0;
 
+  const qualityScore = useMemo(
+    () => computeOutputQualityScore(output.content, maxLength),
+    [output.content, maxLength]
+  );
+  const scoreBadgeClass =
+    qualityScore >= 70
+      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+      : qualityScore >= 40
+        ? "border-amber-500/25 bg-amber-500/10 text-amber-900 dark:text-amber-200"
+        : "border-destructive/30 bg-destructive/10 text-destructive";
+
   const refinements: { id: RefineIntent; label: string; icon: typeof Minimize2 }[] = [
     { id: "shorten", label: d.refineShorten, icon: Minimize2 },
     { id: "expand", label: d.refineExpand, icon: Maximize2 },
@@ -127,7 +184,37 @@ export function OutputAssetCard({
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 px-4 py-3 bg-gradient-to-r from-muted/30 to-muted/10">
-        <h3 className="text-sm font-semibold text-foreground">{platformName}</h3>
+        <div className="flex items-center gap-1.5 min-w-0">
+          {cardReorder && (
+            <div className="flex flex-col gap-0 shrink-0 border border-border/50 rounded-md overflow-hidden bg-muted/20">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 w-7 p-0 rounded-none border-b border-border/40"
+                disabled={!cardReorder.canUp}
+                onClick={cardReorder.onMoveUp}
+                aria-label="Move up"
+              >
+                <ArrowUp className="h-3 w-3" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-6 w-7 p-0 rounded-none"
+                disabled={!cardReorder.canDown}
+                onClick={cardReorder.onMoveDown}
+                aria-label="Move down"
+              >
+                <ArrowDown className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+          <h3 className="text-sm font-semibold text-foreground truncate">
+            {platformName}
+          </h3>
+        </div>
         <div className="flex flex-wrap items-center gap-1">
           {provider && (
             <>
@@ -273,6 +360,17 @@ export function OutputAssetCard({
               </Button>
             );
           })}
+        </div>
+        <div className="flex justify-end pt-1 border-t border-border/20">
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] font-semibold tabular-nums px-2 py-0.5",
+              scoreBadgeClass
+            )}
+          >
+            {df(d.outputQualityScore, { score: qualityScore })}
+          </Badge>
         </div>
       </div>
     </article>

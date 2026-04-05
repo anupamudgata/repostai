@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,7 @@ export function WorkspaceHeader({
   bulkMode,
   inputType,
   selectedPlatformCount,
+  headerAccessory,
 }: {
   d: DashboardBulk;
   df: (template: string, vars: Record<string, string | number>) => string;
@@ -94,6 +95,8 @@ export function WorkspaceHeader({
   inputType: string;
   bulkUrlCount?: number;
   selectedPlatformCount: number;
+  /** e.g. keyboard shortcuts popover trigger */
+  headerAccessory?: ReactNode;
 }) {
   const usageRatio = usage?.limit != null ? usage.count / usage.limit : 0;
   const usageBarClass =
@@ -144,9 +147,16 @@ export function WorkspaceHeader({
   return (
     <>
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border/50 pb-6">
-        <div className="min-w-0 space-y-1.5">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{d.title}</h1>
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">{d.subtitle}</p>
+        <div className="min-w-0 space-y-1.5 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1.5">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">{d.title}</h1>
+              <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">{d.subtitle}</p>
+            </div>
+            {headerAccessory ? (
+              <div className="shrink-0 pt-0.5">{headerAccessory}</div>
+            ) : null}
+          </div>
         </div>
         <div className="flex flex-col gap-3 sm:items-end shrink-0 w-full sm:w-auto">
           {usage && (

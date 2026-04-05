@@ -21,6 +21,7 @@ import {
   Zap,
   Copy,
   Check,
+  HelpCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +39,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { useI18n } from "@/contexts/i18n-provider";
 import { dashboardBulkEn } from "@/messages/dashboard-bulk.en";
@@ -127,6 +134,33 @@ function countNonEmptyPlatformOutputs(
     .length;
 }
 
+function sortOutputsByOrder<T extends { platform: Platform }>(
+  list: T[],
+  order: Platform[]
+): T[] {
+  const m = new Map(list.map((o) => [o.platform, o] as const));
+  const out: T[] = [];
+  for (const p of order) {
+    const item = m.get(p);
+    if (item) out.push(item);
+  }
+  return out;
+}
+
+function movePlatformInOrder(
+  order: Platform[],
+  platform: Platform,
+  delta: number
+): Platform[] {
+  const i = order.indexOf(platform);
+  if (i < 0) return order;
+  const j = i + delta;
+  if (j < 0 || j >= order.length) return order;
+  const next = [...order];
+  [next[i], next[j]] = [next[j], next[i]];
+  return next;
+}
+
 /** Retries for /api/me after OAuth redirect or cold start (transient PROFILE_SYNC_FAILED). */
 const ME_FETCH_ATTEMPTS = 3;
 const ME_RETRY_DELAY_MS = 500;
@@ -195,6 +229,16 @@ export default function DashboardPage() {
   const [scheduleAt, setScheduleAt] = useState("");
   const [scheduleSubmitting, setScheduleSubmitting] = useState(false);
   const [scheduleJobId, setScheduleJobId] = useState<string | null>(null);
+  const [schedulePreviewText, setSchedulePreviewText] = useState("");
+  const [scheduleDialogTab, setScheduleDialogTab] = useState<
+    "schedule" | "preview"
+  >("schedule");
+  const [outputCardOrder, setOutputCardOrder] = useState<Platform[]>([]);
+  const [bulkCardOrderByJob, setBulkCardOrderByJob] = useState<
+    Record<string, Platform[]>
+  >({});
+  const [shortcutsPopoverOpen, setShortcutsPopoverOpen] = useState(false);
+  const [isMacPlatform, setIsMacPlatform] = useState(false);
   const [pdfFileName, setPdfFileName] = useState<string>("");
   const [pdfExtractedText, setPdfExtractedText] = useState<string>("");
   const [pdfExtracting, setPdfExtracting] = useState(false);
@@ -293,6 +337,81 @@ export default function DashboardPage() {
     } catch {
       /* ignore */
     }
+  }, []);
+
+  useEffect(() => {
+    setIsMacPlatform(
+      typeof navigator !== "undefined" &&
+        /Mac|iPhone|iPod|iPad/i.test(
+          navigator.platform || navigator.userAgent || ""
+        )
+    );
+  }, []);
+
+  useEffect(() => {
+    const ids = outputs.map((o) => o.platform);
+    if (ids.length === 0) {
+      setOutputCardOrder([]);
+      return;
+    }
+    setOutputCardOrder((prev) => {
+      if (prev.length === 0) return ids;
+      const same =
+        ids.length === prev.length && ids.every((id) => prev.includes(id));
+      return same ? prev : ids;
+    });
+  }, [outputs]);
+
+  useEffect(() => {
+    setBulkCardOrderByJob((prev) => {
+      const next: Record<string, Platform[]> = { ...prev };
+      for (const src of bulkSources) {
+        const ids = src.outputs.map((o) => o.platform);
+        const cur = next[src.jobId];
+        const same =
+          cur &&
+          ids.length === cur.length &&
+          ids.every((id) => cur.includes(id));
+        next[src.jobId] = same ? cur : ids;
+      }
+      for (const k of Object.keys(next)) {
+        if (!bulkSources.some((s) => s.jobId === k)) delete next[k];
+      }
+      return next;
+    });
+  }, [bulkSources]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const isQuestion = e.key === "?" || (e.shiftKey && e.key === "/");
+      if (!isQuestion) return;
+      const el = e.target as HTMLElement | null;
+      if (el?.closest?.("input, textarea, [contenteditable='true']")) return;
+      e.preventDefault();
+      setShortcutsPopoverOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const el = e.target as HTMLElement | null;
+      if (
+        el?.closest?.(
+          "[data-slot='dialog-content'], [data-slot='popover-content'], [role='dialog']"
+        )
+      )
+        return;
+      setContent("");
+      setUrl("");
+      setBulkUrls("");
+      setPdfExtractedText("");
+      setPdfFileName("");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const refreshMe = useCallback(async () => {
@@ -683,13 +802,16 @@ export default function DashboardPage() {
     const texts: string[] = [];
     if (bulkSources.length > 0) {
       for (const src of bulkSources) {
-        for (const o of src.outputs) {
+        const ord =
+          bulkCardOrderByJob[src.jobId] ??
+          src.outputs.map((o) => o.platform);
+        for (const o of sortOutputsByOrder(src.outputs, ord)) {
           const t = o.content.trim();
           if (t) texts.push(t);
         }
       }
     } else {
-      for (const o of outputs) {
+      for (const o of sortOutputsByOrder(outputs, outputCardOrder)) {
         const t = o.content.trim();
         if (t) texts.push(t);
       }
@@ -836,6 +958,16 @@ export default function DashboardPage() {
       toastT.error("toast.cannotSchedule");
       return;
     }
+    let preview = "";
+    if (jobId) {
+      const src = bulkSources.find((s) => s.jobId === jobId);
+      preview =
+        src?.outputs.find((o) => o.platform === platform)?.content ?? "";
+    } else {
+      preview = outputs.find((o) => o.platform === platform)?.content ?? "";
+    }
+    setSchedulePreviewText(preview);
+    setScheduleDialogTab("schedule");
     setSchedulePlatform(platform);
     setScheduleAccountId(acc.id);
     setScheduleJobId(jid);
@@ -1001,6 +1133,11 @@ export default function DashboardPage() {
     return countNonEmptyPlatformOutputs(outputs);
   }, [bulkSources, outputs]);
 
+  const orderedSingleOutputs = useMemo(
+    () => sortOutputsByOrder(outputs, outputCardOrder),
+    [outputs, outputCardOrder]
+  );
+
   const readinessItems = useMemo(
     () =>
       buildReadinessItems(d, {
@@ -1064,6 +1201,54 @@ export default function DashboardPage() {
             inputType={inputType}
             bulkUrlCount={parseBulkUrls(bulkUrls).filter(isValidUrl).length}
             selectedPlatformCount={selectedPlatforms.length}
+            headerAccessory={
+              <Popover
+                open={shortcutsPopoverOpen}
+                onOpenChange={setShortcutsPopoverOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 shrink-0 rounded-full border-border/60"
+                    aria-label={d.keyboardShortcutsTitle}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 space-y-3">
+                  <p className="text-sm font-semibold">{d.keyboardShortcutsTitle}</p>
+                  <ul className="space-y-2 text-xs text-muted-foreground">
+                    <li className="flex justify-between gap-3">
+                      <span>
+                        {isMacPlatform ? "⌘" : "Ctrl"}+Enter
+                      </span>
+                      <span className="text-foreground font-medium text-right">
+                        {d.shortcutRowGenerate}
+                      </span>
+                    </li>
+                    <li className="flex justify-between gap-3">
+                      <span>
+                        {isMacPlatform ? "⌘" : "Ctrl"}+K
+                      </span>
+                      <span className="text-foreground font-medium text-right">
+                        {d.shortcutRowFocusInput}
+                      </span>
+                    </li>
+                    <li className="flex justify-between gap-3">
+                      <span>Escape</span>
+                      <span className="text-foreground font-medium text-right">
+                        {d.shortcutRowClearInput}
+                      </span>
+                    </li>
+                  </ul>
+                  <p className="text-[10px] text-muted-foreground/80 border-t border-border/60 pt-2">
+                    {d.keyboardShortcutsFooter}
+                  </p>
+                </PopoverContent>
+              </Popover>
+            }
           />
 
       {/* Content Agent CTA */}
@@ -1440,7 +1625,11 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                    {source.outputs.map((output) => {
+                    {sortOutputsByOrder(
+                      source.outputs,
+                      bulkCardOrderByJob[source.jobId] ??
+                        source.outputs.map((o) => o.platform)
+                    ).map((output, cardIdx, list) => {
                       const platformInfo = SUPPORTED_PLATFORMS.find(
                         (p) => p.id === output.platform
                       );
@@ -1454,6 +1643,7 @@ export default function DashboardPage() {
                         <OutputAssetCard
                           key={output.platform}
                           d={d}
+                          df={df}
                           output={output}
                           platformName={platformInfo?.name ?? output.platform}
                           maxLength={platformInfo?.maxLength ?? null}
@@ -1500,6 +1690,38 @@ export default function DashboardPage() {
                                 })
                               : undefined
                           }
+                          cardReorder={{
+                            canUp: cardIdx > 0,
+                            canDown: cardIdx < list.length - 1,
+                            onMoveUp: () =>
+                              setBulkCardOrderByJob((prev) => {
+                                const cur =
+                                  prev[source.jobId] ??
+                                  source.outputs.map((o) => o.platform);
+                                return {
+                                  ...prev,
+                                  [source.jobId]: movePlatformInOrder(
+                                    cur,
+                                    output.platform,
+                                    -1
+                                  ),
+                                };
+                              }),
+                            onMoveDown: () =>
+                              setBulkCardOrderByJob((prev) => {
+                                const cur =
+                                  prev[source.jobId] ??
+                                  source.outputs.map((o) => o.platform);
+                                return {
+                                  ...prev,
+                                  [source.jobId]: movePlatformInOrder(
+                                    cur,
+                                    output.platform,
+                                    1
+                                  ),
+                                };
+                              }),
+                          }}
                         />
                       );
                     })}
@@ -1508,7 +1730,7 @@ export default function DashboardPage() {
               ))
             ) : (
               <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                {outputs.map((output) => {
+                {orderedSingleOutputs.map((output, cardIdx) => {
                   const platformInfo = SUPPORTED_PLATFORMS.find(
                     (p) => p.id === output.platform
                   );
@@ -1521,6 +1743,7 @@ export default function DashboardPage() {
                     <OutputAssetCard
                       key={output.platform}
                       d={d}
+                      df={df}
                       output={output}
                       platformName={platformInfo?.name ?? output.platform}
                       maxLength={platformInfo?.maxLength ?? null}
@@ -1561,6 +1784,18 @@ export default function DashboardPage() {
                             })
                           : undefined
                       }
+                      cardReorder={{
+                        canUp: cardIdx > 0,
+                        canDown: cardIdx < orderedSingleOutputs.length - 1,
+                        onMoveUp: () =>
+                          setOutputCardOrder((o) =>
+                            movePlatformInOrder(o, output.platform, -1)
+                          ),
+                        onMoveDown: () =>
+                          setOutputCardOrder((o) =>
+                            movePlatformInOrder(o, output.platform, 1)
+                          ),
+                      }}
                     />
                   );
                 })}
@@ -1570,24 +1805,79 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-        <DialogContent>
+      <Dialog
+        open={scheduleOpen}
+        onOpenChange={(open) => {
+          setScheduleOpen(open);
+          if (!open) {
+            setSchedulePreviewText("");
+            setScheduleDialogTab("schedule");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{d.scheduleDialogTitle}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div>
-              <label className="text-sm font-medium">{d.scheduleDateTime}</label>
-              <input
-                type="datetime-local"
-                className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                value={scheduleAt}
-                onChange={(e) => setScheduleAt(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Your local time ({Intl.DateTimeFormat().resolvedOptions().timeZone})</p>
-            </div>
-          </div>
+          <Tabs
+            value={scheduleDialogTab}
+            onValueChange={(v) =>
+              setScheduleDialogTab(v as "schedule" | "preview")
+            }
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2 h-9">
+              <TabsTrigger value="schedule" className="text-xs">
+                {d.scheduleTabSchedule}
+              </TabsTrigger>
+              <TabsTrigger value="preview" className="text-xs">
+                {d.scheduleTabPreview}
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="schedule" className="mt-4 space-y-4">
+              <div>
+                <label className="text-sm font-medium">{d.scheduleDateTime}</label>
+                <input
+                  type="datetime-local"
+                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  value={scheduleAt}
+                  onChange={(e) => setScheduleAt(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Your local time (
+                  {Intl.DateTimeFormat().resolvedOptions().timeZone})
+                </p>
+              </div>
+            </TabsContent>
+            <TabsContent value="preview" className="mt-4">
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                {d.schedulePreviewLabel}
+              </p>
+              <div className="rounded-xl border border-border/60 bg-muted/15 p-3 space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="h-10 w-10 shrink-0 rounded-full bg-gradient-to-br from-muted to-muted-foreground/20 border border-border/50"
+                    aria-hidden
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold leading-tight">
+                      {d.schedulePreviewMockUser}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {schedulePlatform
+                        ? SUPPORTED_PLATFORMS.find((p) => p.id === schedulePlatform)
+                            ?.name ?? schedulePlatform
+                        : ""}
+                    </p>
+                  </div>
+                </div>
+                <div className="rounded-lg border border-border/40 bg-background/80 px-3 py-2.5 text-sm whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+                  {schedulePreviewText.trim() || "—"}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
           <DialogFooter>
             <Button
               variant="outline"

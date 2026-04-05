@@ -97,6 +97,27 @@ export function SourceInputPanel({
   }, [bulkUrls]);
 
   const mainTextRef = useRef<HTMLTextAreaElement>(null);
+  const bulkUrlsRef = useRef<HTMLTextAreaElement>(null);
+  const blogUrlRef = useRef<HTMLInputElement>(null);
+  const ytUrlRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      if (e.key !== "k" && e.key !== "K") return;
+      e.preventDefault();
+      let target: HTMLElement | null = null;
+      if (inputType === "text") target = mainTextRef.current;
+      else if (inputType === "url")
+        target = bulkMode ? bulkUrlsRef.current : blogUrlRef.current;
+      else if (inputType === "youtube") target = ytUrlRef.current;
+      if (!target) return;
+      if (document.activeElement === target) return;
+      target.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [inputType, bulkMode]);
 
   useEffect(() => {
     if (inputType !== "text") return;
@@ -264,6 +285,7 @@ export function SourceInputPanel({
               <div>
                 <Label htmlFor="bulk-urls">{d.bulkUrlsLabel}</Label>
                 <Textarea
+                  ref={bulkUrlsRef}
                   id="bulk-urls"
                   placeholder={
                     "https://example.com/post-1\nhttps://example.com/post-2\nhttps://example.com/post-3"
@@ -293,6 +315,7 @@ export function SourceInputPanel({
               <div>
                 <Label htmlFor="blog-url">{d.blogUrlLabel}</Label>
                 <Input
+                  ref={blogUrlRef}
                   id="blog-url"
                   type="url"
                   placeholder="https://example.com/my-blog-post"
@@ -310,6 +333,7 @@ export function SourceInputPanel({
             <div>
               <Label htmlFor="yt-url">{d.youtubeLabel}</Label>
               <Input
+                ref={ytUrlRef}
                 id="yt-url"
                 type="url"
                 placeholder="https://youtube.com/watch?v=..."
