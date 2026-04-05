@@ -24,6 +24,21 @@
 .DS_Store
 *.pem
 
+# macOS iCloud duplicate files (created by iCloud Drive sync conflicts)
+*\ 2.ts
+*\ 2.tsx
+*\ 2.sql
+*\ 2.yml
+*\ 2.md
+*\ 2.xlsx
+*\ 2.cjs
+*\ 2.js
+*\ 3.ts
+*\ 3.tsx
+*\ 3.sql
+*\ 3.md
+*\ 3.cjs
+
 # debug
 npm-debug.log*
 yarn-debug.log*
