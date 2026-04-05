@@ -10,6 +10,7 @@ const PLATFORM_RULES: Record<Platform, { maxChars?: number; rules: string[] }> =
   reddit:          { rules: ["Title must not be promotional","Body must provide value first","No hashtags"] },
   email:           { rules: ["Must have subject line","Must have preview text","Must have single CTA"] },
   tiktok:          { maxChars: 2200, rules: ["Must have a hook in the first line","Must include CTA at end","Keep under 200 words"] },
+  whatsapp:        { maxChars: 4096, rules: ["Plain text only — no markdown","Keep conversational and personal","End with a CTA or question"] },
   whatsapp_status: { maxChars: 700,  rules: ["Must be under 700 characters","Keep personal and conversational","One key takeaway only"] },
   telegram:        { maxChars: 4096, rules: ["Must have an engaging opener","Must end with hashtags or CTA","Keep conversational and newsletter-style"] },
 };

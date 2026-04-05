@@ -7,9 +7,9 @@ import { RepurposeOutput }    from "@/components/dashboard/RepurposeOutput";
 import type { Platform, Language }      from "@/lib/ai/types";
 import { FREE_PLATFORM_IDS } from "@/config/constants";
 
-const ALL_PLATFORMS: Platform[] = ["linkedin","twitter_thread","twitter_single","instagram","facebook","reddit","email","tiktok","whatsapp_status","telegram"];
-const PLATFORM_LABELS: Record<Platform, string> = { linkedin: "LinkedIn", twitter_thread: "X Thread", twitter_single: "X Post", instagram: "Instagram", facebook: "Facebook", reddit: "Reddit", email: "Email", tiktok: "TikTok", whatsapp_status: "WhatsApp", telegram: "Telegram" };
-const PLATFORM_COLORS: Record<Platform, string> = { linkedin: "#0A66C2", twitter_thread: "#1D9BF0", twitter_single: "#1D9BF0", instagram: "#E1306C", facebook: "#1877F2", reddit: "#FF4500", email: "#059669", tiktok: "#FE2C55", whatsapp_status: "#25D366", telegram: "#0088CC" };
+const ALL_PLATFORMS: Platform[] = ["linkedin","twitter_thread","twitter_single","instagram","facebook","reddit","email","tiktok","whatsapp","whatsapp_status","telegram"];
+const PLATFORM_LABELS: Record<Platform, string> = { linkedin: "LinkedIn", twitter_thread: "X Thread", twitter_single: "X Post", instagram: "Instagram", facebook: "Facebook", reddit: "Reddit", email: "Email", tiktok: "TikTok", whatsapp: "WhatsApp", whatsapp_status: "WhatsApp Status", telegram: "Telegram" };
+const PLATFORM_COLORS: Record<Platform, string> = { linkedin: "#0A66C2", twitter_thread: "#1D9BF0", twitter_single: "#1D9BF0", instagram: "#E1306C", facebook: "#1877F2", reddit: "#FF4500", email: "#059669", tiktok: "#FE2C55", whatsapp: "#25D366", whatsapp_status: "#25D366", telegram: "#0088CC" };
 
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
 

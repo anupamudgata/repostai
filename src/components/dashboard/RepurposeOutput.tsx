@@ -15,6 +15,7 @@ const PLATFORM_META: Record<Platform, PlatformMeta> = {
   reddit:         { label: "Reddit",          color: "#FF4500", icon: "r/" },
   email:          { label: "Email",           color: "#059669", icon: "@"  },
   tiktok:         { label: "TikTok",          color: "#FE2C55", icon: "TT" },
+  whatsapp:       { label: "WhatsApp",        color: "#25D366", icon: "WA" },
   whatsapp_status:{ label: "WhatsApp Status", color: "#25D366", icon: "WA" },
   telegram:       { label: "Telegram",        color: "#0088CC", icon: "TG" },
 };
