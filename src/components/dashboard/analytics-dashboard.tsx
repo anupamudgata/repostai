@@ -23,6 +23,7 @@ import {
   ChevronRight,
   Loader2,
   BarChart3,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
@@ -72,6 +73,13 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 function getPlatformName(platform: string) {
   return SUPPORTED_PLATFORMS.find((p) => p.id === platform)?.name ?? platform;
+}
+
+function escapeCsvCell(value: string): string {
+  if (/[",\n\r]/.test(value)) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
 }
 
 export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }) {
@@ -255,6 +263,41 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
     }
   };
 
+  function handleExportCsv() {
+    const header = ["Date", "Platform", "Engagement", "Post Preview"];
+    const lines = [header.join(",")];
+    for (const p of posts) {
+      const date = new Date(p.posted_at).toISOString().slice(0, 10);
+      const platform = getPlatformName(p.platform);
+      const engagement =
+        (p.likes ?? 0) + (p.comments ?? 0) + (p.shares ?? 0);
+      const rawPreview = (p.content_preview ?? "").replace(/\s+/g, " ").trim();
+      const preview = rawPreview.slice(0, 80);
+      lines.push(
+        [
+          escapeCsvCell(date),
+          escapeCsvCell(platform),
+          escapeCsvCell(String(engagement)),
+          escapeCsvCell(preview),
+        ].join(",")
+      );
+    }
+    const blob = new Blob([lines.join("\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    a.href = href;
+    a.download = `repostai-analytics-${dateStr}.csv`;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
+  }
+
   if (posts.length === 0) {
     return (
       <DashboardEmptyState
@@ -268,6 +311,19 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
 
   return (
     <div className="space-y-8">
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleExportCsv}
+        >
+          <Download className="h-4 w-4 shrink-0" />
+          Export CSV
+        </Button>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Card className="overflow-hidden">

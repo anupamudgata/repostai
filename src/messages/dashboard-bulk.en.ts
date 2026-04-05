@@ -119,6 +119,7 @@ export const dashboardBulkEn = {
   exportOutputsTxt: "Export .txt",
   bulkProcessingSource: "Processing source {current} of {total}…",
   recentUrlsLabel: "Recent",
+  textSavedPill: "Text saved",
   presetsTitle: "Angle & hook",
   presetsHint: "Tap a card to apply — first line drives most engagement",
   emptyCanvasTitle: "One source, every platform",

@@ -57,6 +57,30 @@ const PLATFORM_LABELS: Record<string, string> = {
   whatsapp_status:"WhatsApp",
 };
 
+function itemInDateRange(
+  createdAt: string,
+  range: "all" | "today" | "week" | "month"
+): boolean {
+  if (range === "all") return true;
+  const t = new Date(createdAt).getTime();
+  if (Number.isNaN(t)) return true;
+  const now = new Date();
+  if (range === "today") {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    return t >= start.getTime();
+  }
+  if (range === "week") {
+    const start = new Date(now);
+    start.setDate(start.getDate() - 7);
+    start.setHours(0, 0, 0, 0);
+    return t >= start.getTime();
+  }
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  start.setHours(0, 0, 0, 0);
+  return t >= start.getTime();
+}
+
 const PLATFORM_COLORS: Record<string, string> = {
   linkedin:       "#0A66C2",
   twitter_thread: "#1D9BF0",
@@ -77,6 +101,9 @@ export default function HistoryPage() {
   const [loading,  setLoading]  = useState(true);
   const [query,    setQuery]    = useState("");
   const [platform, setPlatform] = useState("all");
+  const [dateRange, setDateRange] = useState<
+    "all" | "today" | "week" | "month"
+  >("all");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
@@ -112,6 +139,9 @@ export default function HistoryPage() {
     if (platform !== "all") {
       result = result.filter((i) => i.platform === platform);
     }
+    if (dateRange !== "all") {
+      result = result.filter((i) => itemInDateRange(i.created_at, dateRange));
+    }
     if (query.trim()) {
       const q = query.toLowerCase();
       result = result.filter(
@@ -121,7 +151,7 @@ export default function HistoryPage() {
       );
     }
     return result;
-  }, [items, query, platform]);
+  }, [items, query, platform, dateRange]);
 
   function toggleExpand(id: string) {
     setExpanded((prev) => {
@@ -270,6 +300,34 @@ export default function HistoryPage() {
           })}
         </div>
 
+        {/* Date range */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {(
+            [
+              ["all", "All time"],
+              ["today", "Today"],
+              ["week", "This week"],
+              ["month", "This month"],
+            ] as const
+          ).map(([key, label]) => {
+            const active = dateRange === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setDateRange(key)}
+                className={`px-3 py-1 rounded-full text-xs cursor-pointer transition-colors border ${
+                  active
+                    ? "font-semibold border-primary bg-primary/10 text-primary"
+                    : "font-normal border-border text-muted-foreground hover:bg-muted/50"
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Select all */}
         {filtered.length > 0 && (
           <div className="flex items-center gap-2.5 mb-2.5 text-sm text-muted-foreground">
@@ -287,7 +345,7 @@ export default function HistoryPage() {
         {loading ? (
           <HistoryListSkeleton />
         ) : filtered.length === 0 ? (
-          query || platform !== "all" ? (
+          query || platform !== "all" || dateRange !== "all" ? (
             <DashboardEmptyState
               icon={SearchX}
               title="No results found"
@@ -297,6 +355,7 @@ export default function HistoryPage() {
                 onClick: () => {
                   setQuery("");
                   setPlatform("all");
+                  setDateRange("all");
                 },
               }}
             />

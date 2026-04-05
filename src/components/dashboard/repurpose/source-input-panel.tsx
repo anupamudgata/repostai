@@ -120,6 +120,9 @@ export function SourceInputPanel({
       .filter((line) => line.trim().length > 0).length;
   }, [bulkUrls]);
 
+  const showTextSavedPill =
+    inputType !== "text" && content.trim().length >= 50;
+
   const mainTextRef = useRef<HTMLTextAreaElement>(null);
   const bulkUrlsRef = useRef<HTMLTextAreaElement>(null);
   const blogUrlRef = useRef<HTMLInputElement>(null);
@@ -161,6 +164,20 @@ export function SourceInputPanel({
         <CardTitle className="text-lg font-bold">{d.yourContent}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {showTextSavedPill && (
+          <div
+            className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 w-fit max-w-full"
+            role="status"
+          >
+            <span
+              className="h-2 w-2 shrink-0 rounded-full bg-emerald-500"
+              aria-hidden
+            />
+            <span className="text-xs font-medium text-emerald-800 dark:text-emerald-200">
+              {d.textSavedPill}
+            </span>
+          </div>
+        )}
         <Tabs
           value={inputType}
           onValueChange={(v) => setInputType(v as InputType)}

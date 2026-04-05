@@ -120,6 +120,7 @@ export const dashboardBulkHi: DashboardBulk = {
   exportOutputsTxt: ".txt निर्यात",
   bulkProcessingSource: "सोर्स {current} / {total} प्रोसेस हो रहा है…",
   recentUrlsLabel: "हाल के",
+  textSavedPill: "टेक्स्ट सहेजा गया",
   presetsTitle: "एंगल और हुक",
   presetsHint: "कार्ड चुनें — पहली लाइन सबसे ज़्यादा असर डालती है",
   emptyCanvasTitle: "एक सोर्स, हर प्लेटफ़ॉर्म",

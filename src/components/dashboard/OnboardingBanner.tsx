@@ -167,6 +167,12 @@ export default function OnboardingBanner() {
   const doneCount = steps.filter((s) => s.done).length;
   const allDone = doneCount === steps.length;
 
+  const ringPx = 40;
+  const ringStroke = 3;
+  const ringR = (ringPx - ringStroke) / 2 - 0.5;
+  const ringCirc = 2 * Math.PI * ringR;
+  const ringDashOffset = ringCirc * (1 - doneCount / steps.length);
+
   function handleDismiss() {
     try {
       DISMISS_KEYS.forEach((k) => localStorage.setItem(k, "true"));
@@ -187,15 +193,47 @@ export default function OnboardingBanner() {
         <X className="h-4 w-4" />
       </button>
 
-      <div className="flex items-center gap-3 mb-1">
-        <h2 className="text-base sm:text-lg font-bold tracking-tight">
-          {allDone ? "You're all set!" : "Get started with RepostAI"}
-        </h2>
+      <div className="flex items-start gap-3 mb-1">
         {!loading && (
-          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-            {doneCount}/{steps.length} done
-          </span>
+          <svg
+            width={ringPx}
+            height={ringPx}
+            viewBox={`0 0 ${ringPx} ${ringPx}`}
+            className="shrink-0 mt-0.5"
+            aria-hidden
+          >
+            <circle
+              cx={ringPx / 2}
+              cy={ringPx / 2}
+              r={ringR}
+              fill="none"
+              className="stroke-muted"
+              strokeWidth={ringStroke}
+            />
+            <circle
+              cx={ringPx / 2}
+              cy={ringPx / 2}
+              r={ringR}
+              fill="none"
+              className={allDone ? "stroke-green-500" : "stroke-primary"}
+              strokeWidth={ringStroke}
+              strokeLinecap="round"
+              strokeDasharray={ringCirc}
+              strokeDashoffset={ringDashOffset}
+              transform={`rotate(-90 ${ringPx / 2} ${ringPx / 2})`}
+            />
+          </svg>
         )}
+        <div className="flex flex-1 flex-wrap items-center gap-2 sm:gap-3 min-w-0">
+          <h2 className="text-base sm:text-lg font-bold tracking-tight">
+            {allDone ? "You're all set!" : "Get started with RepostAI"}
+          </h2>
+          {!loading && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+              {doneCount}/{steps.length} done
+            </span>
+          )}
+        </div>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
         Complete these steps to get your first post live.
