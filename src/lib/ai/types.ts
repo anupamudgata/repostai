@@ -7,6 +7,7 @@ export type Platform =
   | "reddit"
   | "email"
   | "tiktok"
+  | "whatsapp"
   | "whatsapp_status"
   | "telegram";
 

@@ -176,6 +176,7 @@ export const SUPPORTED_PLATFORMS = [
   { id: "email", name: "Email Newsletter", icon: "mail", maxLength: null },
   { id: "reddit", name: "Reddit Post", icon: "message-circle", maxLength: 40000 },
   { id: "tiktok", name: "TikTok Video Script", icon: "play", maxLength: 2200 },
+  { id: "whatsapp", name: "WhatsApp Message", icon: "message-circle", description: "Send via WhatsApp Business API", maxLength: 4096 },
   { id: "whatsapp_status", name: "WhatsApp Status", icon: "message-circle", maxLength: 700 },
   { id: "telegram", name: "Telegram Channel", icon: "telegram", description: "Post to your Telegram channel or group", maxLength: 4096 },
 ] as const;
@@ -193,7 +194,7 @@ export const PLATFORM_GROUPS = [
   { id: "video", platformIds: ["tiktok"] },
   { id: "community", platformIds: ["reddit"] },
   { id: "longForm", platformIds: ["email"] },
-  { id: "messaging", label: "Messaging", platformIds: ["telegram", "whatsapp_status"] },
+  { id: "messaging", label: "Messaging", platformIds: ["whatsapp", "telegram", "whatsapp_status"] },
 ] as const;
 
 export const INPUT_TYPES = [

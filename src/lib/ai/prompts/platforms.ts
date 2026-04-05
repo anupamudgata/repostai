@@ -77,6 +77,11 @@ const HINDI_PLATFORM_OVERRIDES: Partial<Record<Platform, string>> = {
 - Structure: [HOOK: scroll-stopper] → [Value/story 15-30 sec] → [Hindi verbal CTA]
 - End CTA: "Follow करो", "Save करो", "Comment में बताओ" — Hindi verbal CTAs only`,
 
+  whatsapp: `HINDI-SPECIFIC WHATSAPP MESSAGE:
+- Conversational Hinglish, like a group broadcast message
+- "Reply करो", "Group में share करो", "बताओ तुम्हारा experience" — Hindi CTAs
+- Zero hashtags, zero links unless necessary — friendly and punchy`,
+
   whatsapp_status: `HINDI-SPECIFIC WHATSAPP:
 - Ultra short: 3-5 lines max, texting-a-friend vibe
 - "DM करो", "Forward करो", "बताओ तुम्हारा experience" — Hindi micro-CTAs
@@ -397,6 +402,35 @@ IMPORTANT: If outputting Hindi/Hinglish, ALL Hindi words MUST be in Devanagari s
 ${languageFooter("whatsapp_status" as Platform, language, tonePreset)}
 
 Write ONLY the status text. No JSON. No labels. No hashtags. Keep it SHORT.`;
+}
+
+export function buildWhatsAppPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
+  return `You are an expert at writing WhatsApp broadcast messages that feel personal, direct, and worth reading.
+
+${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
+
+CONTENT BRIEF:
+Core message: ${brief.coreMessage}
+Key points: ${brief.keyPoints.join(" | ")}
+Audience: ${brief.audience}
+Tone: ${brief.tone}
+
+YOUR TASK: Write a WhatsApp message (broadcast / group message style) that feels like it came from a real person.
+
+RULES:
+1. Plain text only — no HTML, no markdown (bold/italic do NOT render in WhatsApp)
+2. Maximum 4096 characters
+3. Friendly, conversational tone — like texting a contact you trust
+4. Use emojis naturally to add warmth and break up text (don't overdo it)
+5. Short paragraphs with line breaks for readability
+6. NO hashtags — they do not work in WhatsApp messages
+7. End with a clear CTA: "Reply to this message", "Share with your group", or similar
+8. Works great for Indian audiences: Hindi, Hinglish, and regional languages are welcome
+9. NEVER: formal business speak, bullet-point lists, or markdown formatting
+
+${languageFooter("whatsapp" as Platform, language, tonePreset)}
+
+Respond with ONLY the WhatsApp message text. No labels, no explanations, no JSON.`;
 }
 
 export function buildTelegramPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {

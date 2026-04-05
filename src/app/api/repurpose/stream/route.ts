@@ -19,7 +19,7 @@ import { getAnthropicClient, ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES } from "@/l
 import {
   buildLinkedInPrompt, buildTwitterThreadPrompt, buildTwitterSinglePrompt,
   buildInstagramPrompt, buildFacebookPrompt, buildRedditPrompt, buildEmailPrompt,
-  buildTikTokPrompt, buildWhatsAppStatusPrompt, buildTelegramPrompt,
+  buildTikTokPrompt, buildWhatsAppPrompt, buildWhatsAppStatusPrompt, buildTelegramPrompt,
 } from "@/lib/ai/prompts/platforms";
 import { getHindiStreamSystemPrompt, getHindiPlatformSupplementForStream } from "@/lib/prompts/hindi";
 import { applyOdiaSocialMediaGuards } from "@/lib/ai/odia-social-prompt";
@@ -76,6 +76,7 @@ function getPromptBuilders(brief: ContentBrief, voice: string | null, language: 
     reddit:          () => buildRedditPrompt(brief, voice, language, tonePreset),
     email:           () => buildEmailPrompt(brief, voice, language, tonePreset),
     tiktok:          () => buildTikTokPrompt(brief, voice, language, tonePreset),
+    whatsapp:        () => buildWhatsAppPrompt(brief, voice, language, tonePreset),
     whatsapp_status: () => buildWhatsAppStatusPrompt(brief, voice, language, tonePreset),
     telegram:        () => buildTelegramPrompt(brief, voice, language, tonePreset),
   };
@@ -84,7 +85,7 @@ function getPromptBuilders(brief: ContentBrief, voice: string | null, language: 
 const TEMPERATURES: Record<Platform, number> = {
   linkedin: 0.75, twitter_thread: 0.80, twitter_single: 0.85,
   instagram: 0.80, facebook: 0.75, reddit: 0.70, email: 0.72,
-  tiktok: 0.85, whatsapp_status: 0.80, telegram: 0.78,
+  tiktok: 0.85, whatsapp: 0.80, whatsapp_status: 0.80, telegram: 0.78,
 };
 
 const SYSTEM_MSG = `You are a specialist social media content writer. Follow all instructions exactly. Respect all character limits strictly.

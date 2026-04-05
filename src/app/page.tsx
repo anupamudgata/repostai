@@ -149,6 +149,14 @@ export default function LandingPage() {
         <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Text block */}
           <div className="text-center max-w-3xl mx-auto mb-14">
+            <a
+              href="https://www.producthunt.com/posts/repostai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-amber-300/60 bg-amber-50 px-4 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors mb-5"
+            >
+              🐱 Featured on Product Hunt
+            </a>
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-[68px] font-bold tracking-tight mb-5 leading-[1.08] animate-blur-in">
               {t("landing.heroTitle1")}{" "}
               <span className="text-primary">{t("landing.heroTitleHighlight")}</span>

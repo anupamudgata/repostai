@@ -3,6 +3,7 @@ import { postToTwitter  } from "@/lib/social/posters/twitter";
 import { postToFacebook } from "@/lib/social/posters/facebook";
 import { postToReddit   } from "@/lib/social/posters/reddit";
 import { postToTelegram } from "@/lib/social/posters/telegram";
+import { postToWhatsApp } from "@/lib/social/posters/whatsapp";
 import { captureError   } from "@/lib/sentry";
 import type { Platform, PostResult } from "@/lib/social/types";
 
@@ -18,6 +19,7 @@ export async function postToPlatform(opts: PostOptions): Promise<PostResult> {
       case "reddit":    return await postToReddit(userId, text, subreddit ?? "");
       case "instagram": return { platform, success: false, error: "Instagram requires a photo. Use Photo Captions instead." };
       case "telegram":  return await postToTelegram(userId, text);
+      case "whatsapp":  return await postToWhatsApp(userId, text);
       default: return { platform, success: false, error: `Platform ${platform} not yet supported` };
     }
   } catch (err) {

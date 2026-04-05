@@ -20,6 +20,8 @@ const BEST_PRACTICES: Record<Platform, string> = {
 
   tiktok: `BEST PRACTICES (from high-performing TikTok videos): Hook viewers in the first 1–2 seconds with a bold statement, question, or pattern interrupt. Keep scripts tight and visual — describe what’s on screen alongside dialogue. Use short sentences and natural, spoken language. End with a clear CTA (follow, comment, save, click link in bio).`,
 
+  whatsapp: `BEST PRACTICES (from high-performing WhatsApp broadcast messages): Plain text only — no HTML or markdown. Write like a trusted contact, not a brand. Short paragraphs with line breaks. Use emojis naturally. No hashtags. End with a reply/share CTA. Max 4096 characters.`,
+
   whatsapp_status: `BEST PRACTICES (from high-performing WhatsApp Status posts): Keep text short, clear, and personal. Avoid heavy formatting. Use 1–2 concise lines plus an optional link or CTA. Emojis are okay in moderation. Remember people skim quickly.`,
 
   telegram: `BEST PRACTICES (from high-performing Telegram channel posts): Write like a newsletter — informative but conversational. Use emojis to break up text naturally. Up to 4096 characters so use the space; don't truncate value. 2–4 hashtags at the end only. Indian audiences respond well to relatable, direct advice.`,
@@ -42,6 +44,8 @@ const STRUCTURE_EXAMPLES: Record<Platform, string> = {
   reddit: `Example structure: Title: [Clear, descriptive]. Body: [Genuine value, short paragraphs]. End with [Question to spark discussion]. No hype, no hashtags.`,
 
   tiktok: `Example structure: [Hook line said on camera] → [1–3 short points or story beats] → [CTA said on camera, e.g. “Follow for more”, “Save this for later”, or “Link in bio for details”]. Include brief bracketed notes for visuals when helpful.`,
+
+  whatsapp: `Example structure: [Friendly opener or emoji] → [2–3 short paragraphs with value, plain text] → [CTA: "Reply to this", "Share with your group"]. No hashtags, no markdown.`,
 
   whatsapp_status: `Example structure: [1–2 short lines of text] → [Optional link or CTA]. Keep it scannable and friendly.`,
 
@@ -86,6 +90,10 @@ Provide real value and insights. Structure with short paragraphs. End with a que
 Start with a hook line that can be spoken in under 3 seconds. 
 Use 3–7 very short spoken lines total. You may optionally include brief bracketed stage directions like [Text on screen: ...] or [B-roll of ...]. 
 Make it feel like a real creator talking to camera. End with a natural CTA (e.g. follow, comment, save, or check link in bio).`,
+
+  whatsapp: `Write a WhatsApp broadcast message. Plain text only — no HTML, no markdown (it does NOT render in WhatsApp).
+Friendly, conversational tone — like a trusted contact, not a brand. Short paragraphs with line breaks for readability.
+Use emojis naturally to add warmth. NO hashtags. End with a CTA: "Reply to this message" or "Share with your group". Max 4096 characters.`,
 
   whatsapp_status: `Write a short WhatsApp Status text update.
 Use 1–3 short lines max. Keep it personal and conversational.

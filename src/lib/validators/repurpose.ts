@@ -19,6 +19,7 @@ export const repurposeSchema = z.object({
         "email",
         "reddit",
         "tiktok",
+        "whatsapp",
         "whatsapp_status",
         "telegram",
       ])
