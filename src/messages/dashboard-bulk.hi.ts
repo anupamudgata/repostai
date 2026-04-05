@@ -116,6 +116,7 @@ export const dashboardBulkHi: DashboardBulk = {
   readinessLimitOk: "मासिक सीमा के भीतर",
   readinessIssuesSummary: "{count} समीक्षा के लिए",
   assetsHeading: "कंटेंट असेट",
+  copyAllOutputs: "सब कॉपी करें",
   presetsTitle: "एंगल और हुक",
   presetsHint: "कार्ड चुनें — पहली लाइन सबसे ज़्यादा असर डालती है",
   emptyCanvasTitle: "एक सोर्स, हर प्लेटफ़ॉर्म",
@@ -132,6 +133,7 @@ export const dashboardBulkHi: DashboardBulk = {
   selectedPlatformsRow: "चयनित ({count})",
   longContentQualityWarning:
     "बहुत लंबा कंटेंट आउटपुट क्वालिटी कम कर सकता है। URL इनपुट आज़माएँ।",
+  bulkUrlsLineCounter: "{count} / 5 URLs",
   freePlanPlatformsBefore: "फ्री प्लान: LinkedIn, Twitter/X, Instagram।",
   freePlanPlatformsLink: "अपग्रेड",
   freePlanPlatformsAfter: "सभी 9 प्लेटफ़ॉर्म के लिए।",

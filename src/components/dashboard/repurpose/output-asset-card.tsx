@@ -14,8 +14,15 @@ import {
   Zap,
   Briefcase,
   PenLine,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +35,13 @@ import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
 import { cn } from "@/lib/utils";
 
 export type RefineIntent = "shorten" | "expand" | "punchy" | "professional" | "rewrite";
+
+const REGENERATE_TONE_HINTS: { label: string; hint: string }[] = [
+  { label: "Make it more casual", hint: "Make it more casual" },
+  { label: "Make it more professional", hint: "Make it more professional" },
+  { label: "Make it shorter", hint: "Make it shorter" },
+  { label: "Make it longer", hint: "Make it longer" },
+];
 
 export function OutputAssetCard({
   d,
@@ -67,7 +81,7 @@ export function OutputAssetCard({
   bulkPosting: boolean;
   scheduleSubmitting: boolean;
   onCopy: () => void;
-  onRegenerate: () => void;
+  onRegenerate: (instructionHint?: string) => void;
   onRefine: (intent: RefineIntent) => void;
   onPostNow: () => void;
   onSchedule: () => void;
@@ -154,20 +168,46 @@ export function OutputAssetCard({
               )}
             </>
           )}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-8 px-2 text-xs"
-            onClick={onRegenerate}
-            disabled={regenerating}
-            title={d.refineRegenerate}
-          >
-            {regenerating ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
-            ) : (
-              <RefreshCw className="h-3 w-3" />
-            )}
-          </Button>
+          <div className="flex items-center rounded-md border border-transparent hover:border-border/60">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 px-2 text-xs rounded-r-none"
+              onClick={() => onRegenerate()}
+              disabled={regenerating}
+              title={d.refineRegenerate}
+            >
+              {regenerating ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-8 w-8 p-0 text-xs rounded-l-none border-l border-border/40"
+                  disabled={regenerating}
+                  aria-label={`${d.refineRegenerate} — tone`}
+                >
+                  <ChevronDown className="h-3.5 w-3.5 opacity-70" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[12rem]">
+                {REGENERATE_TONE_HINTS.map((opt) => (
+                  <DropdownMenuItem
+                    key={opt.hint}
+                    className="text-xs"
+                    onClick={() => onRegenerate(opt.hint)}
+                  >
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>

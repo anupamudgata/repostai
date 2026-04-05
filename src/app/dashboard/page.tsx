@@ -19,6 +19,8 @@ import {
   ThumbsUp,
   ThumbsDown,
   Zap,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,6 +172,7 @@ export default function DashboardPage() {
   const [regeneratingKey, setRegeneratingKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
+  const [copyAllCopied, setCopyAllCopied] = useState(false);
   /** null until first /api/me — avoids treating paid users as free on first paint */
   const [plan, setPlan] = useState<string | null>(null);
   const [usage, setUsage] = useState<{
@@ -278,6 +281,18 @@ export default function DashboardPage() {
       setConnectedAccounts(data ?? []);
     }
     fetchConnections();
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("repostai_default_language");
+      if (!raw) return;
+      if (SUPPORTED_LANGUAGES.some((l) => l.id === raw)) {
+        setOutputLanguage(raw as OutputLanguage);
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const refreshMe = useCallback(async () => {
@@ -664,7 +679,36 @@ export default function DashboardPage() {
     setTimeout(() => setCopiedPlatform(null), 2000);
   }
 
-  async function handleRegenerate(platform: Platform, jobId?: string) {
+  async function handleCopyAllOutputs() {
+    const texts: string[] = [];
+    if (bulkSources.length > 0) {
+      for (const src of bulkSources) {
+        for (const o of src.outputs) {
+          const t = o.content.trim();
+          if (t) texts.push(t);
+        }
+      }
+    } else {
+      for (const o of outputs) {
+        const t = o.content.trim();
+        if (t) texts.push(t);
+      }
+    }
+    if (texts.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(texts.join("\n\n---\n\n"));
+      setCopyAllCopied(true);
+      setTimeout(() => setCopyAllCopied(false), 2000);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function handleRegenerate(
+    platform: Platform,
+    jobId?: string,
+    instructionHint?: string
+  ) {
     const jid = jobId ?? lastJobId;
     if (!jid) {
       toastT.error("toast.regenerateFirst");
@@ -673,10 +717,15 @@ export default function DashboardPage() {
     const rk = `${jid}-${platform}`;
     setRegeneratingKey(rk);
     try {
+      const hint = instructionHint?.trim();
       const res = await fetch("/api/repurpose/regenerate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobId: jid, platform }),
+        body: JSON.stringify({
+          jobId: jid,
+          platform,
+          ...(hint ? { instructionHint: hint } : {}),
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -1145,14 +1194,30 @@ export default function DashboardPage() {
           ref={outputSectionRef}
           className="mt-10 space-y-4 animate-page-in"
         >
-          <PlatformsGeneratedBadge
-            count={platformsGeneratedCount}
-            label={df(d.platformsGeneratedBadge, {
-              count: platformsGeneratedCount,
-            })}
-            df={df}
-            d={d}
-          />
+          <div className="flex flex-wrap items-center gap-2">
+            <PlatformsGeneratedBadge
+              count={platformsGeneratedCount}
+              label={df(d.platformsGeneratedBadge, {
+                count: platformsGeneratedCount,
+              })}
+              df={df}
+              d={d}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 text-xs shrink-0"
+              onClick={() => void handleCopyAllOutputs()}
+            >
+              {copyAllCopied ? (
+                <Check className="h-3.5 w-3.5" />
+              ) : (
+                <Copy className="h-3.5 w-3.5" />
+              )}
+              {d.copyAllOutputs}
+            </Button>
+          </div>
           <p className="text-sm text-muted-foreground">
             {d.generatedIntro}
             {isFreePlan && (
@@ -1406,8 +1471,8 @@ export default function DashboardPage() {
                           onCopy={() =>
                             handleCopy(output.platform, output.content, copyKey)
                           }
-                          onRegenerate={() =>
-                            handleRegenerate(output.platform, source.jobId)
+                          onRegenerate={(hint) =>
+                            handleRegenerate(output.platform, source.jobId, hint)
                           }
                           onRefine={(intent) =>
                             handleRefine(output.platform, intent, source.jobId)
@@ -1473,7 +1538,9 @@ export default function DashboardPage() {
                       onCopy={() =>
                         handleCopy(output.platform, output.content)
                       }
-                      onRegenerate={() => handleRegenerate(output.platform)}
+                      onRegenerate={(hint) =>
+                        handleRegenerate(output.platform, undefined, hint)
+                      }
                       onRefine={(intent) =>
                         handleRefine(output.platform, intent)
                       }

@@ -121,6 +121,23 @@ function NavList({
 }) {
   const { t } = useI18n();
   const pathname = usePathname();
+  const [pendingScheduleCount, setPendingScheduleCount] = useState<number | null>(
+    null
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/scheduled-posts")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data || typeof data.count !== "number") return;
+        setPendingScheduleCount(data.count);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href;
@@ -148,6 +165,16 @@ function NavList({
               active ? "text-primary" : "opacity-60"
             )} />
             <span className="truncate flex-1">{t(link.labelKey)}</span>
+            {link.href === "/dashboard/scheduled" &&
+              pendingScheduleCount != null &&
+              pendingScheduleCount > 0 && (
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 h-5 min-w-[1.25rem] justify-center font-semibold tabular-nums shrink-0"
+                >
+                  {pendingScheduleCount > 9 ? "9+" : pendingScheduleCount}
+                </Badge>
+              )}
             {"badgeKey" in link && link.badgeKey && (
               <Badge
                 variant="secondary"

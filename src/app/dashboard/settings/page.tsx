@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin";
 import { redirect }      from "next/navigation";
 import { SUPPORT_EMAIL } from "@/config/constants";
 import UpgradeSection    from "@/components/dashboard/UpgradeSection";
+import { DefaultOutputLanguageSection } from "@/components/dashboard/settings/default-output-language";
 import { Crown, Shield, Trash2, CreditCard, CalendarDays, User } from "lucide-react";
 
 const PLAN_CONFIG = {
@@ -121,6 +122,9 @@ export default async function SettingsPage() {
               </p>
             </div>
           </div>
+        </div>
+        <div className="mt-4 px-5 pb-5 border-t border-border/60 pt-4">
+          <DefaultOutputLanguageSection />
         </div>
       </section>
 

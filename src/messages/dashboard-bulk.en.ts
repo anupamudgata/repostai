@@ -115,6 +115,7 @@ export const dashboardBulkEn = {
   readinessLimitOk: "Within monthly limit",
   readinessIssuesSummary: "{count} to review",
   assetsHeading: "Content assets",
+  copyAllOutputs: "Copy all",
   presetsTitle: "Angle & hook",
   presetsHint: "Tap a card to apply — first line drives most engagement",
   emptyCanvasTitle: "One source, every platform",
@@ -131,6 +132,7 @@ export const dashboardBulkEn = {
   selectedPlatformsRow: "Selected ({count})",
   longContentQualityWarning:
     "Very long content may reduce output quality. Consider using a URL instead.",
+  bulkUrlsLineCounter: "{count} / 5 URLs",
   freePlanPlatformsBefore: "Free plan: LinkedIn, Twitter/X, Instagram.",
   freePlanPlatformsLink: "Upgrade",
   freePlanPlatformsAfter: "for all 9 platforms.",

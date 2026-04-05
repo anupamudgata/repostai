@@ -19,10 +19,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { jobId, platform, refineIntent } = body as {
+    const { jobId, platform, refineIntent, instructionHint } = body as {
       jobId?: string;
       platform: string;
       refineIntent?: string;
+      instructionHint?: string;
     };
 
     const REFINE_HINTS: Record<string, string> = {
@@ -37,13 +38,18 @@ export async function POST(request: NextRequest) {
       rewrite:
         "Fresh wording and structure; preserve meaning; stay appropriate for the platform.",
     };
-    const hint =
+    const customHint =
+      typeof instructionHint === "string" && instructionHint.trim()
+        ? instructionHint.trim()
+        : "";
+    const hintFromRefine =
       refineIntent &&
       typeof refineIntent === "string" &&
       REFINE_HINTS[refineIntent]
         ? REFINE_HINTS[refineIntent]
         : "";
-    const userIntentForModel = hint.trim() || undefined;
+    const userIntentForModel =
+      customHint || hintFromRefine.trim() || undefined;
 
     if (!platform) {
       return NextResponse.json(

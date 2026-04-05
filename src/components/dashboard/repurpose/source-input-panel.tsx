@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   Link as LinkIcon,
@@ -88,6 +88,13 @@ export function SourceInputPanel({
   const readMinutesForCounter =
     wordCount >= 100 ? Math.max(1, Math.ceil(wordCount / 200)) : 0;
   const longTextWarning = charCount > 8000;
+
+  const bulkUrlLineCount = useMemo(() => {
+    if (!bulkUrls.trim()) return 0;
+    return bulkUrls
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0).length;
+  }, [bulkUrls]);
 
   const mainTextRef = useRef<HTMLTextAreaElement>(null);
 
@@ -265,6 +272,16 @@ export function SourceInputPanel({
                   value={bulkUrls}
                   onChange={(e) => setBulkUrls(e.target.value)}
                 />
+                <p
+                  className={cn(
+                    "text-xs tabular-nums mt-1.5",
+                    bulkUrlLineCount > 5
+                      ? "text-destructive font-medium"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {df(d.bulkUrlsLineCounter, { count: bulkUrlLineCount })}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {df(d.bulkUrlsHint, {
                     platforms: selectedPlatformCount,
