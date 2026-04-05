@@ -1,6 +1,6 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { PLANS } from "@/config/constants";
+import { PricingCTA } from "@/components/pricing/PricingCTA";
 
 export const metadata: Metadata = {
   title: "Pricing - RepostAI",
@@ -116,16 +116,7 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link
-                  href="/signup"
-                  className={`mt-8 block rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${
-                    popular
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "border border-input bg-background hover:bg-muted"
-                  }`}
-                >
-                  {plan.monthlyPrice === 0 ? "Get Started Free" : `Start with ${plan.name}`}
-                </Link>
+                <PricingCTA planKey={key} popular={popular} />
               </article>
             );
           })}

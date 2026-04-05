@@ -209,6 +209,9 @@
     "failedProcessPdf": "Failed to process PDF",
     "historyDeleted": "History item deleted",
     "posted": "Posted!",
-    "failedPartial": "Failed: {list}"
+    "failedPartial": "Failed: {list}",
+    "upgradeSuccess": "🎉 Plan upgraded! Welcome to the new features.",
+    "paymentError": "Payment failed. Please try again or contact support.",
+    "paymentVerifyFailed": "Could not verify payment. Contact support if amount was deducted."
   }
 }

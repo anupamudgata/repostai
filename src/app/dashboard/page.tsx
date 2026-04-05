@@ -536,8 +536,16 @@ export default function DashboardPage() {
       await refreshMe();
       if (typeof window === "undefined") return;
       const params = new URLSearchParams(window.location.search);
+      const razorpayStatus = params.get("razorpay");
       if (params.get("upgraded") === "true") {
         await refreshMe();
+        toastT.success("toast.upgradeSuccess");
+        window.history.replaceState({}, "", window.location.pathname);
+      } else if (razorpayStatus === "error") {
+        toastT.error("toast.paymentError");
+        window.history.replaceState({}, "", window.location.pathname);
+      } else if (razorpayStatus === "missing" || razorpayStatus === "invalid") {
+        toastT.error("toast.paymentVerifyFailed");
         window.history.replaceState({}, "", window.location.pathname);
       }
     })();
