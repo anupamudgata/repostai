@@ -920,6 +920,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           jobId: jid,
           platform,
+          outputLanguage,
           ...(hint ? { instructionHint: hint } : {}),
         }),
       });
@@ -975,6 +976,7 @@ export default function DashboardPage() {
         body: JSON.stringify({
           jobId: jid,
           platform,
+          outputLanguage,
           refineIntent: intent,
         }),
       });

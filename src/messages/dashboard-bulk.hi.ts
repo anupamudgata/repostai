@@ -82,6 +82,7 @@ export const dashboardBulkHi: DashboardBulk = {
     video: "वीडियो स्क्रिप्ट",
     community: "कम्युनिटी",
     longForm: "लॉन्ग-फॉर्म और ईमेल",
+    messaging: "मैसेजिंग",
   },
   inputStatsWords: "{count} शब्द",
   inputStatsChars: "{count} अक्षर",

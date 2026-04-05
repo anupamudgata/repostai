@@ -81,6 +81,7 @@ export const dashboardBulkEn = {
     video: "Video scripts",
     community: "Community",
     longForm: "Long-form & email",
+    messaging: "Messaging",
   },
   inputStatsWords: "{count} words",
   inputStatsChars: "{count} characters",

@@ -19,11 +19,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { jobId, platform, refineIntent, instructionHint } = body as {
+    const { jobId, platform, refineIntent, instructionHint, outputLanguage: clientLanguage } = body as {
       jobId?: string;
       platform: string;
       refineIntent?: string;
       instructionHint?: string;
+      outputLanguage?: string;
     };
 
     const REFINE_HINTS: Record<string, string> = {
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
       "email",
       "reddit",
       "tiktok",
+      "whatsapp",
       "whatsapp_status",
       "telegram",
     ];
@@ -138,7 +140,8 @@ export async function POST(request: NextRequest) {
       }
 
       originalContent = job.input_content || "";
-      outputLanguage = (job.output_language as OutputLanguage) || "en";
+      // Prefer language sent by client (user may have switched after initial generation)
+      outputLanguage = (clientLanguage as OutputLanguage) || (job.output_language as OutputLanguage) || "en";
 
       if (job.brand_voice_id) {
         const { data: voice } = await supabase
@@ -179,8 +182,8 @@ export async function POST(request: NextRequest) {
           ? { humanizationLevel: voice.humanization_level ?? undefined, imperfectionMode: voice.imperfection_mode ?? false, personalStoryInjection: voice.personal_story_injection ?? false }
           : undefined;
       }
-      if (body.outputLanguage) {
-        outputLanguage = body.outputLanguage;
+      if (clientLanguage) {
+        outputLanguage = clientLanguage as OutputLanguage;
       }
     }
 
