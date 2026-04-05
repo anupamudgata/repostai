@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -41,6 +41,7 @@ import { LifetimeRepurposeStat } from "@/components/lifetime-repurpose-stat";
 import { useI18n } from "@/contexts/i18n-provider";
 import { landingBulkEn } from "@/messages/landing-bulk.en";
 import { landingBulkHi } from "@/messages/landing-bulk.hi";
+import { cn } from "@/lib/utils";
 
 const PRICING_REGIONS = [
   { id: "global", symbol: "$" },
@@ -70,6 +71,27 @@ export default function LandingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   const pricingSymbol = PRICING_REGIONS.find((r) => r.id === pricingRegion)?.symbol ?? "$";
+  const statsRef = useRef<HTMLDivElement>(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+
+  useEffect(() => {
+    const node = statsRef.current;
+    if (!node) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setStatsVisible(true);
+            observer.disconnect();
+            break;
+          }
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -272,13 +294,21 @@ export default function LandingPage() {
       {/* ── STATS BAR ── */}
       <section className="py-10 border-y border-border/40 bg-muted/10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div ref={statsRef} className="grid grid-cols-3 gap-4 text-center">
             {[
               { value: "5+", unit: " hrs", label: t("landing.proofHoursSaved") },
               { value: "< 60", unit: "s", label: t("landing.proofToPlatforms") },
               { value: "9", unit: "+", label: t("landing.proofPlatformsSupported") },
             ].map((stat, i) => (
-              <div key={i} className={i > 0 ? "border-l border-border/40" : ""}>
+              <div
+                key={i}
+                className={cn(
+                  i > 0 ? "border-l border-border/40" : "",
+                  "transition-all duration-700",
+                  statsVisible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+                )}
+                style={{ transitionDelay: statsVisible ? `${i * 150}ms` : "0ms" }}
+              >
                 <p className="text-3xl sm:text-4xl font-black tracking-tight">
                   <span className="stat-value-gradient">{stat.value}</span>
                   <span className="text-muted-foreground/60 text-xl font-bold">{stat.unit}</span>
