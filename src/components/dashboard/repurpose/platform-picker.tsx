@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
 import { Check, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { PLATFORM_GROUPS, SUPPORTED_PLATFORMS } from "@/config/constants";
@@ -55,11 +55,9 @@ export function PlatformPicker({
   onToggle: (platform: Platform) => void;
   onReorder?: (next: Platform[]) => void;
 }) {
-  const [recentPlatforms, setRecentPlatforms] = useState<Platform[]>([]);
-
-  useEffect(() => {
-    setRecentPlatforms(loadRecentPlatformsFromStorage());
-  }, []);
+  const [recentPlatforms, setRecentPlatforms] = useState<Platform[]>(
+    () => loadRecentPlatformsFromStorage()
+  );
 
   const handlePlatformClick = useCallback(
     (id: Platform) => {

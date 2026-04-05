@@ -162,7 +162,7 @@ const FAQS = [
   },
 ];
 
-function CheckCell({ value, label }: { value: boolean | string; label?: string }) {
+function CheckCell({ value, label: _label }: { value: boolean | string; label?: string }) {
   if (typeof value === "boolean") {
     return value ? (
       <span className="inline-flex items-center justify-center">
@@ -567,7 +567,7 @@ export default function PredisAIComparePage() {
                   color: "bg-red-600",
                   highlight: false,
                 },
-              ].map(({ label, price, max, color, highlight }) => (
+              ].map(({ label, price, max, color, highlight: _highlight }) => (
                 <div key={label} className="flex items-center gap-4">
                   <div className="w-52 shrink-0 text-sm font-medium text-right">
                     {label}

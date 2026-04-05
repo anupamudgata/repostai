@@ -1,6 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
+
+type ConfettiPiece = { id: number; hue: number; dx: string; delay: string; dur: string };
+
+function makeConfettiPieces(): ConfettiPiece[] {
+  return Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    hue: (i * 53 + 17) % 360,
+    dx: `${Math.round((Math.random() - 0.5) * 200)}px`,
+    delay: `${i * 25}ms`,
+    dur: `${1.1 + Math.random() * 0.9}s`,
+  }));
+}
 
 export function FirstRepurposeConfetti({ onDone }: { onDone: () => void }) {
   useEffect(() => {
@@ -8,17 +20,8 @@ export function FirstRepurposeConfetti({ onDone }: { onDone: () => void }) {
     return () => window.clearTimeout(id);
   }, [onDone]);
 
-  const pieces = useMemo(
-    () =>
-      Array.from({ length: 20 }, (_, i) => ({
-        id: i,
-        hue: (i * 53 + 17) % 360,
-        dx: `${Math.round((Math.random() - 0.5) * 200)}px`,
-        delay: `${i * 25}ms`,
-        dur: `${1.1 + Math.random() * 0.9}s`,
-      })),
-    []
-  );
+  // Lazy init — runs once on mount, Math.random() is safe outside render
+  const [pieces] = useState<ConfettiPiece[]>(makeConfettiPieces);
 
   return (
     <div

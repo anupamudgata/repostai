@@ -103,7 +103,7 @@ const ALSO_COMPARE = [
   { slug: "repurpose-io", name: "Repurpose.io" },
 ];
 
-function BoolCell({ value, label }: { value: boolean | string; label?: string }) {
+function BoolCell({ value, label: _label }: { value: boolean | string; label?: string }) {
   if (typeof value === "string") {
     return <span className="text-sm text-foreground font-medium">{value}</span>;
   }

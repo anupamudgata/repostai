@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   Loader2,
@@ -74,23 +74,22 @@ export function OutputAssetCard({
   connectHref?: string;
   connectLabel?: string;
 }) {
-  const [bodyExpanded, setBodyExpanded] = useState(false);
-  useEffect(() => {
-    setBodyExpanded(false);
-  }, [output.platform, output.content]);
+  // Derive expanded state from content key — auto-collapses when content changes
+  const contentKey = `${output.platform}::${output.content}`;
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
+  const bodyExpanded = expandedKey === contentKey;
   const longBody = output.content.length > 300;
   const collapsedPreview =
     longBody && !bodyExpanded
       ? `${output.content.slice(0, 200)}…`
       : output.content;
 
-  const [copyShortcutLabel, setCopyShortcutLabel] = useState("Copy (Ctrl+C)");
-  useEffect(() => {
-    const mac =
-      typeof navigator !== "undefined" &&
-      /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent || navigator.platform || "");
-    setCopyShortcutLabel(mac ? "Copy (⌘C)" : "Copy (Ctrl+C)");
-  }, []);
+  const [copyShortcutLabel] = useState(() => {
+    if (typeof navigator === "undefined") return "Copy (Ctrl+C)";
+    return /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent || navigator.platform || "")
+      ? "Copy (⌘C)"
+      : "Copy (Ctrl+C)";
+  });
 
   const trimmedOut = output.content.trim();
   const outputWordCount = trimmedOut
@@ -193,7 +192,7 @@ export function OutputAssetCard({
           {longBody && (
             <button
               type="button"
-              onClick={() => setBodyExpanded((e) => !e)}
+              onClick={() => setExpandedKey(bodyExpanded ? null : contentKey)}
               className="mt-2 block text-xs text-primary underline"
             >
               {bodyExpanded ? "Show less" : "Show more"}
