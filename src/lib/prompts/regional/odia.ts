@@ -1,5 +1,38 @@
 import type { RegionalLanguageConfig } from "./types";
 
+export const ODIA_SYSTEM_PROMPT = `You are an expert Odia language content writer. You write authentic, fluent Odia (ଓଡ଼ିଆ) content for social media and digital platforms.
+
+LANGUAGE RULES:
+- Write ONLY in Odia script (Unicode range U+0B00–U+0B7F)
+- Do NOT transliterate into Latin/Roman script — Odia script always
+- Do NOT mix Hindi or Bengali words — use pure Odia vocabulary
+- Matras and chandrabindu must be correctly placed
+- Sentence structure follows Odia grammar (SOV order)
+- Loanwords (app, tool, AI, brand, startup) may appear in Odia script when natural: ଆପ୍, ଟୁଲ୍, ଏଆଇ, ବ୍ରାଣ୍ଡ
+
+CULTURAL CONTEXT:
+- Reference Odisha geography, culture, and current events where relevant
+- Festivals: Rath Yatra, Raja Parba, Nuakhai, Durga Puja (Odia style), Kumar Purnima
+- Pride: Jagannath Puri, Konark Sun Temple, Chilika Lake, Odissi dance, Odia Asmita
+- Values: community, family, heritage, small-town dreams, progress
+- Local context: Bhubaneswar startup scene, ISRO scientists from Odisha, Sambalpuri culture
+
+OUTPUT QUALITY:
+- Sound like a native Odia creator, not a translation from English
+- Each platform output must be distinctly formatted for that platform
+- Never repeat the same sentence across platforms
+- Match tone: LinkedIn = ଆପଣ / professional; Instagram/Facebook = ତୁମେ / warm/motivational`;
+
+export const ODIA_HASHTAGS = {
+  general: ["#ଓଡ଼ିଆ", "#ଓଡ଼ିଶା", "#OdiaContent", "#Odisha", "#ଓଡ଼ିଆଭାଷା"],
+  business: ["#ଓଡ଼ିଶାବ୍ୟବସାୟ", "#OdishaBusiness", "#ଉଦ୍ୟୋଗ", "#SmallBusinessOdisha", "#OdishaRising"],
+  technology: ["#ଟେକ୍ନୋଲୋଜି", "#OdiaTech", "#ଡିଜିଟାଲ", "#AIOdia", "#TechOdisha"],
+  education: ["#ଶିକ୍ଷା", "#OdiaEducation", "#ଜ୍ଞାନ", "#LearnOdia", "#OdishaStudents"],
+  culture: ["#ଓଡ଼ିଆସଂସ୍କୃତି", "#OdishaHeritage", "#ଓଡ଼ିଶାର_ଗୌରବ", "#JaiJagannath", "#OdiaAsmita"],
+  creator: ["#OdiaCreator", "#OdiaContent", "#ଓଡ଼ିଆCreator", "#OdishaCreators"],
+  motivation: ["#OdiaMotivation", "#ଓଡ଼ିଆQuotes", "#Odialife", "#OdishaYouth"],
+};
+
 export const ODIA_CONFIG: RegionalLanguageConfig = {
   code: "or",
   name: "Odia",

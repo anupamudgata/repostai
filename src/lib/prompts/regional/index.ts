@@ -4,7 +4,7 @@ import { MARATHI_CONFIG } from "./marathi";
 import { BENGALI_CONFIG } from "./bengali";
 import { TELUGU_CONFIG } from "./telugu";
 import { KANNADA_CONFIG } from "./kannada";
-import { ODIA_CONFIG } from "./odia";
+import { ODIA_CONFIG, ODIA_SYSTEM_PROMPT } from "./odia";
 import { PUNJABI_CONFIG } from "./punjabi";
 import type { Platform as StreamPlatform } from "@/lib/ai/types";
 import {
@@ -68,7 +68,7 @@ const marathiModule = buildRegionalModule(MARATHI_CONFIG);
 const bengaliModule = buildRegionalModule(BENGALI_CONFIG);
 const teluguModule = buildRegionalModule(TELUGU_CONFIG);
 const kannadaModule = buildRegionalModule(KANNADA_CONFIG);
-const odiaModule = buildRegionalModule(ODIA_CONFIG);
+const odiaModule = { ...buildRegionalModule(ODIA_CONFIG), systemPrompt: ODIA_SYSTEM_PROMPT };
 const punjabiModule = buildRegionalModule(PUNJABI_CONFIG);
 
 const REGIONAL_MODULES: Record<string, RegionalPromptModule> = {
