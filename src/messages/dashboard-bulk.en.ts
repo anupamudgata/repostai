@@ -128,6 +128,7 @@ export const dashboardBulkEn = {
   refineRewrite: "Rewrite",
   outputPlatformsTitle: "Output Platforms",
   recentPlatformsTitle: "Recently used",
+  selectedPlatformsRow: "Selected ({count})",
   freePlanPlatformsBefore: "Free plan: LinkedIn, Twitter/X, Instagram.",
   freePlanPlatformsLink: "Upgrade",
   freePlanPlatformsAfter: "for all 9 platforms.",

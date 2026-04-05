@@ -28,7 +28,7 @@ export async function GET() {
 
     const { data: jobs, error: jobsError } = await supabase
       .from("repurpose_jobs")
-      .select("id, input_type, created_at")
+      .select("id, input_type, input_content, input_url, created_at")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -50,8 +50,24 @@ export async function GET() {
     }
 
     const jobMap = new Map(jobs.map((j) => [j.id, j]));
+
+    type JobRow = {
+      input_type: string;
+      input_content: string | null;
+      input_url: string | null;
+    };
+
+    function sourcePrefill(job: JobRow): string {
+      const t = job.input_type;
+      if (t === "url" || t === "youtube") {
+        return (job.input_url ?? "").trim();
+      }
+      return (job.input_content ?? "").trim();
+    }
+
     const items = (outputs ?? []).map((o) => {
-      const job = jobMap.get(o.job_id);
+      const job = jobMap.get(o.job_id) as JobRow | undefined;
+      const source_prefill = job != null ? sourcePrefill(job) : "";
       return {
         id: o.id,
         job_id: o.job_id,
@@ -59,6 +75,7 @@ export async function GET() {
         content: o.edited_content ?? o.generated_content ?? "",
         input_type: job?.input_type ?? "text",
         created_at: o.created_at,
+        source_prefill,
       };
     });
 

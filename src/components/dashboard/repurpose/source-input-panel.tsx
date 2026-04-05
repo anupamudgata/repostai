@@ -33,6 +33,7 @@ type ToastApi = {
     fallbackKey?: string
   ) => void;
   success: (key: string, params?: Record<string, string | number>) => void;
+  info: (key: string, params?: Record<string, string | number>) => void;
 };
 
 export function SourceInputPanel({
@@ -132,6 +133,33 @@ export function SourceInputPanel({
               className="min-h-[120px] max-h-[400px] resize-none overflow-hidden"
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              onPaste={(e) => {
+                if (inputType !== "text") return;
+                const pasted = e.clipboardData.getData("text/plain") ?? "";
+                const el = mainTextRef.current;
+                const start = el?.selectionStart ?? content.length;
+                const end = el?.selectionEnd ?? content.length;
+                const next = content.slice(0, start) + pasted + content.slice(end);
+                const nextTrim = next.trim();
+                const lower = nextTrim.toLowerCase();
+
+                if (
+                  lower.includes("youtube.com") ||
+                  lower.includes("youtu.be")
+                ) {
+                  e.preventDefault();
+                  setInputType("youtube");
+                  setUrl(nextTrim);
+                  setContent("");
+                } else if (/^https?:\/\//i.test(nextTrim)) {
+                  e.preventDefault();
+                  setInputType("url");
+                  setUrl(nextTrim);
+                  setContent("");
+                } else if (next.length > 1500) {
+                  toastT.info("toast.longPasteConsiderUrl");
+                }
+              }}
             />
             {charCount > 0 && (
               <p className="text-xs text-muted-foreground tabular-nums flex flex-wrap items-center gap-x-1.5">

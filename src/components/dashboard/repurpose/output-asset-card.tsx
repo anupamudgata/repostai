@@ -92,6 +92,13 @@ export function OutputAssetCard({
     setCopyShortcutLabel(mac ? "Copy (⌘C)" : "Copy (Ctrl+C)");
   }, []);
 
+  const trimmedOut = output.content.trim();
+  const outputWordCount = trimmedOut
+    ? trimmedOut.split(/\s+/).filter(Boolean).length
+    : 0;
+  const outputCharCount = output.content.length;
+  const showOutputStats = trimmedOut.length > 0;
+
   const refinements: { id: RefineIntent; label: string; icon: typeof Minimize2 }[] = [
     { id: "shorten", label: d.refineShorten, icon: Minimize2 },
     { id: "expand", label: d.refineExpand, icon: Maximize2 },
@@ -191,6 +198,11 @@ export function OutputAssetCard({
             >
               {bodyExpanded ? "Show less" : "Show more"}
             </button>
+          )}
+          {showOutputStats && (
+            <p className="mt-2 text-[10px] text-muted-foreground/60 tabular-nums">
+              {outputWordCount} words · {outputCharCount} chars
+            </p>
           )}
         </div>
         <CharacterCount

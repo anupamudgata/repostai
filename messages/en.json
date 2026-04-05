@@ -204,6 +204,7 @@
     "failedExtractPdf": "Failed to extract text",
     "pdfExtracted": "PDF text extracted!",
     "sampleContentInserted": "Sample content added — replace with your own anytime.",
+    "longPasteConsiderUrl": "Long content detected — consider using URL input for best results.",
     "failedProcessPdf": "Failed to process PDF",
     "historyDeleted": "History item deleted",
     "posted": "Posted!",

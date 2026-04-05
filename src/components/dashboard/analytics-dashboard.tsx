@@ -80,6 +80,8 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
   const [insights, setInsights] = useState<string[]>([]);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [engagementChartPlatform, setEngagementChartPlatform] =
+    useState<string>("all");
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     platform: "linkedin",
@@ -154,22 +156,49 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
     }));
   }, [posts]);
 
-  const timelineData = useMemo(() => {
-    const byDate: Record<string, number> = {};
+  const engagementChartPlatformOptions = useMemo(() => {
+    const ids = new Set<string>();
     for (const p of posts) {
+      const eng = (p.likes ?? 0) + (p.comments ?? 0) + (p.shares ?? 0);
+      if (eng > 0) ids.add(p.platform);
+    }
+    return Array.from(ids);
+  }, [posts]);
+
+  const timelineData = useMemo(() => {
+    const list =
+      engagementChartPlatform === "all"
+        ? posts
+        : posts.filter((p) => p.platform === engagementChartPlatform);
+    const byDate: Record<string, { engagement: number; platforms: Set<string> }> =
+      {};
+    for (const p of list) {
       const eng = (p.likes ?? 0) + (p.comments ?? 0) + (p.shares ?? 0);
       if (eng > 0) {
         const d = new Date(p.posted_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
         });
-        byDate[d] = (byDate[d] ?? 0) + eng;
+        if (!byDate[d]) {
+          byDate[d] = { engagement: 0, platforms: new Set() };
+        }
+        byDate[d].engagement += eng;
+        byDate[d].platforms.add(p.platform);
       }
     }
     return Object.entries(byDate)
       .slice(-14)
-      .map(([name, value]) => ({ name, engagement: value }));
-  }, [posts]);
+      .map(([name, row]) => ({
+        name,
+        engagement: row.engagement,
+        platformSummary:
+          engagementChartPlatform === "all" && row.platforms.size > 0
+            ? Array.from(row.platforms).map(getPlatformName).join(", ")
+            : engagementChartPlatform !== "all"
+              ? getPlatformName(engagementChartPlatform)
+              : undefined,
+      }));
+  }, [posts, engagementChartPlatform]);
 
   const topPosts = useMemo(
     () =>
@@ -311,9 +340,33 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
       {/* Charts row */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader>
-            <CardTitle>Engagement Over Time</CardTitle>
-            <p className="text-sm text-muted-foreground">Likes + comments + shares by post date</p>
+          <CardHeader className="space-y-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Engagement Over Time</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Likes + comments + shares by post date
+                </p>
+              </div>
+              {engagementChartPlatformOptions.length > 0 && (
+                <Select
+                  value={engagementChartPlatform}
+                  onValueChange={setEngagementChartPlatform}
+                >
+                  <SelectTrigger className="w-full sm:w-[200px] h-9 text-xs">
+                    <SelectValue placeholder="Platform" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All platforms</SelectItem>
+                    {engagementChartPlatformOptions.map((pid) => (
+                      <SelectItem key={pid} value={pid}>
+                        {getPlatformName(pid)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             {timelineData.length > 0 ? (
@@ -323,8 +376,31 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
                     <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip
-                      contentStyle={{ borderRadius: "8px" }}
-                      formatter={(value) => [(value ?? 0).toLocaleString(), "Engagement"]}
+                      cursor={{
+                        fill: "hsl(var(--muted))",
+                        opacity: 0.12,
+                      }}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const row = payload[0].payload as {
+                          name: string;
+                          engagement: number;
+                          platformSummary?: string;
+                        };
+                        return (
+                          <div className="rounded-lg border bg-popover px-3 py-2 text-sm shadow-md text-popover-foreground">
+                            <p className="font-medium">{row.name}</p>
+                            <p>
+                              {row.engagement.toLocaleString()} engagement
+                            </p>
+                            {row.platformSummary ? (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {row.platformSummary}
+                              </p>
+                            ) : null}
+                          </div>
+                        );
+                      }}
                     />
                     <Bar dataKey="engagement" fill="#6366f1" radius={[4, 4, 0, 0]} />
                   </BarChart>

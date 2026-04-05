@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const OnboardingBanner = dynamic(
   () => import("@/components/dashboard/OnboardingBanner"),
@@ -96,6 +96,8 @@ const ME_RETRY_DELAY_MS = 500;
 
 export default function DashboardPage() {
   const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const prevPathRef = useRef<string | null>(null);
   const { locale } = useI18n();
   const d = locale === "hi" ? dashboardBulkHi : dashboardBulkEn;
@@ -367,6 +369,28 @@ export default function DashboardPage() {
     }
     fetchVoices();
   }, []);
+
+  useEffect(() => {
+    if (!searchParams.get("prefill")) return;
+    let text = "";
+    try { text = sessionStorage.getItem("repostai_prefill") ?? ""; sessionStorage.removeItem("repostai_prefill"); } catch {}
+    if (!text.trim()) { router.replace(pathname, { scroll: false }); return; }
+    const lower = text.toLowerCase();
+    if (lower.includes("youtube.com") || lower.includes("youtu.be")) {
+      setInputType("youtube");
+      setUrl(text);
+      setContent("");
+    } else if (/^https?:\/\//i.test(text)) {
+      setInputType("url");
+      setUrl(text);
+      setContent("");
+    } else {
+      setInputType("text");
+      setContent(text);
+      setUrl("");
+    }
+    router.replace(pathname, { scroll: false });
+  }, [searchParams, router, pathname]);
 
   function togglePlatform(platform: Platform) {
     if (plan === "free" && !FREE_PLATFORMS_SET.has(platform)) return;
@@ -983,10 +1007,12 @@ export default function DashboardPage() {
         </h2>
         <PlatformPicker
           d={d}
+          df={df}
           isFreePlan={isFreePlan}
           freePlatformSet={FREE_PLATFORMS_SET}
           selectedPlatforms={selectedPlatforms}
           onToggle={togglePlatform}
+          onReorder={setSelectedPlatforms}
         />
       </section>
 

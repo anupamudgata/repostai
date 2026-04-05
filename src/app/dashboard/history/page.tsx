@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { History, SearchX, Copy, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { History, SearchX, Copy, Check, RefreshCw } from "lucide-react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,12 +34,14 @@ function HistoryListSkeleton() {
 }
 
 interface HistoryItem {
-  id:         string;
-  platform:   string;
-  content:    string;
+  id: string;
+  platform: string;
+  content: string;
   input_type: string;
   created_at: string;
-  job_id:     string;
+  job_id: string;
+  /** Original source text or URL from the repurpose job (for “Repurpose again”). */
+  source_prefill?: string;
 }
 
 const PLATFORM_LABELS: Record<string, string> = {
@@ -68,6 +71,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 export default function HistoryPage() {
+  const router = useRouter();
   const toastT = useAppToast();
   const [items,    setItems]    = useState<HistoryItem[]>([]);
   const [loading,  setLoading]  = useState(true);
@@ -82,7 +86,9 @@ export default function HistoryPage() {
   async function loadHistory() {
     try {
       const r = await fetch("/api/history", { cache: "no-store" });
-      const d = (await r.json()) as { items?: HistoryItem[] };
+      const d = (await r.json()) as {
+        items?: HistoryItem[];
+      };
       setItems(d.items ?? []);
     } catch {
       setItems([]);
@@ -342,6 +348,22 @@ export default function HistoryPage() {
                       ) : (
                         <Copy className="h-3.5 w-3.5" />
                       )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const src = (item.source_prefill ?? "").trim();
+                        if (!src) return;
+                        try { sessionStorage.setItem("repostai_prefill", src); } catch {}
+                        router.push("/dashboard?prefill=1");
+                      }}
+                      disabled={!(item.source_prefill ?? "").trim()}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                      aria-label="Repurpose again with original source"
+                      title="Repurpose again"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => copyContent(item.id, item.content)}

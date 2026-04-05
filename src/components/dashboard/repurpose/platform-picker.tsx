@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { PLATFORM_GROUPS, SUPPORTED_PLATFORMS } from "@/config/constants";
 import type { Platform } from "@/types";
 import { cn } from "@/lib/utils";
 import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
+import { Button } from "@/components/ui/button";
 
 const PLATFORM_BY_ID = Object.fromEntries(
   SUPPORTED_PLATFORMS.map((p) => [p.id, p])
@@ -39,16 +40,20 @@ function loadRecentPlatformsFromStorage(): Platform[] {
 
 export function PlatformPicker({
   d,
+  df,
   isFreePlan,
   freePlatformSet,
   selectedPlatforms,
   onToggle,
+  onReorder,
 }: {
   d: DashboardBulk;
+  df: (template: string, vars: Record<string, string | number>) => string;
   isFreePlan: boolean;
   freePlatformSet: Set<string>;
   selectedPlatforms: Platform[];
   onToggle: (platform: Platform) => void;
+  onReorder?: (next: Platform[]) => void;
 }) {
   const [recentPlatforms, setRecentPlatforms] = useState<Platform[]>([]);
 
@@ -75,6 +80,18 @@ export function PlatformPicker({
       }
     },
     [isFreePlan, freePlatformSet, selectedPlatforms, onToggle]
+  );
+
+  const moveSelected = useCallback(
+    (index: number, delta: -1 | 1) => {
+      if (!onReorder) return;
+      const nextIndex = index + delta;
+      if (nextIndex < 0 || nextIndex >= selectedPlatforms.length) return;
+      const next = [...selectedPlatforms];
+      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
+      onReorder(next);
+    },
+    [onReorder, selectedPlatforms]
   );
 
   const renderChip = (id: string, recentHighlight: boolean) => {
@@ -145,6 +162,53 @@ export function PlatformPicker({
           </div>
         </div>
       ))}
+      {selectedPlatforms.length > 0 && onReorder && (
+        <div>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2.5">
+            {df(d.selectedPlatformsRow, { count: selectedPlatforms.length })}
+          </p>
+          <div className="flex flex-wrap gap-2 items-center">
+            {selectedPlatforms.map((id, index) => {
+              const platform = PLATFORM_BY_ID[id];
+              if (!platform) return null;
+              return (
+                <div
+                  key={id}
+                  className="inline-flex items-center gap-0.5 rounded-lg border border-primary/35 bg-primary/5 pl-1 pr-1.5 py-1"
+                >
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                    disabled={index === 0}
+                    onClick={() => moveSelected(index, -1)}
+                    aria-label="Move left"
+                    title="Move left"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="text-sm font-medium px-1 max-w-[140px] truncate">
+                    {platform.name}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 shrink-0 text-muted-foreground hover:text-foreground"
+                    disabled={index === selectedPlatforms.length - 1}
+                    onClick={() => moveSelected(index, 1)}
+                    aria-label="Move right"
+                    title="Move right"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
