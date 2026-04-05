@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect }  from "react";
+import { Link2 } from "lucide-react";
 import { useUserPlan }          from "@/hooks/useUserPlan";
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 
 interface ConnectedAccount {
   platform:         string;
@@ -203,6 +205,17 @@ export default function ConnectionsPage() {
             )}
           </p>
         </div>
+
+        {connectedCount === 0 && (
+          <div style={{ marginBottom: "24px" }}>
+            <DashboardEmptyState
+              icon={Link2}
+              title="No accounts connected yet"
+              description="Link a social profile below to post repurposed content from RepostAI in one click."
+              action={{ label: "Connect LinkedIn", href: "/api/social/connect/linkedin" }}
+            />
+          </div>
+        )}
 
         {/* Platform cards */}
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>

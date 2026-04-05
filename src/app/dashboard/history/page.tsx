@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { History, SearchX } from "lucide-react";
 import { useAppToast } from "@/hooks/use-app-toast";
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 
 interface HistoryItem {
   id:         string;
@@ -240,14 +242,27 @@ export default function HistoryPage() {
         {loading ? (
           <div className="text-center py-12 text-muted-foreground text-sm">Loading history...</div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-12 px-6 bg-card border border-dashed rounded-2xl">
-            <p className="text-sm font-semibold text-foreground mb-1">
-              {query || platform !== "all" ? "No results found" : "No history yet"}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {query || platform !== "all" ? "Try a different search or filter" : "Your repurposed content will appear here"}
-            </p>
-          </div>
+          query || platform !== "all" ? (
+            <DashboardEmptyState
+              icon={SearchX}
+              title="No results found"
+              description="Try another search term or clear filters to see all history."
+              action={{
+                label: "Clear filters",
+                onClick: () => {
+                  setQuery("");
+                  setPlatform("all");
+                },
+              }}
+            />
+          ) : (
+            <DashboardEmptyState
+              icon={History}
+              title="No history yet"
+              description="Repurpose content from the studio and every output will show up here."
+              action={{ label: "Start repurposing", href: "/dashboard/repurpose" }}
+            />
+          )
         ) : (
           <div className="flex flex-col gap-2">
             {filtered.map((item) => {

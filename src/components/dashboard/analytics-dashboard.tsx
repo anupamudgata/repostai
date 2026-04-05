@@ -22,8 +22,10 @@ import {
   Plus,
   ChevronRight,
   Loader2,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -224,6 +226,17 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
     }
   };
 
+  if (posts.length === 0) {
+    return (
+      <DashboardEmptyState
+        icon={BarChart3}
+        title="No performance data yet"
+        description="Publish or schedule posts, then log engagement to unlock charts and AI insights."
+        action={{ label: "Start repurposing", href: "/dashboard/repurpose" }}
+      />
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* KPI Cards */}
@@ -318,8 +331,15 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex h-[240px] items-center justify-center rounded-lg border border-dashed bg-muted/30">
-                <p className="text-sm text-muted-foreground">Add engagement data to see charts</p>
+              <div className="h-[240px]">
+                <DashboardEmptyState
+                  variant="compact"
+                  icon={BarChart3}
+                  title="No chart data yet"
+                  description="Log engagement on your posts to see trends over time."
+                  action={{ label: "Log engagement", onClick: () => setAddOpen(true) }}
+                  className="h-full min-h-[240px] rounded-lg border-0 bg-muted/20"
+                />
               </div>
             )}
           </CardContent>
@@ -358,8 +378,15 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="flex h-[240px] items-center justify-center rounded-lg border border-dashed bg-muted/30">
-                <p className="text-sm text-muted-foreground">Add engagement data to see breakdown</p>
+              <div className="h-[240px]">
+                <DashboardEmptyState
+                  variant="compact"
+                  icon={Share2}
+                  title="No platform breakdown yet"
+                  description="Add likes, comments, or shares to see which networks drive engagement."
+                  action={{ label: "Log engagement", onClick: () => setAddOpen(true) }}
+                  className="h-full min-h-[240px] rounded-lg border-0 bg-muted/20"
+                />
               </div>
             )}
           </CardContent>
@@ -405,15 +432,14 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
               ))}
             </ul>
           ) : (
-            <div className="rounded-lg border border-dashed bg-background/50 p-8 text-center">
-              <Sparkles className="mx-auto h-12 w-12 text-muted-foreground/50" />
-              <p className="mt-2 text-sm text-muted-foreground">
-                Add engagement for 2+ posts to unlock AI insights
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Track likes, comments, and shares — we&apos;ll analyze patterns and suggest optimal posting times
-              </p>
-            </div>
+            <DashboardEmptyState
+              variant="compact"
+              icon={Sparkles}
+              title="AI insights need more data"
+              description="Log engagement for at least two posts and we&apos;ll surface patterns and best times to post."
+              action={{ label: "Log engagement", onClick: () => setAddOpen(true) }}
+              className="min-h-[200px] border-0 bg-background/50 py-8"
+            />
           )}
         </CardContent>
       </Card>
@@ -456,12 +482,14 @@ export function AnalyticsDashboard({ initialPosts }: { initialPosts: PostRow[] }
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-dashed bg-muted/30 py-12 text-center">
-                <p className="text-sm text-muted-foreground">No engagement data yet</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Add metrics to see your top posts
-                </p>
-              </div>
+              <DashboardEmptyState
+                variant="compact"
+                icon={TrendingUp}
+                title="No top posts yet"
+                description="Log engagement on your posts to rank what resonates most with your audience."
+                action={{ label: "Log engagement", onClick: () => setAddOpen(true) }}
+                className="border-0 bg-muted/20 py-10"
+              />
             )}
           </CardContent>
         </Card>
