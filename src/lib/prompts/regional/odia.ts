@@ -11,12 +11,14 @@ export const ODIA_CONFIG: RegionalLanguageConfig = {
   casualPronoun: "ତୁମେ (default reader “you”), ତୁମେମାନେ (plural); ତୁ/ଭାଇ only when very casual",
   englishTermsNote:
     "reels, trend, goal, mindset, content, creator, AI, brand, growth, engagement, startup, marketing, tool, app, feature, launch, audience, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, video, blog. Loanwords in Odia script when natural for fast mobile read: ଆପ୍, ଟୁଲ୍, ସାସ୍ (SaaS), ଫଣ୍ଡିଂ, ଆଇଡିଆ, ସେଟଅପ୍, ଟିମ୍, ଗୋଲ୍ (avoid forced Sanskrit when young pros use the loanword)",
-  commonNativeWords: "କରିବା, ହେବା, ଶିଖିବା, ବହୁତ, କିନ୍ତୁ, କାରଣ, ଖୁସି, ସମୟ, କାମ, ଜୀବନ, ମୁଁ, ତୁମେ, ଆମେ, ସବୁଠାରୁ, ଆଗରୁ, ପରେ, ବର୍ତ୍ତମାନ, ଭାଇ, ବନ୍ଧୁ",
+  commonNativeWords: "କରିବା, ହେବା, ଶିଖିବା, ବହୁତ, କିନ୍ତୁ, କାରଣ, ଖୁସି, ସମୟ, କାମ, ଜୀବନ, ମୁଁ, ତୁମେ, ଆମେ, ସବୁଠାରୁ, ଆଗରୁ, ପରେ, ବର୍ତ୍ତମାନ, ଭାଇ, ବନ୍ଧୁ, ଦରକାର, ଜାଣ, ଦେଖ, କୁହ, ଆସ, ଯା, ନାହିଁ, ହଁ, କ'ଣ, କିପରି, ଟିକେ, ଭଲ, ସତ, ସେ, ଏହା, ଆମ",
   scriptExamples: {
     correct: [
       "Startup life ରେ ଏହା ବହୁତ important",
       "ମୁଁ ଶିଖିଲି — customers ଙ୍କୁ features ଦରକାର ନାହିଁ, solution ଦରକାର",
       "Content create କରିବା easy, କିନ୍ତୁ consistent ରହିବା — ସେଇଟା real game",
+      "ଭୁବନେଶ୍ୱର ରୁ ISRO scientist ହେବାର ସ୍ୱପ୍ନ — ଆଉ ଓଡ଼ିଶାର ଛୋଟ ସହରରୁ ଆସି ଆଜି ₹X revenue ହୋଇଛି 🙏",
+      "ରଥ ଯାତ୍ରା ରେ ଲଖ ଲଖ ଲୋକ — ଆଉ ଆମ ଓଡ଼ିଆ pride ଏଥିରୁ ଆସୁଛି। ଏ energy ନେଇ content ବନାଅ 🚀",
     ],
     wrong: [
       "Startup life re eha bahut important (Romanized — use Odia script!)",
@@ -33,32 +35,44 @@ ADDRESS: Prefer ତୁମେ / ତୁମେମାନେ for motivational/caption
 CULTURAL AUTHENTICITY — Think like a popular Odia creator:
 
 1) CULTURAL REFERENCES:
-   - Odisha: Jagannath Puri pride, Konark Sun Temple, Chilika Lake beauty, Bhubaneswar modern city
+   - Odisha: Jagannath Puri pride, Konark Sun Temple, Chilika Lake beauty, Bhubaneswar modern city, Puri-Bhubaneswar corridor energy
+   - Rath Yatra: "ଜଗନ୍ନାଥ ଙ୍କ ରଥ ଯାତ୍ରା — ଲଖ ଲଖ ଭକ୍ତ, ଗୋଟିଏ ଶ୍ରଦ୍ଧା" grandeur; world's biggest chariot festival pride
+   - Odissi elegance: "ଓଡ଼ିସ୍ସୀ ନୃତ୍ୟ — ଆମ ସଂସ୍କୃତିର ଗର୍ବ" classical dance references for grace/beauty metaphors
+   - "ଓଡ଼ିଆ ଅସ୍ମିତା" (Odia identity pride): strong regional identity sentiment, "ଓଡ଼ିଆ ଭାଷା ଆମ ଜୀବନ", language pride
+   - ISRO + Odisha connection: many ISRO scientists from Odisha; "ଛୋଟ ସହରରୁ ଆସି rocket engineer ହୋଇଲ" pride narrative
+   - Odia film industry: Ollywood references, Odia music/songs, regional entertainment pride
+   - Sambalpuri culture: Sambalpuri music beats, Balangir/Sambalpur local pride, "ପୁଷ୍ପ ବିଲ" style vibez, Sambalpuri saree
    - Festivals: Rath Yatra energy, Raja festival, Nuakhai celebrations, Kumar Purnima
    - Food: "ଦାଳମା > everything", ପଖାଳ in summer, ରସଗୋଲା debate (Odia vs Bengali), ଛେନା ପୋଡ଼
-   - Culture: Odia literature pride, Sambalpuri culture, hockey heritage, Odissi dance elegance
+   - Culture: Odia literature pride, hockey heritage, Odissi dance elegance
    - Nature: Simlipal forests, Odisha beaches, monsoon beauty, Hirakud Dam
 
 2) ODIA INTERNET CULTURE:
    - "ଭାଇ", "ବନ୍ଧୁ", "ଦାଦା" — warm address
    - Growing creator ecosystem: Odia YouTube and Instagram creators emerging fast
-   - Pride in culture: "ଓଡ଼ିଶା ର pride" sentiment, regional identity
+   - "ଓଡ଼ିଆ ଅସ୍ମିତା" pride: regional identity posts go viral in Odia internet
+   - FOMO hooks: "ଏହା ଜାଣ ନ ଥିଲେ behind ରହିବ", "ଓଡ଼ିଶା ର ଏ secret ଅଧିକ ଲୋକ ଜାଣନ୍ତି ନାହିଁ"
 
 3) AUDIENCE REGISTERS:
    - Startup/tech: English-heavy, "basically ଏହା pivot ହୋଇଗଲା"
-   - Students: casual, relatable, meme-aware
+   - Students: casual, relatable, meme-aware, Bhubaneswar college life
    - Professionals: measured Odianglish, ଆପଣ-based
-   - Local business: more Odia, warm family tone`,
+   - Local business: more Odia, warm family tone
+   - Diaspora/migration: Odias in Bengaluru/Hyderabad/Delhi — "ଘର ମନେ ପଡ଼ୁଛି" nostalgia hooks`,
 
   slangVocabulary: `ODIA SLANG TOOLKIT — Use naturally:
 
-ENERGY/HYPE: ମଜା ("ଏହା ତ ମଜା!"), ସୁପର, ଝକାସ, ଜବରଦସ୍ତ, ଧମାକାଦାର, ଫାଟାଫାଟି
-SURPRISE: ମୁଣ୍ଡ ଘୁରିଗଲା, ସକ ଲାଗିଲା, ପାଗଲ ହୋଇଗଲି, ବିଶ୍ୱାସ ହେଉନାହିଁ
-CASUAL ADDRESS: ଭାଇ, ବନ୍ଧୁ, ଦାଦା, ବସ, ଯାର
-HUSTLE: ଜୁଗାଡ, ପଇସା ୱସୂଲ, ଟ୍ରିକ, ହ୍ୟାକ
-AGREEMENT: ବିଲକୁଲ, ସଠିକ, 100%, ପକ୍କା, ଲେଖି ରଖ
-DISMISSAL: ଛାଡ, ବେକାର, ସମୟ ନଷ୍ଟ, ଫାଲତୁ
+ENERGY/HYPE: ମଜା ("ଏହା ତ ମଜା!"), ସୁପର, ଝକାସ, ଜବରଦସ୍ତ, ଧମାକାଦାର, ଫାଟାଫାଟି, ବଢ଼ିଆ, ଏକ ଦମ ଟପ୍
+SURPRISE: ମୁଣ୍ଡ ଘୁରିଗଲା, ସକ ଲାଗିଲା, ପାଗଲ ହୋଇଗଲି, ବିଶ୍ୱାସ ହେଉନାହିଁ, ଆଖି ଖୋଲିଗଲା, ଭାଇ ଏ ତ ଜାଣି ନ ଥିଲି
+CASUAL ADDRESS: ଭାଇ, ବନ୍ଧୁ, ଦାଦା, ବସ, ଯାର, ଲୋ, ଭଉଣୀ (for female audience)
+HUSTLE: ଜୁଗାଡ, ପଇସା ୱସୂଲ, ଟ୍ରିକ, ହ୍ୟାକ, ଗ୍ରାଇଣ୍ଡ ଚାଲୁ ଅଛି, ଛୋଟ ଛୋଟ win ମଜା
+AGREEMENT: ବିଲକୁଲ, ସଠିକ, 100%, ପକ୍କା, ଲେଖି ରଖ, ହଁ ଭାଇ ଏ ଠିକ, ଏକ ଦମ ସହି
+DISMISSAL: ଛାଡ, ବେକାର, ସମୟ ନଷ୍ଟ, ଫାଲତୁ, ଆଉ ଚିନ୍ତା ଛାଡ, ଏ ଦରକାର ନାହିଁ
 DRAMA: "picture ଆଉ ବାକି ଅଛି", "ଏହା trailer ଥିଲା", "climax ଆସୁଛି"
+GEN-Z INTERNET: ଏ ତ fire, no cap ଭାଇ, main character energy, differently ଲାଗିଲା, ✨vibes✨ ଅଲଗା, ଟିକେ ଅଟକ
+EMOTIONAL RELATABILITY: "ଏ ତୁମ କଥା ନ?", "ଆମ ସବୁ ଦ ଗଳ୍ପ ଏ", "ଦିଲ ଛୁଇଁ ଯାଇଛି", "ସତ କଥା କହୁଛି"
+HUSTLE CULTURE: "ₓ ଘଣ୍ଟା কাজ ପରେ ଶିଖିଲି", "failure ଟ ଭଲ teacher", "grind ଚାଲୁ ଅଛି", "ଭାଇ ₹0 ରୁ ₹X ଯାଇଛି — process ଜାଣିବ?"
+ODIA ASMITA SLANG: "ଓଡ଼ିଆ ଘର ର ଛୋରା/ଛୋରୀ", "ଓଡ଼ିଶା ର ଗର୍ବ", "ଆମ ଓଡ଼ିଆ ଭାଇ ଭଉଣୀ", "ଜୟ ଜଗନ୍ନାଥ"
 
 USAGE RULES:
 - Instagram/TikTok/Facebook: use liberally
@@ -71,7 +85,11 @@ NEVER start two outputs the same way. Rotate:
 - Stat/number: "97% creators ଏହି ଭୁଲ କରନ୍ତି"
 - Story cold open: "ଗତକାଲି ରାତି 2ଟାରେ ଗୋଟେ DM ଆସିଲା..."
 - Question: "ତୁମ content 100 ଲୋକଙ୍କ ପାଖରେ ପହଞ୍ଚୁ ନାହିଁ, ତେବେ କାହାପାଇଁ ବନାଉଛ?"
-- Direct command: "ଏହା save କର, ପରେ କାମରେ ଆସିବ"`,
+- Direct command: "ଏହା save କର, ପରେ କାମରେ ଆସିବ"
+- Rath Yatra grandeur: "ଲଖ ଲଖ ଭକ୍ତ ଯୁଗ ଯୁଗ ଧରି ରଥ ଟାଣୁଛନ୍ତି — ବିଶ୍ୱାସ ଏବଂ consistency ଏ ଶକ୍ତି"
+- Odia asmita: "ଓଡ଼ିଆ ଅସ୍ମିତା ର ଗର୍ବ — ଆମ ଭାଷା, ଆମ ସଂସ୍କୃତି, ଆମ ଛୋଟ ସହର ର ବଡ଼ ସ୍ୱପ୍ନ 🧡"
+- Puri-Bhubaneswar pride: "Puri ର ରଥ ଠୁ Bhubaneswar ର startup — ଓଡ଼ିଶା ଆଗୁଆ ଚାଲୁଛି"
+- Small-town dream: "ଗଞ୍ଜ ଗ୍ରାମ ରୁ ଆସି ₹X cr revenue — ଓଡ଼ିଶାର ଛୋଟ ସହର ଏ ସ୍ୱପ୍ନ ଦେଖୁଛି"`,
 
   fewShotExamples: `
 FEW-SHOT (style reference — NEVER copy verbatim):
@@ -122,6 +140,16 @@ Agree karuchha? Comment re kahantu.
 
 2/5
 Content ବହୁତ ବନାନ୍ତି, କିନ୍ତୁ distribute ପ୍ଲାନ୍ ନାହିଁ…"
+
+✅ GOOD — Instagram (Odia asmita / cultural pride):
+"ଓଡ଼ିଶାର ଛୋଟ ସହରରୁ ଆସି ଆଜି ₹X revenue 🙏
+
+ଗଞ୍ଜ ଗ୍ରାମ ର ଗଳ୍ପ ଜଗତ ଜାଣୁ ନ ଥିଲା।
+ଆମ ଭୁବନେଶ୍ୱର, ଆମ ଜଗନ୍ନାଥ ଙ୍କ ଆଶୀର୍ବାଦ — ଏ ଶକ୍ତି ଅଲଗା।
+
+ଓଡ଼ିଆ ଅସ୍ମିତା ରେ ବିଶ୍ୱାସ ଅଛି? Comment ରେ ଲେଖ 👇
+
+#OdishaRising #OdiaAsmita #OdiaCreator #JaiJagannath"
 
 ❌ BAD:
 - "ଆମେ ଆପଣଙ୍କୁ ଜଣାଉଛୁ..." → stiff formal

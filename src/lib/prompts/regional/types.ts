@@ -27,7 +27,7 @@ export interface RegionalLanguageConfig {
 export interface RegionalPromptModule {
   systemPrompt: string;
   getStreamSystemPrompt(): string;
-  getStreamLanguageInstruction(): string;
+  getStreamLanguageInstruction(tonePreset?: string): string;
   getPlatformSupplementForStream(platform: StreamPlatform): string;
   buildRepurposeAppend(platforms: AppPlatform[]): string;
   qcRules: string;

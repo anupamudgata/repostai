@@ -35,6 +35,7 @@ interface StartParams {
   language?:     Language;
   brandVoiceId?: string;
   inputType?:    string;
+  tonePreset?:   string;
 }
 
 const DEFAULT_PLATFORM_STATE = (platform: Platform): PlatformState => ({ platform, status: "idle", content: "" });

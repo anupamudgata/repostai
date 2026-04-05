@@ -55,6 +55,53 @@ Respond with ONLY valid JSON:
 Be strict but fair. A single minor issue should still pass. Multiple issues or a critical failure must fail.`;
 }
 
+const LANGUAGE_AUTHENTICITY_RULES: Record<string, string> = {
+  mr: `MARATHI AUTHENTICITY RULES:
+- Script check: Marathi words MUST appear in Devanagari script. Any Romanized Marathi is a FAIL.
+- Avoid Google-Translate Marathi: overly formal constructions like "अत्यंत महत्त्वपूर्ण" when a native speaker would say "खूप important" are a red flag.
+- Code-switch check: Natural Marathi-English mix should be present. Pure textbook Marathi or pure English with Marathi flair tacked on = FAIL.
+- Register check: LinkedIn/email should use "तुम्ही" register; Instagram/casual can use "तू" where natural.`,
+
+  bn: `BENGALI AUTHENTICITY RULES:
+- Script check: Bengali words MUST appear in Bengali script. Romanized Bengali is a FAIL.
+- Tone check: Where the context is intellectual, conversational, or adda-style, the content should reflect that warmth and depth — robotic or corporate Bengali = FAIL.
+- Avoid overly formal Shuddha Bengali that no one uses online (e.g., "অত্যন্ত গুরুত্বপূর্ণ বিষয়" in a casual post).
+- Code-switch check: Natural Bengali-English mix is expected. Purely formal or purely English = FAIL.`,
+
+  te: `TELUGU AUTHENTICITY RULES:
+- Script check: Telugu words MUST appear in Telugu script. Romanized Telugu is a FAIL.
+- Regional flavor: Where the content is business/tech-oriented, Hyderabad-flavor Tenglish is appropriate and authentic.
+- Tenglish mix check: Natural Telugu-English code-switching should be present. Over-formal Telugu or all-English = FAIL.
+- Avoid stiff, textbook Telugu that no creator would use on social media.`,
+
+  kn: `KANNADA AUTHENTICITY RULES:
+- Script check: Kannada words MUST appear in Kannada script. Romanized Kannada is a FAIL.
+- Regional flavor: Bengaluru/tech references and sensibilities are relevant where the content touches startup, tech, or urban life.
+- Kanglish mix check: Natural Kannada-English code-switching should be present. Pure formal Kannada or pure English = FAIL.
+- Avoid overly literary Kannada that does not reflect how Bangaloreans speak on social.`,
+
+  or: `ODIA AUTHENTICITY RULES:
+- Script check: Odia words MUST appear in Odia script. Romanized Odia is a FAIL.
+- Cultural pride check: Where natural, content should carry a sense of Odia cultural identity (references to heritage, land, community pride).
+- Code-switch check: Natural Odia-English mix expected. Stiff formal Odia or all-English = FAIL.
+- Avoid Google-Translate Odia that reads like a direct translation of an English post.`,
+
+  pa: `PUNJABI AUTHENTICITY RULES:
+- Script check: Punjabi words MUST appear in Gurmukhi script. Romanized Punjabi is a FAIL.
+- Tone check: Punjabi content should carry energy, enthusiasm, and warmth — flat or monotone Punjabi = FAIL.
+- Punglish mix check: Natural Punjabi-English code-switching should be present. Only formal Punjabi or only English = FAIL.
+- Avoid overly literary Punjabi that no one uses on social media — it should sound like a real Punjabi creator, not a textbook.`,
+};
+
+/**
+ * Returns language-specific authenticity rules for QC.
+ * Supports: mr (Marathi), bn (Bengali), te (Telugu), kn (Kannada), or (Odia), pa (Punjabi).
+ * Returns empty string for unsupported codes.
+ */
+export function getLanguageAuthenticityRules(langCode: string): string {
+  return LANGUAGE_AUTHENTICITY_RULES[langCode] ?? "";
+}
+
 /** Batch prompt: check multiple platform outputs in one call. Returns JSON with platform keys. */
 export function buildBatchQualityCheckerPrompt(
   items: { platform: Platform; content: string }[],

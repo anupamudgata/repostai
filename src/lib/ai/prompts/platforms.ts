@@ -89,20 +89,20 @@ const HINDI_PLATFORM_OVERRIDES: Partial<Record<Platform, string>> = {
 - CTA: "Reply करो", "इस link पर जाओ" — natural Hinglish`,
 };
 
-function languageFooter(platform: Platform, language: Language): string {
+function languageFooter(platform: Platform, language: Language, tonePreset?: string): string {
   if (language === "hi") {
     const override = HINDI_PLATFORM_OVERRIDES[platform] ?? "";
-    return `${getHindiStreamLanguageInstruction()}${getHindiPlatformSupplementForStream(platform)}${override ? `\n\n${override}` : ""}`;
+    return `${getHindiStreamLanguageInstruction(tonePreset)}${getHindiPlatformSupplementForStream(platform)}${override ? `\n\n${override}` : ""}`;
   }
   const regional = getRegionalPrompts(language);
   if (regional) {
     const override = regional.platformOverrides[platform] ?? "";
-    return `${regional.getStreamLanguageInstruction()}${regional.getPlatformSupplementForStream(platform)}${override ? `\n\n${override}` : ""}`;
+    return `${regional.getStreamLanguageInstruction(tonePreset)}${regional.getPlatformSupplementForStream(platform)}${override ? `\n\n${override}` : ""}`;
   }
   return LANGUAGE_INSTRUCTION[language];
 }
 
-export function buildLinkedInPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildLinkedInPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are the world's best LinkedIn content writer. You have studied 50,000 viral LinkedIn posts and understand exactly what makes people stop scrolling, read to the end, and leave a comment.
 
 ${brandVoice ? `VOICE INSTRUCTION — this overrides everything about style:\n${brandVoice}\n` : ""}
@@ -138,12 +138,12 @@ LINKEDIN PSYCHOLOGY YOU MUST APPLY:
    - No bullet points with dashes
    - NEVER use: "In conclusion", "To summarize", "I hope this helps"
 
-${languageFooter("linkedin", language)}
+${languageFooter("linkedin", language, tonePreset)}
 
 Respond with ONLY the LinkedIn post text. No labels, no explanations, no quotes around the output.`;
 }
 
-export function buildTwitterThreadPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildTwitterThreadPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are the world's best Twitter/X thread writer. You understand the exact mechanics of what makes a thread go viral.
 
 ${brandVoice ? `VOICE INSTRUCTION — this overrides everything about style:\n${brandVoice}\n` : ""}
@@ -172,12 +172,12 @@ OUTPUT FORMAT — respond with JSON only:
   ]
 }
 
-${languageFooter("twitter_thread", language)}
+${languageFooter("twitter_thread", language, tonePreset)}
 
 Respond with ONLY the JSON. No preamble, no explanation.`;
 }
 
-export function buildTwitterSinglePrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildTwitterSinglePrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are a master of the single tweet — distil any idea into under 280 characters without losing its power.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
@@ -195,12 +195,12 @@ RULES:
 - No hashtags in a single tweet
 - No emojis unless they replace a word
 
-${languageFooter("twitter_single", language)}
+${languageFooter("twitter_single", language, tonePreset)}
 
 Respond with ONLY the tweet text. No labels, no quotes.`;
 }
 
-export function buildInstagramPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildInstagramPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are the world's best Instagram caption writer. You understand Instagram engagement psychology deeply.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
@@ -227,12 +227,12 @@ OUTPUT FORMAT — respond with JSON only:
   "hashtags": ["hashtag1", "hashtag2", "hashtag3"]
 }
 
-${languageFooter("instagram", language)}
+${languageFooter("instagram", language, tonePreset)}
 
 Respond with ONLY the JSON. No preamble.`;
 }
 
-export function buildFacebookPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildFacebookPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are an expert Facebook content writer who understands how Facebook's algorithm rewards community-building content.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
@@ -256,12 +256,12 @@ RULES:
 8. NEVER: corporate speak, excessive formatting
 9. Don't include external links (put in first comment)
 
-${languageFooter("facebook", language)}
+${languageFooter("facebook", language, tonePreset)}
 
 Respond with ONLY the Facebook post text. No labels, no explanations.`;
 }
 
-export function buildRedditPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildRedditPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are an expert Reddit content writer who deeply understands Reddit culture. You know exactly what gets upvoted vs downvoted.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
@@ -292,12 +292,12 @@ OUTPUT FORMAT — respond with JSON only:
   "body": "Full Reddit post body here"
 }
 
-${languageFooter("reddit", language)}
+${languageFooter("reddit", language, tonePreset)}
 
 Respond with ONLY the JSON. No preamble.`;
 }
 
-export function buildEmailPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildEmailPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are a world-class email newsletter writer. You understand the exact psychology that makes people open, read, and click.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
@@ -328,12 +328,12 @@ OUTPUT FORMAT — respond with JSON only:
   "body": "Full email body here — use \\n\\n for paragraph breaks"
 }
 
-${languageFooter("email", language)}
+${languageFooter("email", language, tonePreset)}
 
 Respond with ONLY the JSON. No preamble.`;
 }
 
-export function buildTikTokPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildTikTokPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are a viral TikTok script writer. You understand the hook-story-CTA format that makes people stop scrolling.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
@@ -359,12 +359,12 @@ CRITICAL RULES:
 8. Keep under 150 words total.
 9. Energy should feel like you're telling a friend something exciting, not reading a blog post.
 
-${languageFooter("tiktok" as Platform, language)}
+${languageFooter("tiktok" as Platform, language, tonePreset)}
 
 Write ONLY the script. No JSON. No title. No hashtags.`;
 }
 
-export function buildWhatsAppStatusPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildWhatsAppStatusPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are an expert at crafting punchy, shareable WhatsApp Status updates that people screenshot and forward.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
@@ -394,12 +394,12 @@ EXAMPLES OF GOOD WhatsApp Status:
 
 IMPORTANT: If outputting Hindi/Hinglish, ALL Hindi words MUST be in Devanagari script. This applies to examples too. Never use Romanized Hindi (e.g. "maine" → "मैंने").
 
-${languageFooter("whatsapp_status" as Platform, language)}
+${languageFooter("whatsapp_status" as Platform, language, tonePreset)}
 
 Write ONLY the status text. No JSON. No labels. No hashtags. Keep it SHORT.`;
 }
 
-export function buildTelegramPrompt(brief: ContentBrief, brandVoice: string | null, language: Language): string {
+export function buildTelegramPrompt(brief: ContentBrief, brandVoice: string | null, language: Language, tonePreset?: string): string {
   return `You are an expert Telegram channel post writer. You understand how to deliver value in a conversational, newsletter-style format that keeps subscribers engaged and coming back.
 
 ${brandVoice ? `VOICE INSTRUCTION:\n${brandVoice}\n` : ""}
@@ -423,7 +423,7 @@ RULES:
 8. End with an engagement hook: a question, a "forward to someone who needs this", or a "reply with your take"
 9. NEVER: "In today's post...", excessive caps, or spammy urgency language
 
-${languageFooter("telegram" as Platform, language)}
+${languageFooter("telegram" as Platform, language, tonePreset)}
 
 Respond with ONLY the Telegram post text. No labels, no explanations, no JSON.`;
 }

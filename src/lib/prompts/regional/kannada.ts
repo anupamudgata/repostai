@@ -10,13 +10,15 @@ export const KANNADA_CONFIG: RegionalLanguageConfig = {
   formalPronoun: "ನೀವು",
   casualPronoun: "ನೀನು/ಮಚ್ಚಿ/ಮಗಾ",
   englishTermsNote: "startup, content, marketing, AI, tool, app, brand, growth, ROI, sales, product, feature, launch, audience, engagement, creator, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, video, blog",
-  commonNativeWords: "ಮಾಡು, ಆಗು, ಕಲಿ, ತುಂಬಾ, ಆದರೆ, ಯಾಕೆಂದರೆ, ಸಂತೋಷ, ಸಮಯ, ಕೆಲಸ, ಜೀವನ, ನಾನು, ನೀನು, ನಾವು, ಮೊದಲು, ನಂತರ, ಈಗ, ಮಚ್ಚಿ, ಗೆಳೆಯ, ಅಣ್ಣ",
+  commonNativeWords: "ಮಾಡು, ಆಗು, ಕಲಿ, ತುಂಬಾ, ಆದರೆ, ಯಾಕೆಂದರೆ, ಸಂತೋಷ, ಸಮಯ, ಕೆಲಸ, ಜೀವನ, ನಾನು, ನೀನು, ನಾವು, ಮೊದಲು, ನಂತರ, ಈಗ, ಮಚ್ಚಿ, ಗೆಳೆಯ, ಅಣ್ಣ, ಬೇಕು, ಗೊತ್ತು, ಸಿಕ್ಕಿತು, ನೋಡು, ಹೇಳು, ಬಾ, ಹೋಗು, ಇಲ್ಲ, ಹೌದು, ಏನು, ಹೇಗೆ, ಸ್ವಲ್ಪ, ಚೆನ್ನಾಗಿ, ನಿಜ, ಅದು, ಇದು",
   scriptExamples: {
     correct: [
       "Startup life ಅಲ್ಲಿ ಇದು ತುಂಬಾ important",
       "ನಾನು ಕಲಿತೆ — customers ಗೆ features ಬೇಡ, solution ಬೇಕು",
       "Content create ಮಾಡೋದು easy, ಆದರೆ consistent ಆಗಿರೋದು — ಅದೇ real game",
       "2026 ರಲ್ಲಿ AI content flood ನಲ್ಲಿ survive ಆಗೋದು ಹೇಗೆ? Content create easy — ಆದರೆ daily consistency ಅದೇ real challenge",
+      "Koramangala ಅಲ್ಲಿ ₹5 crore raise ಮಾಡಿ, ಆದರೆ ಮನೆಯಲ್ಲಿ ಅಮ್ಮನಿಗೆ ಇನ್ನೂ explain ಮಾಡ್ತಾ ಇದ್ದೀನಿ ನಾನು ಏನ್ ಮಾಡ್ತೀನಿ ಅಂತ 😅",
+      "ಮಸಾಲೆ ದೋಸೆ ತಿಂತಾ filter coffee ಕುಡ್ಕೊಂಡು Monday morning meeting — Namma Bengaluru life ಬೇರೆ level ✨",
     ],
     wrong: [
       "Startup life alli idu tumba important (Romanized — use Kannada script!)",
@@ -27,31 +29,40 @@ export const KANNADA_CONFIG: RegionalLanguageConfig = {
 
 1) CULTURAL REFERENCES:
    - Bangalore: "Namma Bengaluru" tech culture, "traffic ಅಲ್ಲಿ life lessons", Koramangala/Indiranagar vibes, IT park humor
-   - Sandalwood: Rajkumar references, Yash/KGF energy, Kannada cinema pride
-   - Food: "filter coffee > Starbucks", ಬಿಸಿಬೇಳೆಬಾತ್, ಮಸಾಲೆ ದೋಸೆ, "Vidyarthi Bhavan ಅಲ್ಲಿ breakfast"
-   - Festivals: Dasara (Mysuru), Ugadi planning, Rajyotsava pride, ಕರಗ
-   - Heritage: Mysuru palace, Hampi, Kannada ನುಡಿ pride, "ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವ"
+   - Bengaluru Startup Ecosystem: "Silicon Valley of India" — Koramangala 4th block, VC funding culture, "ಇಲ್ಲಿ ಹಿಡಿದ idea ಮೇಲೆ funding ಸಿಕ್ಕಿತು", Flipkart/Swiggy/Zepto startup legacy
+   - Sandalwood: Rajkumar references, Yash/KGF energy, Kannada cinema pride, Yuvaratnaa-style youth rebellion energy, Puneeth Rajkumar's legacy
+   - Food: "filter coffee > Starbucks", ಬಿಸಿಬೇಳೆಬಾತ್, ಮಸಾಲೆ ದೋಸೆ, "Vidyarthi Bhavan ಅಲ್ಲಿ breakfast", "CTR ಅಲ್ಲಿ idli"
+   - Festivals: Dasara (Mysuru), Ugadi planning, Rajyotsava pride (ನವೆಂಬರ್ 1), ಕರಗ
+   - Rajyotsava spirit: "ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವ ನವೆಂಬರ್ 1 — ಕನ್ನಡಿಗ ಅಂದ್ರೆ ಇದು", pride in language and state identity
+   - Heritage: Mysuru palace, Hampi, Kannada ನುಡಿ pride, WPL/RCB Bengaluru sports culture
+   - "Kannadiga Pride": "ಕನ್ನಡ ಮಾತ್ನಾಡೋ ಜನ ಜಗತ್ತಿನ ಅತ್ಯಂತ ಒಳ್ಳೆ ಜನ" energy, ನಾಡ ಗೀತೆ pride
 
 2) KANNADA INTERNET CULTURE:
    - "ಮಚ್ಚಿ", "ಮಗಾ", "ಅಣ್ಣ" — casual address (Bangalore slang)
    - Tech-savvy: Bangalore has massive tech creator community, bring that energy
    - Startup humor: "ek cup coffee ಬರ್ತೀರಾ?" networking culture, "hustle culture vs filter coffee culture"
+   - FOMO culture: "ಮಚ್ಚಿ ನೀನು miss ಮಾಡ್ಕೊಂಡೆ", "ಇದು ಓದಿಲ್ಲ ಅಂದ್ರೆ behind ಇರ್ತೀಯ"
+   - "Namma" identity: Namma Metro, Namma Bengaluru, Namma Ooru — strong local pride in Kannada creators
 
 3) AUDIENCE REGISTERS:
    - Startup/tech: heavy English, "basically ಇದು pivot ಆಗಿದೆ"
-   - Students: trendy, casual, meme-aware
+   - Students: trendy, casual, meme-aware, Yuvaratnaa-style energy
    - Professionals: measured Kanglish, ನೀವು-based
-   - Local business: more Kannada, warm, community-driven`,
+   - Local business: more Kannada, warm, community-driven
+   - NRI/diaspora: "Bengaluru miss ಮಾಡ್ತಿರ ಏನ್ಮಚ್ಚಿ?" nostalgia hook`,
 
   slangVocabulary: `KANNADA SLANG TOOLKIT — Use naturally:
 
-ENERGY/HYPE: ಮಸ್ತ್ ("ಇದು ಮಸ್ತ್ ಇದೆ!"), ಸೂಪರ್, ಭಾರೀ, ಅದ್ಭುತ, ಕಿಲ್ಲರ್, ಫುಲ್ ಪವರ್
-SURPRISE: ತಲೆ ಕೆಟ್ಟಿತು, ಶಾಕ್ ಆಯ್ತು, ನಂಬಕ್ಕಾಗಲ್ಲ, ಹುಚ್ಚು
-CASUAL ADDRESS: ಮಚ್ಚಿ, ಮಗಾ, ಅಣ್ಣ, ಬಾಸ್, ಗೆಳೆಯ
-HUSTLE: ಜುಗಾಡ್, ಪೈಸಾ ವಸೂಲ್, ಟ್ರಿಕ್, ಹ್ಯಾಕ್
-AGREEMENT: ಖಂಡಿತ, ಕರೆಕ್ಟ್, 100%, ಪಕ್ಕಾ, ಬರೆದಿಟ್ಟುಕೊ
-DISMISSAL: ಬಿಡು, ಬೇಕಾರ್, ಟೈಮ್ ವೇಸ್ಟ್, ಫಾಲ್ತು
+ENERGY/HYPE: ಮಸ್ತ್ ("ಇದು ಮಸ್ತ್ ಇದೆ!"), ಸೂಪರ್, ಭಾರೀ, ಅದ್ಭುತ, ಕಿಲ್ಲರ್, ಫುಲ್ ಪವರ್, ಝಕ್ಕಾಸ್, ಎಕ್ಕಡ ಎಕ್ಕ
+SURPRISE: ತಲೆ ಕೆಟ್ಟಿತು, ಶಾಕ್ ಆಯ್ತು, ನಂಬಕ್ಕಾಗಲ್ಲ, ಹುಚ್ಚು, ಅರೆ ಮೆಂಟಲ್, ಗೊತ್ತೇ ಇರ್ಲಿಲ್ಲ
+CASUAL ADDRESS: ಮಚ್ಚಿ, ಮಗಾ, ಅಣ್ಣ, ಬಾಸ್, ಗೆಳೆಯ, ಲೇ, ಒಡ್ನೊಡ
+HUSTLE: ಜುಗಾಡ್, ಪೈಸಾ ವಸೂಲ್, ಟ್ರಿಕ್, ಹ್ಯಾಕ್, ಗ್ರೈಂಡ್ ಮಾಡ್ತಿದ್ದೀನಿ, ಸ್ಮಾಲ್ ವಿನ್ಸ್
+AGREEMENT: ಖಂಡಿತ, ಕರೆಕ್ಟ್, 100%, ಪಕ್ಕಾ, ಬರೆದಿಟ್ಟುಕೊ, ಅದೇ ತಾನೆ, ನಂಗೂ ಅದೇ ಅನ್ನಿಸ್ತು
+DISMISSAL: ಬಿಡು, ಬೇಕಾರ್, ಟೈಮ್ ವೇಸ್ಟ್, ಫಾಲ್ತು, ಚಿಂತೆ ಮಾಡ್ಬೇಡ, ಬೇಡ ಬಿಡು ಮಚ್ಚಿ
 DRAMA: "picture ಇನ್ನೂ ಬಾಕಿ ಇದೆ", "ಇದು trailer ಮಾತ್ರ", "climax ಬರ್ತಿದೆ"
+GEN-Z INTERNET: ಇದು fire ಇದೆ, no cap, main character energy, ಇದು differently ಆಯ್ತು, ✨vibez✨ ಬೇರೆ level, ಒಂದ್ ಸೆಕೆಂಡ್ ಸ್ಟಾಪ್ ಕೊಡು
+EMOTIONAL RELATABILITY: "ಯಾರಿಗಾದ್ರೂ relate ಆಗ್ತಿದೆ?", "ನಾನು alone ಅಲ್ಲ ಅಂತ ಗೊತ್ತಾಯ್ತು", "ಹೃದಯ ಮುಟ್ಟಿತು", "real ಆಗಿ ಹೇಳ್ತೀನಿ"
+HUSTLE CULTURE: "ₓ ಗಂಟೆ work ಮಾಡಿದ ಮೇಲೆ ಕಲಿತೆ", "failure ತಾನೇ best teacher", "grind season ಶುರು", "ಮಚ್ಚಿ ₹0 ಇಂದ ₹X ಗೆ ಹೋಗಿದ್ದೀನಿ — process ಕೇಳ್ತೀಯಾ?"
 
 USAGE RULES:
 - Instagram/TikTok/Facebook: use liberally
@@ -64,7 +75,11 @@ NEVER start two outputs the same way. Rotate:
 - Stat/number: "97% creators ಈ mistake ಮಾಡ್ತಾರೆ"
 - Story cold open: "ನಿನ್ನೆ ರಾತ್ರಿ 2 ಗಂಟೆಗೆ ಒಂದು DM ಬಂತು..."
 - Question: "ನಿನ್ನ content 100 ಜನಕ್ಕೆ reach ಆಗ್ತಿಲ್ಲ, ಹಾಗಾದರೆ ಯಾರಿಗಾಗಿ create ಮಾಡ್ತಿದ್ದೀಯ?"
-- Direct command: "ಇದನ್ನ save ಮಾಡಿಕೊ, ನಂತರ useful ಆಗುತ್ತೆ"`,
+- Direct command: "ಇದನ್ನ save ಮಾಡಿಕೊ, ನಂತರ useful ಆಗುತ್ತೆ"
+- Bengaluru tech culture: "Koramangala ಅಲ್ಲಿ 3 startups fail ಮಾಡಿ ಕಲಿತ lesson — ₹ ಅಲ್ಲ, timing ಮಾತ್ತರ"
+- Kannadiga pride: "ನವೆಂಬರ್ 1 ಬಂದ್ರೆ ನಮ್ಮ ಎದೆ ತುಂಬಿ ಬರ್ತೆ — ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವ ಸ್ಪಿರಿಟ್ ನಲ್ಲಿ ಇದು share ಮಾಡ್ತಿದ್ದೀನಿ 🟡🔴"
+- Yuvaratnaa youth energy: "ಮಚ್ಚಿ, ಒಂದ್ ಸಾರಿ ಕನ್ನಡ pride ತೋರಿಸ್ಬೇಕು ಅಂದ್ರೆ — ಇದೇ time. ಇದ್ ನೋಡು 👇"
+- Filter coffee moment: "Filter coffee ಕುಡ್ಕೊಂಡು ಕೂತಿದ್ದೆ, ಆಗ ಈ idea ಬಂತು — Namma Bengaluru ಅಲ್ಲಿ ಹೀಗೇ ಆಗ್ತೆ"`,
 
   fewShotExamples: `
 FEW-SHOT (style reference — NEVER copy verbatim):
@@ -105,6 +120,20 @@ Content create ಮಾಡೋದು ಈಗ easy. ಆದರೆ daily consistency ma
 Commentಲ್ಲಿ share ಮಾಡಿ, ಇತರ creators ಗೆ ಕೂಡ help ಆಗಲಿ! 😊
 
 #ContentCreation #AI #NammaBengaluru"
+
+✅ GOOD — Instagram (Kannadiga pride / Rajyotsava energy):
+"ನವೆಂಬರ್ 1 — ಕನ್ನಡ ರಾಜ್ಯೋತ್ಸವ 🟡🔴
+
+ಕನ್ನಡ ಮಾತ್ನಾಡೋದು ಬಿಟ್ಟು ಎಲ್ಲ ಭಾಷೆ ಕಲ್ತೆ.
+ಹೊರಗಿನೋರು ಒಳಗೆ ಬಂದ್ರು, ನಾವು ಮೂಲೆ ಸೇರಿದ್ವಿ.
+
+ಆದರೆ ಈ ದಿನ — ನಮ್ಮ ನಾಡು, ನಮ್ಮ ಭಾಷೆ, ನಮ್ಮ pride 🔥
+
+ಕನ್ನಡ ಕಲಿ, ಕನ್ನಡ ಬಳಸು, ಕನ್ನಡ ಉಳಿಸು.
+
+ನಿಮ್ಮ ಮೊದಲ Kannada post ಯಾವಾಗ? Comment ಅಲ್ಲಿ ಹೇಳಿ 👇
+
+#KannadaRajyotsava #NammaBengaluru #KannadaProud #ಕನ್ನಡ"
 
 ❌ BAD:
 - "ನಾವು ನಿಮಗೆ ತಿಳಿಸುತ್ತಿದ್ದೇವೆ..." → stiff formal

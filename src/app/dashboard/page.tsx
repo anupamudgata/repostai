@@ -96,6 +96,7 @@ export default function DashboardPage() {
   const [outputLanguage, setOutputLanguage] = useState<OutputLanguage>("en");
   const [contentAngle, setContentAngle] = useState<string>("default");
   const [hookMode, setHookMode] = useState<string>("default");
+  const [tonePreset, setTonePreset] = useState<string>("casual");
   const [userIntent, setUserIntent] = useState("");
   const [brandVoiceId, setBrandVoiceId] = useState<string>("");
   const [brandVoices, setBrandVoices] = useState<{ id: string; name: string }[]>(
@@ -415,6 +416,7 @@ export default function DashboardPage() {
           userIntent: userIntent.trim() || undefined,
           contentAngle: contentAngle !== "default" ? contentAngle : undefined,
           hookMode: hookMode !== "default" ? hookMode : undefined,
+          tonePreset: tonePreset !== "casual" ? tonePreset : undefined,
         }),
       });
       const data = await res.json();
@@ -468,6 +470,7 @@ export default function DashboardPage() {
           userIntent: userIntent.trim() || undefined,
           contentAngle: contentAngle !== "default" ? contentAngle : undefined,
           hookMode: hookMode !== "default" ? hookMode : undefined,
+          tonePreset: tonePreset !== "casual" ? tonePreset : undefined,
         }),
       });
       const data = await res.json();
@@ -989,6 +992,8 @@ export default function DashboardPage() {
             setHookMode={setHookMode}
             userIntent={userIntent}
             setUserIntent={setUserIntent}
+            tonePreset={tonePreset}
+            setTonePreset={setTonePreset}
           />
         </aside>
       </div>

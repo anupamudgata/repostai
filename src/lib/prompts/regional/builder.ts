@@ -1,6 +1,19 @@
 import type { Platform as AppPlatform } from "@/types";
 import type { Platform as StreamPlatform } from "@/lib/ai/types";
 import type { RegionalLanguageConfig, RegionalPromptModule } from "./types";
+import { getCurrentCulturalHooks } from "../cultural-hooks";
+
+export function getToneInstruction(tonePreset: string | undefined, cfg: RegionalLanguageConfig): string {
+  switch (tonePreset) {
+    case "professional":
+      return `Tone: Professional — use formal pronouns (${cfg.formalPronoun}), measured language, authority-based openers, no slang except sparingly.`;
+    case "gen_z":
+      return `Tone: Gen-Z — ultra-casual, meme-aware, irony, short punchy sentences, internet-first language, energy over formality. Use the youngest-sounding slang from the toolkit.`;
+    case "casual":
+    default:
+      return `Tone: Casual — use informal pronouns (${cfg.casualPronoun}), slang from the toolkit, lighter humor, conversational openers. Posts should feel like texting a friend.`;
+  }
+}
 
 function appPlatformToBlockKey(p: AppPlatform): string | null {
   switch (p) {
@@ -60,7 +73,8 @@ JSON keys for platforms stay ENGLISH (linkedin, instagram, …). Only the string
       return systemPrompt;
     },
 
-    getStreamLanguageInstruction() {
+    getStreamLanguageInstruction(tonePreset?: string) {
+      const toneInstruction = getToneInstruction(tonePreset, cfg);
       return `LANGUAGE — ${cfg.mixName.toUpperCase()} (Indian social):
 CRITICAL: ${cfg.name} words MUST be in ${cfg.script} script. NEVER write ${cfg.name} in Roman/Latin script. English tech/platform terms stay in Latin script (startup, content, AI, brand, growth, LinkedIn).
 Mix ${cfg.script} ${cfg.name} with English naturally (${cfg.codeSwitchRatio}). Sound like real Indian creators posting on social — NOT textbook ${cfg.name}, NOT Google Translate, NOT 100% English.
@@ -71,7 +85,9 @@ ${cfg.slangVocabulary}
 
 ${cfg.culturalContext}
 
-${cfg.openingVariety}`;
+${cfg.openingVariety}
+
+${toneInstruction}`;
     },
 
     getPlatformSupplementForStream(platform: StreamPlatform) {
@@ -101,7 +117,10 @@ ${cfg.openingVariety}
 ---
 ${cfg.mixName.toUpperCase()} RULES BY PLATFORM (apply only to relevant keys in your JSON):
 ${sections || cfg.platformBlocks.linkedin || ""}
-${cfg.fewShotExamples}`;
+${cfg.fewShotExamples}
+
+CURRENT CULTURAL CONTEXT (weave naturally if relevant):
+${getCurrentCulturalHooks()}`;
     },
 
     getPhotoCaptionSystemPrompt() {

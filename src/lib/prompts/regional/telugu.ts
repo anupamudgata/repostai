@@ -10,12 +10,14 @@ export const TELUGU_CONFIG: RegionalLanguageConfig = {
   formalPronoun: "మీరు",
   casualPronoun: "నువ్వు/రా/రోయ్",
   englishTermsNote: "startup, content, marketing, AI, tool, app, brand, growth, ROI, sales, product, feature, launch, audience, engagement, creator, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, video, blog",
-  commonNativeWords: "చేయడం, అవడం, నేర్చుకోవడం, చాలా, కానీ, ఎందుకంటే, సంతోషం, సమయం, పని, జీవితం, నేను, నువ్వు, మేము, ముందు, తర్వాత, ఇప్పుడు, బ్రో, అన్న, మిత్రమా",
+  commonNativeWords: "చేయడం, అవడం, నేర్చుకోవడం, చాలా, కానీ, ఎందుకంటే, సంతోషం, సమయం, పని, జీవితం, నేను, నువ్వు, మేము, ముందు, తర్వాత, ఇప్పుడు, బ్రో, అన్న, మిత్రమా, ఖచ్చితంగా, నిజంగా, అన్నట్టు, చూడు, చెప్తున్నా, అయిపోయింది, ఉంది, అనిపిస్తుంది, అర్థమైంది, నిర్ణయించుకున్నా, చేసేశా, సాధించా, నడుస్తుంది, ఆగింది, మిగిలింది",
   scriptExamples: {
     correct: [
       "Startup life లో ఇది చాలా important",
       "నేను నేర్చుకున్నా — customers కి features వద్దు, solution కావాలి",
       "Content create చేయడం easy, కానీ consistent గా ఉండటం — అదే real game",
+      "Bro level up అయిపోయా — 6 నెలల్లో salary double చేశా, smart work అంటే ఏంటో అర్థమైంది",
+      "LinkedIn లో daily post చేస్తా, engage చేస్తా — algorithm కి love ఇవ్వు, reach దానంతటది పెరుగుతుంది",
     ],
     wrong: [
       "Startup life lo idi chala important (Romanized — use Telugu script!)",
@@ -25,17 +27,21 @@ export const TELUGU_CONFIG: RegionalLanguageConfig = {
   culturalContext: `CULTURAL AUTHENTICITY — Think like a popular Telugu creator:
 
 1) CULTURAL REFERENCES:
-   - Hyderabad: biryani culture, "Hyderabadi dum", old city charm, HITEC City tech vibes, "traffic lo life lessons"
-   - Tollywood: RRR energy, Baahubali references, Allu Arjun swag, "Pushpa style", mass hero dialogues
-   - Food: "biryani > everything", "పెసరట్టు + upma", "gongura pachadi", Irani chai
-   - Festivals: Sankranti energy, Bathukamma, Ugadi planning, Bonalu celebrations
-   - Tech hub: Hyderabad IT corridor, "TCS/Infosys batch mates", coding culture
+   - Hyderabad: biryani culture, "Hyderabadi dum biryani > everything", old city charm, HITEC City tech vibes, "traffic lo life lessons", "Charminar shadow lo start-up started"
+   - Tollywood: RRR energy ("జై జై రఘురామ్ energy తో కదులు"), Baahubali references, Allu Arjun swag, "Pushpa style — jhukega nahi", mass hero dialogues as punchlines
+   - Food: "biryani > everything", "పెసరట్టు + upma", "gongura pachadi", Irani chai breaks
+   - Festivals: Sankranti energy ("పోంగల్ పెట్టినట్టు celebrate చేద్దాం"), Ugadi పచ్చడి wisdom ("తీపి కూడా ఉంటుంది, చేదు కూడా ఉంటుంది — అదే life"), Bathukamma, Bonalu
+   - Tech hub: Hyderabad IT corridor, "Gachibowli startup culture", HITEC City hustle, "TCS/Infosys బ్యాచ్ మేట్స్"
+   - Biryani pride: "Hyderabad biryani కోసం argue చేసే passion తో నీ brand కోసం argue చేయి" (for persuasion content)
+   - Ugadi wisdom: "ఆరు రుచులు — జీవితంలో అన్నీ ఉంటాయి, అదే balance" (for emotional/life posts)
+   - Sankranti harvest energy: "పంట పండినట్టు results వస్తాయి — effort వేస్తే" (for effort-reward content)
 
 2) TELUGU INTERNET CULTURE:
-   - "బ్రో", "అన్నా", "రోయ్" — casual address
+   - "బ్రో", "అన్నా", "రోయ్", "మాచ్" — casual address
    - Mass appeal: Telugu creators love high-energy, dramatic, entertaining content
    - YouTube dominance: Telugu has massive YouTube creator ecosystem — bring that energy
    - Tollywood dialogues as punchlines: iconic dialogue inserts for emphasis
+   - "Hyderabadi swagger": confident, slightly cheeky, very direct tone
 
 3) AUDIENCE REGISTERS:
    - Startup/tech: heavy English, "basically ఇది pivot అయిపోయింది"
@@ -47,12 +53,37 @@ export const TELUGU_CONFIG: RegionalLanguageConfig = {
 
 ENERGY/HYPE: అదిరిపోయింది ("ఇది అదిరిపోయింది!"), మస్తు, సూపర్, భలే, కేకపెట్టించేది, దిమ్మతిరిగేది
 SURPRISE: దిమ్మతిరిగింది, షాక్ అయ్యా, నమ్మలేకపోతున్నా, పిచ్చెక్కించేది
-CASUAL ADDRESS: బ్రో, అన్నా, రోయ్, మిత్రమా, బాబు
+CASUAL ADDRESS: బ్రో, అన్నా, రోయ్, మిత్రమా, బాబు, మాచ్
 HUSTLE: జుగాడ్, పైసా వసూల్, ట్రిక్, హ్యాక్, ఫార్ములా
 AGREEMENT: అవునవును, కరెక్ట్, 100%, పక్కా, రాసిపెట్టుకో
 DISMISSAL: వదిలెయ్, బేకార్, టైం వేస్ట్, ఫాలతు
 RELATABLE: relate అవుతుంది, మన అందరి story, నిజమైన మాట
 DRAMA: "picture ఇంకా బాకీ ఉంది", "ఇది trailer మాత్రమే", "climax రాబోతుంది"
+
+GEN-Z TELUGU INTERNET SLANG:
+- "ఇది అదిరిపోయింది బ్రో, slay చేశావ్" — ultimate hype
+- "main character moment అది" — iconic personal win
+- "rent free ఉంటుందిది మనసులో" — can't stop thinking about it
+- "no cap బ్రో" — "నిజంగా చెప్తున్నా, no cap"
+- "era లో ఉన్నా" — "నేను ఇప్పుడు నా grind era లో ఉన్నా"
+- "lowkey అదిరిపోయింది" — quietly impressive
+- "this hits different" → "ఇది వేరే level లో hit అవుతుంది"
+- "understood the assignment" → "assignment అర్థమైంది, deliver చేశా"
+
+HUSTLE CULTURE (Hyderabad IT/startup energy):
+- "grind mode on అయింది" — locked in
+- "output వస్తుంది" — producing results
+- "bandwidth లేదు" — too busy (HITEC City crowd vocab)
+- "scale చేయాలి ఇప్పుడు" — time to scale
+- "overthink వద్దు, ship చేయి" — bias for action (Hyderabad startup culture)
+- "Gachibowli speed లో move అవ్వు" — fast execution reference
+
+EMOTIONAL RELATABILITY:
+- "ఇది చదివి లోపల కదిలింది" — deeply moved
+- "నా మనసులో మాటే చెప్పావ్" — said exactly what I felt
+- "save చేశా కానీ చేస్తానో లేదో తెలీదు 😅" — procrastination self-humor
+- "ఒంటరిగా fight చేస్తున్నావా? నువ్వు alone కాదు" — community warmth
+- "అందరికీ అవుతుంది, tension వద్దు" — normalizing struggle
 
 USAGE RULES:
 - Instagram/TikTok/Facebook: use liberally — Telugu audience loves mass energy
@@ -67,7 +98,10 @@ NEVER start two outputs the same way. Rotate:
 - Story cold open: "నిన్న రాత్రి 2 గంటలకు ఒక DM వచ్చింది..."
 - Cultural reference: "IPL లో last over లో అంతా మారిపోతుంది, అలాగే..."
 - Question: "నీ content 100 మందికి reach అవ్వట్లేదు, అయితే ఎవరికోసం create చేస్తున్నావ్?"
-- Direct command: "ఇది save చేసుకో, తర్వాత పనికొస్తుంది"`,
+- Direct command: "ఇది save చేసుకో, తర్వాత పనికొస్తుంది"
+- Tollywood mass hook: "Baahubali లో Kattappa ఒక్కడే ఆర్మీని ఆపాడు — నువ్వు ఒక్క habit మారిస్తే life మారుతుంది"
+- Hyderabad tech startup hook: "HITEC City లో ఒక founder తో coffee తాగుతున్నా — 18 నెలల్లో 0 నుండి ₹2 Cr ARR, ఎలా? చెప్తా"
+- Ugadi wisdom hook: "ఉగాది పచ్చడిలో ఆరు రుచులు ఉంటాయి — తీపి కూడా, చేదు కూడా. Business కూడా అంతే"`,
 
   fewShotExamples: `
 FEW-SHOT (style reference — NEVER copy verbatim):
@@ -98,6 +132,21 @@ Save చేసుకో 📌
 
 ✅ GOOD — WhatsApp Status:
 "Content create చేయడం కంటే distribute చేయడం important. ఒక మంచి post 5 platforms లో పెట్టు 💡"
+
+✅ GOOD — Instagram (Gen-Z Tenglish / Hyderabad hustle emotional hook):
+"Placement season లో 11 rejections వచ్చాయి బ్రో 😶
+
+Lowkey broken feel అయింది. HITEC City లో job చేస్తున్న friends చూసి, నాకు ఎప్పుడు అవుతుందా అని అనిపించింది.
+
+అప్పుడు ఒక అన్న చెప్పాడు: 'Pushpa style — jhukega nahi. Grind చేయి.'
+
+6 నెలలు ఆ mode లో ఉన్నా.
+
+12వ company లో offer వచ్చింది. Package? 3x అయింది.
+
+ఇది save చేసుకో — నీకు తెలిసిన ఎవరికైనా పనికొస్తుంది 📌
+
+#TeluguCreator #HyderabadTech #JobSearch #Tenglish"
 
 ❌ BAD:
 - "మేము మీకు తెలియజేయుచున్నాము..." → stiff literary Telugu

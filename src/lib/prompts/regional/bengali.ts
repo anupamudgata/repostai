@@ -10,12 +10,14 @@ export const BENGALI_CONFIG: RegionalLanguageConfig = {
   formalPronoun: "আপনি",
   casualPronoun: "তুমি/তুই",
   englishTermsNote: "startup, content, marketing, AI, tool, app, brand, growth, ROI, sales, product, feature, launch, audience, engagement, creator, podcast, newsletter, website, LinkedIn, Instagram, X, WhatsApp, Facebook, post, platform, video, blog",
-  commonNativeWords: "করা, হওয়া, শেখা, অনেক, কিন্তু, কারণ, আনন্দ, সময়, কাজ, জীবন, আমি, তুমি, আমরা, সবচেয়ে, আগে, পরে, এখন, ভাই, বন্ধু",
+  commonNativeWords: "করা, হওয়া, শেখা, অনেক, কিন্তু, কারণ, আনন্দ, সময়, কাজ, জীবন, আমি, তুমি, আমরা, সবচেয়ে, আগে, পরে, এখন, ভাই, বন্ধু, নিশ্চয়ই, সত্যিই, একদম, দেখো, বলছি, হয়ে গেছে, ছিল, মনে হয়, বুঝলাম, ঠিক করলাম, করে ফেললাম, পেয়ে গেলাম, চলছে, বন্ধ, বাকি",
   scriptExamples: {
     correct: [
       "Startup life এ এটা অনেক important",
       "আমি শিখলাম — customers রা features চায় না, solution চায়",
       "Content create করা easy, কিন্তু consistent থাকা — সেটাই real game",
+      "Bro level up হয়ে গেছি — 6 মাসে salary double করলাম, smart work মানে কী সেটা বুঝলাম",
+      "LinkedIn এ daily post করি, engage করি — algorithm কে love দাও, reach এমনিই বাড়বে",
     ],
     wrong: [
       "Startup life e eta onek important (Romanized — use Bengali script!)",
@@ -26,15 +28,20 @@ export const BENGALI_CONFIG: RegionalLanguageConfig = {
 
 1) CULTURAL REFERENCES:
    - Kolkata: "আড্ডা culture", Park Street vibes, Howrah Bridge metaphors, tram nostalgia, College Street wisdom
-   - Literature: Rabindranath casual quotes, Satyajit Ray observations, বাংলা pride
+   - Literature: Rabindranath casual quotes ("আমার সোনার বাংলা" pride), Satyajit Ray observations, বাংলা pride
    - Food: "রসগোল্লা diplomacy", মিষ্টি দই, ইলিশ মাছের season, "ফুচকা vs পানিপুরি" debate
-   - Festivals: Durga Puja energy, Saraswati Puja, Poila Boishakh celebration
-   - Cricket/Football: "মোহনবাগান spirit", East Bengal rivalry, Sourav Ganguly references
+   - Festivals: Durga Puja energy ("ঠাকুর এসেছেন" — maximum excitement), Saraswati Puja, Poila Boishakh নতুন শুরু
+   - Cricket/Football: "মোহনবাগান spirit", East Bengal rivalry, Sourav Ganguly — "দাদা যেমন Lord's এ shirt তুলেছিলেন, সেভাবে celebrate করো" (for wins)
+   - Durga Puja: Kolkata-র সেরা festival — "পুজোর আগে যেমন সবাই excited থাকে, তেমনই তোমার launch কে feel করাও" (for product launches)
+   - Bong internet culture: "আমরা intellectuals, আমরা আড্ডায় বিশ্বাস করি" — analysis-heavy posts get traction
+   - Sourav Ganguly pride: "দাদার comeback-এর মতো — সবাই ভেবেছিল শেষ, কিন্তু দাদা ফিরে এলেন" (for resilience content)
 
 2) BENGALI INTERNET CULTURE:
    - "দাদা", "দিদি", "ভাই" — respectful address
    - Intellectual undertone: Bengalis love analysis, debate, nuanced takes
    - "আড্ডা" energy: conversation-driven, storytelling focus, opinion-heavy
+   - "Bong" pride: Bengalis online take immense pride in culture, language, food — lean into this
+   - #BengaliTwitter / #BongsOfInstagram community vibe — niche but fiercely loyal
 
 3) AUDIENCE REGISTERS:
    - Startup/tech: heavy English, "basically এটা pivot হয়ে গেছে"
@@ -53,6 +60,30 @@ DISMISSAL: ছোড়, বাজে কথা, সময় নষ্ট, ফ�
 RELATABLE: relate করো, আমাদের সবার story, আসল কথা
 DRAMA: "picture এখনো বাকি", "এটা তো trailer ছিল", "climax আসছে"
 
+GEN-Z BENGALI INTERNET SLANG:
+- "একদম slay হয়ে গেছে দাদা" — ultimate approval
+- "main character moment" — "এটা ছিল আমার main character moment"
+- "rent free থাকছে মাথায়" — obsessively thinking about something
+- "no cap" → "সত্যি বলছি, no cap"
+- "era তে আছি" — "আমি এখন আমার grind era তে আছি"
+- "এই post টা আমার জন্যই লেখা হয়েছে" — hyper-relatable reaction
+- "lowkey" → "lowkey এটা অনেক কাজের"
+- "unhinged" → "এই idea টা একটু unhinged কিন্তু কাজ করবে"
+
+HUSTLE CULTURE (Kolkata/Dhaka startup energy):
+- "grind set আছে" — in hustle mode
+- "output আসছে" — getting results
+- "bandwidth নেই" — too stretched
+- "ব্যাপারটা scale করতে হবে" — need to scale this
+- "শুধু overthink না করে ship করো" — bias for action (Bong creators say this a lot)
+
+EMOTIONAL RELATABILITY (আড্ডা-style warmth):
+- "এই কথাটা মনের ভেতরে লাগলো" — deeply moved
+- "আমার মনের কথা বললে" — you said exactly what I felt
+- "save করলাম, কিন্তু করবো কবে সেটা জানি না 😅" — procrastination self-humor
+- "একা লড়াই করছো মনে হচ্ছে? তুমি একা নও" — community warmth
+- "সবার হয়, ভয় নেই" — normalizing failure
+
 USAGE RULES:
 - Instagram/TikTok/Facebook: use liberally
 - LinkedIn: sparingly ("দারুণ result", "জব্বর framework")
@@ -67,7 +98,10 @@ NEVER start two outputs the same way. Rotate through DIFFERENT hook styles:
 - Cultural reference: "ঠিক যেমন IPL এর last over এ সব বদলে যায়..."
 - Question: "তোমার content 100 জন পর্যন্ত পৌঁছাচ্ছে না, তাহলে কার জন্য বানাচ্ছো?"
 - Observation: "একটা pattern দেখলাম — যারা daily post করে..."
-- Direct command: "এটা save করো, পরে কাজে লাগবে"`,
+- Direct command: "এটা save করো, পরে কাজে লাগবে"
+- আড্ডা debate hook: "College Street এর চায়ের দোকানে একটা তর্ক হচ্ছিল — এই generation কি সত্যিই কম hardwork করে?"
+- Durga Puja energy hook: "পুজোর আগে যেভাবে Kolkata জেগে ওঠে — তেমনভাবে তোমার business কে জাগাও এই 3টা step এ"
+- Sourav Ganguly comeback hook: "দাদার মতো comeback করতে চাও? তাহলে এই 3টা কথা মনে রাখো"`,
 
   fewShotExamples: `
 FEW-SHOT (style reference — NEVER copy verbatim):
@@ -98,6 +132,21 @@ Save করো আর daily নিজেকে মনে করাও 📌
 
 ✅ GOOD — WhatsApp Status:
 "Content বানানোর চেয়ে content distribute করা বেশি important। একটা ভালো post 5 platforms এ দাও 💡"
+
+✅ GOOD — Instagram (Gen-Z Benglish / আড্ডা emotional hook):
+"Placement season এ 11টা rejection পেয়েছিলাম 😶
+
+Lowkey ভেঙে পড়েছিলাম। College Street এর চায়ের দোকানে বসে মনে হচ্ছিল — হবে না আমার দিয়ে।
+
+তখন একটা দাদা বললেন: 'দাদার comeback মনে আছে? সবাই বলেছিল শেষ। দাদা prove করেছিলেন।'
+
+সেই কথাটা rent free ছিল মাথায় — 6 মাস grind করলাম।
+
+12তম company তে offer এলো। Salary? 3x।
+
+এই post টা save করো — তোমার কারো না কারো কাজে লাগবে 📌
+
+#BengaliCreator #JobSearch #Benglish #KolkataStartups"
 
 ❌ BAD:
 - "আমরা আপনাকে জানাচ্ছি যে..." → stiff formal Bengali

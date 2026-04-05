@@ -31,6 +31,8 @@ export const repurposeSchema = z.object({
   hookMode: z.enum(["default", "pattern_interrupt", "story", "statistic", "fomo", "controversy", "sneak_peek"]).optional(),
   /** When true with brandVoiceId, response includes baselineOutputs (default tone) for side-by-side compare; counts as one repurpose. */
   includeBaselineComparison: z.boolean().optional(),
+  /** Writing tone for all AI output — defaults to casual when omitted. */
+  tonePreset: z.enum(["casual", "professional", "gen_z"]).optional(),
 });
 
 export type RepurposeInput = z.infer<typeof repurposeSchema>;

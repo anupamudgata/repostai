@@ -15,6 +15,12 @@ import { CONTENT_ANGLES, HOOK_MODES, SUPPORTED_LANGUAGES } from "@/config/consta
 import type { OutputLanguage } from "@/types";
 import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
 
+const TONE_PRESETS = [
+  { id: "casual",       name: "Casual",       description: "Friendly, conversational, like texting a friend." },
+  { id: "professional", name: "Professional", description: "Formal, measured, authority-based openers." },
+  { id: "gen_z",        name: "Gen-Z",        description: "Ultra-casual, meme-aware, internet-first energy." },
+] as const;
+
 export function WorkspaceSettingsRail({
   d,
   useNativeBrandVoiceSelect,
@@ -29,6 +35,8 @@ export function WorkspaceSettingsRail({
   setHookMode,
   userIntent,
   setUserIntent,
+  tonePreset = "casual",
+  setTonePreset,
 }: {
   d: DashboardBulk;
   useNativeBrandVoiceSelect: boolean;
@@ -43,6 +51,8 @@ export function WorkspaceSettingsRail({
   setHookMode: (v: string) => void;
   userIntent: string;
   setUserIntent: (v: string) => void;
+  tonePreset?: string;
+  setTonePreset?: (v: string) => void;
 }) {
   return (
     <div className="space-y-6">
@@ -127,6 +137,31 @@ export function WorkspaceSettingsRail({
                 ]
               }
             </p>
+          </div>
+
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1">Tone</p>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">Pick the writing tone for all AI output</p>
+            <div className="grid gap-1.5">
+              {TONE_PRESETS.map((tone) => (
+                <button
+                  key={tone.id}
+                  type="button"
+                  onClick={() => setTonePreset?.(tone.id)}
+                  className={cn(
+                    "rounded-lg border px-2.5 py-2 text-left text-xs transition-colors",
+                    tonePreset === tone.id
+                      ? "border-primary/50 bg-primary/8"
+                      : "border-border/60 hover:bg-muted/50"
+                  )}
+                >
+                  <span className="font-medium block">{tone.name}</span>
+                  <span className="text-muted-foreground line-clamp-2 mt-0.5">
+                    {tone.description}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div>

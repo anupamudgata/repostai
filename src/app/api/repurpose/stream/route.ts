@@ -25,6 +25,7 @@ import { getHindiStreamSystemPrompt, getHindiPlatformSupplementForStream } from 
 import { applyOdiaSocialMediaGuards } from "@/lib/ai/odia-social-prompt";
 import { isIndianLanguage } from "@/lib/ai/types";
 import { getRegionalPrompts } from "@/lib/prompts/regional";
+import { getLanguageAuthenticityRules } from "@/lib/ai/prompts/quality-checker";
 import type { Platform, Language, ContentBrief }  from "@/lib/ai/types";
 import { scrapeUrl }             from "@/lib/scrapers/url-scraper";
 import { getYouTubeTranscript }  from "@/lib/scrapers/youtube-scraper";
@@ -65,18 +66,18 @@ function sseEvent(payload: SSEPayload): string {
   return `data: ${JSON.stringify(payload)}\n\n`;
 }
 
-function getPromptBuilders(brief: ContentBrief, voice: string | null, language: Language): Record<Platform, () => string> {
+function getPromptBuilders(brief: ContentBrief, voice: string | null, language: Language, tonePreset?: string): Record<Platform, () => string> {
   return {
-    linkedin:        () => buildLinkedInPrompt(brief, voice, language),
-    twitter_thread:  () => buildTwitterThreadPrompt(brief, voice, language),
-    twitter_single:  () => buildTwitterSinglePrompt(brief, voice, language),
-    instagram:       () => buildInstagramPrompt(brief, voice, language),
-    facebook:        () => buildFacebookPrompt(brief, voice, language),
-    reddit:          () => buildRedditPrompt(brief, voice, language),
-    email:           () => buildEmailPrompt(brief, voice, language),
-    tiktok:          () => buildTikTokPrompt(brief, voice, language),
-    whatsapp_status: () => buildWhatsAppStatusPrompt(brief, voice, language),
-    telegram:        () => buildTelegramPrompt(brief, voice, language),
+    linkedin:        () => buildLinkedInPrompt(brief, voice, language, tonePreset),
+    twitter_thread:  () => buildTwitterThreadPrompt(brief, voice, language, tonePreset),
+    twitter_single:  () => buildTwitterSinglePrompt(brief, voice, language, tonePreset),
+    instagram:       () => buildInstagramPrompt(brief, voice, language, tonePreset),
+    facebook:        () => buildFacebookPrompt(brief, voice, language, tonePreset),
+    reddit:          () => buildRedditPrompt(brief, voice, language, tonePreset),
+    email:           () => buildEmailPrompt(brief, voice, language, tonePreset),
+    tiktok:          () => buildTikTokPrompt(brief, voice, language, tonePreset),
+    whatsapp_status: () => buildWhatsAppStatusPrompt(brief, voice, language, tonePreset),
+    telegram:        () => buildTelegramPrompt(brief, voice, language, tonePreset),
   };
 }
 
@@ -125,11 +126,12 @@ async function* streamClaudeSinglePass(
   brief: ContentBrief,
   voice: string | null,
   language: Language,
-  claudeModel: string = CLAUDE_REGIONAL_MODEL
+  claudeModel: string = CLAUDE_REGIONAL_MODEL,
+  tonePreset?: string
 ): AsyncGenerator<string> {
   const anthropic = getAnthropicClient();
   if (!anthropic) throw new Error(ANTHROPIC_REQUIRED_FOR_INDIAN_LANGUAGES);
-  const promptBuilders = getPromptBuilders(brief, voice, language);
+  const promptBuilders = getPromptBuilders(brief, voice, language, tonePreset);
 
   let systemPrompt = SYSTEM_MSG;
   let userPrompt = promptBuilders[platform]();
@@ -143,6 +145,12 @@ async function* streamClaudeSinglePass(
       systemPrompt = `${SYSTEM_MSG}\n\n${regional.getStreamSystemPrompt()}`;
       userPrompt = `${promptBuilders[platform]()}${regional.getPlatformSupplementForStream(platform)}`;
     }
+  }
+
+  // Append per-language authenticity QC rules for supported regional languages
+  const authenticityRules = getLanguageAuthenticityRules(language);
+  if (authenticityRules) {
+    systemPrompt = `${systemPrompt}\n\n${authenticityRules}`;
   }
 
   const { systemPrompt: finalSystem, temperature } = applyOdiaSocialMediaGuards(
@@ -176,7 +184,8 @@ async function* streamPlatformAgent(
   brief: ContentBrief,
   voice: string | null,
   language: Language,
-  aiTier: AiTier
+  aiTier: AiTier,
+  tonePreset?: string
 ): AsyncGenerator<string> {
   const useClaudeForRegional = isIndianLanguage(language) && !!getAnthropicClient();
   const useClaude = aiTier === "premium" || aiTier === "enhanced" || useClaudeForRegional;
@@ -184,7 +193,7 @@ async function* streamPlatformAgent(
   if (useClaude) {
     const model = resolveStreamClaudeModel(aiTier, language);
     try {
-      yield* streamClaudeSinglePass(platform, brief, voice, language, model);
+      yield* streamClaudeSinglePass(platform, brief, voice, language, model, tonePreset);
       return;
     } catch (e) {
       // Fall back to GPT-4o-mini only for standard tier (regional Indian language)
@@ -196,7 +205,7 @@ async function* streamPlatformAgent(
     }
   }
 
-  const promptBuilders = getPromptBuilders(brief, voice, language);
+  const promptBuilders = getPromptBuilders(brief, voice, language, tonePreset);
   // For Indian languages falling back to GPT-4o-mini, inject the regional system prompt
   // so the model has a strong language directive even without Claude.
   const regional = getRegionalPrompts(language);
@@ -308,7 +317,7 @@ export async function POST(req: NextRequest) {
             : null;
 
         const body = await req.json();
-        const { content: bodyContent, platforms, language = "en", brandVoiceId, inputType = "text" } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string; inputType?: string };
+        const { content: bodyContent, platforms, language = "en", brandVoiceId, inputType = "text", tonePreset } = body as { content: string; platforms: Platform[]; language?: Language; brandVoiceId?: string; inputType?: string; tonePreset?: string };
 
         let content = bodyContent;
         if (inputType === "url" || inputType === "youtube") {
@@ -361,7 +370,7 @@ export async function POST(req: NextRequest) {
           send({ type: "platform_start", platform });
           try {
             let accumulated = "";
-            for await (const token of streamPlatformAgent(platform, brief, voicePersona, language, entitlements.aiTier)) {
+            for await (const token of streamPlatformAgent(platform, brief, voicePersona, language, entitlements.aiTier, tonePreset)) {
               accumulated += token;
               send({ type: "platform_chunk", platform, chunk: token });
             }
