@@ -8,15 +8,27 @@ import { Badge } from "@/components/ui/badge";
 export function PlatformsGeneratedBadge({
   count,
   label,
+  df,
+  d,
 }: {
   count: number;
   label: string;
+  df: (template: string, vars: Record<string, string | number>) => string;
+  d: DashboardBulk;
 }) {
   if (count <= 0) return null;
+  const savedMinutes = count >= 2 ? count * 8 : null;
   return (
-    <Badge variant="secondary" className="text-xs font-medium w-fit">
-      {label}
-    </Badge>
+    <div className="flex flex-wrap items-center gap-2 gap-y-1">
+      <Badge variant="secondary" className="text-xs font-medium w-fit">
+        {label}
+      </Badge>
+      {savedMinutes != null && (
+        <span className="text-xs text-muted-foreground tabular-nums">
+          {df(d.savedManualWriteTime, { minutes: savedMinutes })}
+        </span>
+      )}
+    </div>
   );
 }
 

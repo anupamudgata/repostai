@@ -74,6 +74,16 @@ export function OutputAssetCard({
   connectHref?: string;
   connectLabel?: string;
 }) {
+  const [bodyExpanded, setBodyExpanded] = useState(false);
+  useEffect(() => {
+    setBodyExpanded(false);
+  }, [output.platform, output.content]);
+  const longBody = output.content.length > 300;
+  const collapsedPreview =
+    longBody && !bodyExpanded
+      ? `${output.content.slice(0, 200)}…`
+      : output.content;
+
   const [copyShortcutLabel, setCopyShortcutLabel] = useState("Copy (Ctrl+C)");
   useEffect(() => {
     const mac =
@@ -172,7 +182,16 @@ export function OutputAssetCard({
       </div>
       <div className="px-4 py-3 space-y-3">
         <div className="rounded-lg border border-border/30 bg-muted/10 px-3 py-3 text-sm whitespace-pre-wrap max-h-72 overflow-y-auto leading-relaxed selection:bg-primary/20">
-          {output.content}
+          {collapsedPreview}
+          {longBody && (
+            <button
+              type="button"
+              onClick={() => setBodyExpanded((e) => !e)}
+              className="mt-2 block text-xs text-primary underline"
+            >
+              {bodyExpanded ? "Show less" : "Show more"}
+            </button>
+          )}
         </div>
         <CharacterCount
           content={output.content}

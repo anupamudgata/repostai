@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { History, SearchX } from "lucide-react";
+import { History, SearchX, Copy, Check } from "lucide-react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,7 +76,8 @@ export default function HistoryPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
-  const [copied,   setCopied]   = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
 
   async function loadHistory() {
     try {
@@ -187,6 +188,17 @@ export default function HistoryPage() {
     await navigator.clipboard.writeText(text);
     setCopied(id);
     setTimeout(() => setCopied(null), 2000);
+  }
+
+  async function copyAllOutputsForJob(jobId: string) {
+    const bundle = items
+      .filter((i) => i.job_id === jobId)
+      .map((i) => i.content.trim())
+      .filter(Boolean);
+    const text = bundle.join("\n\n---\n\n");
+    await navigator.clipboard.writeText(text);
+    setCopiedJobId(jobId);
+    window.setTimeout(() => setCopiedJobId(null), 1500);
   }
 
   return (
@@ -315,6 +327,22 @@ export default function HistoryPage() {
                     <span className="text-[11px] text-muted-foreground shrink-0 whitespace-nowrap">
                       {new Date(item.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void copyAllOutputsForJob(item.job_id);
+                      }}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border/60 bg-background text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      aria-label="Copy all outputs for this repurpose"
+                      title="Copy all platforms for this run"
+                    >
+                      {copiedJobId === item.job_id ? (
+                        <Check className="h-3.5 w-3.5 text-primary" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
                     <button
                       onClick={() => copyContent(item.id, item.content)}
                       className={`ro-copy-btn ${copied === item.id ? "[data-copied]" : ""}`}

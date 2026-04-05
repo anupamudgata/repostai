@@ -1065,6 +1065,8 @@ export default function DashboardPage() {
             label={df(d.platformsGeneratedBadge, {
               count: platformsGeneratedCount,
             })}
+            df={df}
+            d={d}
           />
           <p className="text-sm text-muted-foreground">
             {d.generatedIntro}

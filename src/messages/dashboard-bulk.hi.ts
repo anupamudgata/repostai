@@ -96,6 +96,7 @@ export const dashboardBulkHi: DashboardBulk = {
   previewExpectedAssetsBulk:
     "अधिकतम {outputs} असेट ({sources} URL × {platforms} प्लेटफ़ॉर्म)",
   platformsGeneratedBadge: "{count} प्लेटफ़ॉर्म जनरेट",
+  savedManualWriteTime: "~{minutes} मि. बचे",
   previewMixLabel: "चुना मिक्स",
   generateCtaHelper:
     "आपका सोर्स, ब्रांड वॉइस और एंगल — दाएँ पैनल की सेटिंग से लिया जाएगा।",

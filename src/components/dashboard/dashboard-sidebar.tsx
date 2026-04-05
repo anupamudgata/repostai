@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Zap, Settings, LogOut, Crown, Menu } from "lucide-react";
+import { Zap, Settings, LogOut, Crown, Menu, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -166,6 +167,50 @@ function NavList({
   );
 }
 
+function SidebarThemeToggle() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="w-full h-9 opacity-60"
+        disabled
+        aria-hidden
+      >
+        <Sun className="h-3.5 w-3.5 shrink-0" />
+      </Button>
+    );
+  }
+
+  const isDark = resolvedTheme === "dark";
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="w-full h-9"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      title={isDark ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {isDark ? (
+        <Moon className="h-3.5 w-3.5 shrink-0" />
+      ) : (
+        <Sun className="h-3.5 w-3.5 shrink-0" />
+      )}
+    </Button>
+  );
+}
+
 export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
   const { t } = useI18n();
   const router = useRouter();
@@ -257,6 +302,7 @@ export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
           </Link>
         )}
         <LanguageSwitcher variant="compact" />
+        <SidebarThemeToggle />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button

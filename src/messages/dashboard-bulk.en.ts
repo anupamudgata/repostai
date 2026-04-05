@@ -95,6 +95,7 @@ export const dashboardBulkEn = {
   previewExpectedAssetsBulk:
     "Up to {outputs} assets ({sources} URLs × {platforms} platforms)",
   platformsGeneratedBadge: "{count} platforms generated",
+  savedManualWriteTime: "Saved ~{minutes} min",
   previewMixLabel: "Selected mix",
   generateCtaHelper:
     "Uses your source, brand voice, and angle settings from the panel.",

@@ -5,10 +5,19 @@ import Link from "next/link";
 import { X, Check, Circle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const STORAGE_KEY = "repostai_onboarding_dismissed_v2";
+const DISMISS_KEYS = [
+  "repostai_onboarding_dismissed",
+  "repostai_onboarding_dismissed_v2",
+] as const;
+const PROGRESS_KEY = "repostai_onboarding_v1";
+
+function isDismissedInStorage(): boolean {
+  if (typeof window === "undefined") return false;
+  return DISMISS_KEYS.some((k) => localStorage.getItem(k) === "true");
+}
 
 function getSnapshot(): boolean {
-  return localStorage.getItem(STORAGE_KEY) === "true";
+  return isDismissedInStorage();
 }
 function getServerSnapshot(): boolean {
   return true;
@@ -24,18 +33,45 @@ type ChecklistState = {
   hasPosted: boolean;
 };
 
+function emptyChecklist(): ChecklistState {
+  return {
+    hasConnectedAccount: false,
+    hasRepurposed: false,
+    hasPosted: false,
+  };
+}
+
+function readProgressFromStorage(): ChecklistState {
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY);
+    if (!raw) return emptyChecklist();
+    const p = JSON.parse(raw) as Partial<ChecklistState>;
+    if (!p || typeof p !== "object") return emptyChecklist();
+    return {
+      hasConnectedAccount: !!p.hasConnectedAccount,
+      hasRepurposed: !!p.hasRepurposed,
+      hasPosted: !!p.hasPosted,
+    };
+  } catch {
+    return emptyChecklist();
+  }
+}
+
 export default function OnboardingBanner() {
   const alreadyDismissed = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [localDismissed, setLocalDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [state, setState] = useState<ChecklistState>({
-    hasConnectedAccount: false,
-    hasRepurposed: false,
-    hasPosted: false,
-  });
+  const [state, setState] = useState<ChecklistState>(emptyChecklist);
 
   useEffect(() => {
     if (alreadyDismissed || localDismissed) return;
+
+    const stored = readProgressFromStorage();
+    setState((prev) => ({
+      hasConnectedAccount: prev.hasConnectedAccount || stored.hasConnectedAccount,
+      hasRepurposed: prev.hasRepurposed || stored.hasRepurposed,
+      hasPosted: prev.hasPosted || stored.hasPosted,
+    }));
 
     async function check() {
       try {
@@ -50,18 +86,26 @@ export default function OnboardingBanner() {
           (a: { status: string }) => a.status === "connected"
         );
         const hasRepurposed = (meData.repurposeCount ?? 0) > 0;
-        const hasPosted = false; // no posted count in /api/me yet — stays unchecked until we add it
+        const hasPosted = false;
 
-        const newState = { hasConnectedAccount, hasRepurposed, hasPosted };
-        setState(newState);
+        const fromApi = { hasConnectedAccount, hasRepurposed, hasPosted };
 
-        // Auto-dismiss when all steps done
-        if (hasConnectedAccount && hasRepurposed && hasPosted) {
-          localStorage.setItem(STORAGE_KEY, "true");
-          setLocalDismissed(true);
-        }
+        setState((prev) => {
+          const merged = {
+            hasConnectedAccount:
+              fromApi.hasConnectedAccount || prev.hasConnectedAccount,
+            hasRepurposed: fromApi.hasRepurposed || prev.hasRepurposed,
+            hasPosted: fromApi.hasPosted || prev.hasPosted,
+          };
+          try {
+            localStorage.setItem(PROGRESS_KEY, JSON.stringify(merged));
+          } catch {
+            /* ignore */
+          }
+          return merged;
+        });
       } catch {
-        // silently fail — banner just shows unchecked
+        /* silently fail — banner just shows unchecked */
       } finally {
         setLoading(false);
       }
@@ -69,6 +113,29 @@ export default function OnboardingBanner() {
 
     void check();
   }, [alreadyDismissed, localDismissed]);
+
+  useEffect(() => {
+    if (loading || alreadyDismissed || localDismissed) return;
+    if (
+      state.hasConnectedAccount &&
+      state.hasRepurposed &&
+      state.hasPosted
+    ) {
+      try {
+        DISMISS_KEYS.forEach((k) => localStorage.setItem(k, "true"));
+      } catch {
+        /* ignore */
+      }
+      setLocalDismissed(true);
+    }
+  }, [
+    loading,
+    alreadyDismissed,
+    localDismissed,
+    state.hasConnectedAccount,
+    state.hasRepurposed,
+    state.hasPosted,
+  ]);
 
   const dismissed = alreadyDismissed || localDismissed;
   if (dismissed) return null;
@@ -101,7 +168,11 @@ export default function OnboardingBanner() {
   const allDone = doneCount === steps.length;
 
   function handleDismiss() {
-    localStorage.setItem(STORAGE_KEY, "true");
+    try {
+      DISMISS_KEYS.forEach((k) => localStorage.setItem(k, "true"));
+    } catch {
+      /* ignore */
+    }
     setLocalDismissed(true);
   }
 
@@ -173,6 +244,18 @@ export default function OnboardingBanner() {
           Looking good! Keep going — you&apos;re {doneCount} step{doneCount > 1 ? "s" : ""} in.
         </p>
       )}
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="text-xs"
+          onClick={handleDismiss}
+        >
+          Dismiss
+        </Button>
+      </div>
     </div>
   );
 }
