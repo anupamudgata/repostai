@@ -84,6 +84,7 @@ export function WorkspaceHeader({
   inputType,
   selectedPlatformCount,
   headerAccessory,
+  bulkProgressHint,
 }: {
   d: DashboardBulk;
   df: (template: string, vars: Record<string, string | number>) => string;
@@ -97,6 +98,8 @@ export function WorkspaceHeader({
   selectedPlatformCount: number;
   /** e.g. keyboard shortcuts popover trigger */
   headerAccessory?: ReactNode;
+  /** Shown under the generate button while bulk URL repurpose is running */
+  bulkProgressHint?: string | null;
 }) {
   const usageRatio = usage?.limit != null ? usage.count / usage.limit : 0;
   const usageBarClass =
@@ -185,6 +188,11 @@ export function WorkspaceHeader({
             {...btnProps}
             className={cn("btn-generate w-full sm:w-auto min-h-12 font-semibold border-0 px-6", "hidden md:inline-flex")}
           />
+          {bulkProgressHint ? (
+            <p className="text-xs font-medium text-primary/90 text-center sm:text-right w-full sm:max-w-xs tabular-nums">
+              {bulkProgressHint}
+            </p>
+          ) : null}
           <p className="text-xs text-muted-foreground/70 text-center sm:text-right max-w-[280px] leading-relaxed">
             {generateDisabled && !loading ? d.generateCtaHelperDisabled : d.generateCtaHelper}
           </p>
@@ -202,6 +210,11 @@ export function WorkspaceHeader({
         aria-label={d.generateCtaHelper}
       >
         <RepurposeGenerateButton {...btnProps} className="btn-generate w-full min-h-12 font-semibold border-0 px-6" />
+        {bulkProgressHint ? (
+          <p className="text-xs font-medium text-primary/90 text-center w-full tabular-nums mt-1">
+            {bulkProgressHint}
+          </p>
+        ) : null}
       </div>
     </>
   );

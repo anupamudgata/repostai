@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Link as LinkIcon,
@@ -58,6 +58,7 @@ export function SourceInputPanel({
   setPdfFileName,
   pdfExtractedText,
   setPdfExtractedText,
+  recentUrlsRevision = 0,
 }: {
   d: DashboardBulk;
   df: (template: string, vars: Record<string, string | number>) => string;
@@ -79,7 +80,30 @@ export function SourceInputPanel({
   setPdfFileName: (v: string) => void;
   pdfExtractedText: string;
   setPdfExtractedText: (v: string) => void;
+  /** Bumps when parent saves a new URL to repostai_recent_urls */
+  recentUrlsRevision?: number;
 }) {
+  const [recentUrls, setRecentUrls] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("repostai_recent_urls");
+      if (!raw) {
+        setRecentUrls([]);
+        return;
+      }
+      const parsed = JSON.parse(raw) as unknown;
+      const list = Array.isArray(parsed)
+        ? parsed
+            .filter((x): x is string => typeof x === "string")
+            .slice(0, 5)
+        : [];
+      setRecentUrls(list);
+    } catch {
+      setRecentUrls([]);
+    }
+  }, [recentUrlsRevision]);
+
   const trimmed = content.trim();
   const wordCount = trimmed
     ? trimmed.split(/\s+/).filter((w) => w.length > 0).length
@@ -325,6 +349,34 @@ export function SourceInputPanel({
                 <p className="text-xs text-muted-foreground mt-1">
                   {d.blogUrlHint}
                 </p>
+                {recentUrls.length > 0 && !url.trim() && (
+                  <div className="mt-3 space-y-1.5">
+                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                      {d.recentUrlsLabel}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {recentUrls.map((chip) => {
+                        const short = chip
+                          .replace(/^https?:\/\//i, "")
+                          .slice(0, 40);
+                        return (
+                          <button
+                            key={chip}
+                            type="button"
+                            onClick={() => setUrl(chip)}
+                            className="text-xs px-2.5 py-1 rounded-full border border-border/60 bg-muted/25 hover:bg-muted/50 transition-colors truncate max-w-full text-left"
+                            title={chip}
+                          >
+                            {short}
+                            {chip.replace(/^https?:\/\//i, "").length > 40
+                              ? "…"
+                              : ""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </TabsContent>

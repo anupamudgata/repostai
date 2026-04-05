@@ -22,6 +22,7 @@ import {
   Copy,
   Check,
   HelpCircle,
+  FileDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -161,6 +162,31 @@ function movePlatformInOrder(
   return next;
 }
 
+const RECENT_URLS_LS_KEY = "repostai_recent_urls";
+
+function pushRecentSingleUrlEntry(href: string) {
+  const u = href.trim();
+  if (!u) return;
+  try {
+    const raw = localStorage.getItem(RECENT_URLS_LS_KEY);
+    let prev: string[] = [];
+    if (raw) {
+      try {
+        const j = JSON.parse(raw) as unknown;
+        if (Array.isArray(j)) {
+          prev = j.filter((x): x is string => typeof x === "string");
+        }
+      } catch {
+        prev = [];
+      }
+    }
+    const next = [u, ...prev.filter((x) => x !== u)].slice(0, 5);
+    localStorage.setItem(RECENT_URLS_LS_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Retries for /api/me after OAuth redirect or cold start (transient PROFILE_SYNC_FAILED). */
 const ME_FETCH_ATTEMPTS = 3;
 const ME_RETRY_DELAY_MS = 500;
@@ -243,6 +269,8 @@ export default function DashboardPage() {
   const [pdfExtractedText, setPdfExtractedText] = useState<string>("");
   const [pdfExtracting, setPdfExtracting] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
+  const [recentUrlsRevision, setRecentUrlsRevision] = useState(0);
+  const [bulkProgressSourceIdx, setBulkProgressSourceIdx] = useState(1);
   const [bulkUrls, setBulkUrls] = useState("");
   const [bulkSources, setBulkSources] = useState<
     { sourceUrl: string; jobId: string; outputs: { platform: Platform; content: string }[] }[]
@@ -619,6 +647,11 @@ export default function DashboardPage() {
       return;
     }
 
+    if (inputType === "url" && !bulkMode && url.trim()) {
+      pushRecentSingleUrlEntry(url);
+      setRecentUrlsRevision((n) => n + 1);
+    }
+
     const isBulk = inputType === "url" && bulkMode;
     setLoading(true);
     setOutputs([]);
@@ -824,6 +857,47 @@ export default function DashboardPage() {
     } catch {
       /* ignore */
     }
+  }
+
+  function handleExportOutputsTxt() {
+    const sections: string[] = [];
+    const pushOutput = (o: { platform: Platform; content: string }) => {
+      const body = o.content.trim();
+      if (!body) return;
+      const name =
+        SUPPORTED_PLATFORMS.find((p) => p.id === o.platform)?.name ??
+        o.platform;
+      sections.push(`=== ${name} ===\n${body}`);
+    };
+    if (bulkSources.length > 0) {
+      for (const src of bulkSources) {
+        const ord =
+          bulkCardOrderByJob[src.jobId] ??
+          src.outputs.map((o) => o.platform);
+        for (const o of sortOutputsByOrder(src.outputs, ord)) {
+          pushOutput(o);
+        }
+      }
+    } else {
+      for (const o of sortOutputsByOrder(outputs, outputCardOrder)) {
+        pushOutput(o);
+      }
+    }
+    if (sections.length === 0) return;
+    const blob = new Blob([sections.join("\n\n")], {
+      type: "text/plain;charset=utf-8",
+    });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const now = new Date();
+    const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    a.href = href;
+    a.download = `repostai-${dateStr}.txt`;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(href);
   }
 
   async function handleRegenerate(
@@ -1138,6 +1212,41 @@ export default function DashboardPage() {
     [outputs, outputCardOrder]
   );
 
+  const bulkValidUrlCountForProgress = useMemo(() => {
+    if (inputType !== "url" || !bulkMode) return 0;
+    return parseBulkUrls(bulkUrls).filter(isValidUrl).length;
+  }, [inputType, bulkMode, bulkUrls]);
+
+  useEffect(() => {
+    if (
+      !loading ||
+      inputType !== "url" ||
+      !bulkMode ||
+      bulkValidUrlCountForProgress < 1
+    ) {
+      setBulkProgressSourceIdx(1);
+      return;
+    }
+    setBulkProgressSourceIdx(1);
+    const id = window.setInterval(() => {
+      setBulkProgressSourceIdx((i) =>
+        i >= bulkValidUrlCountForProgress ? 1 : i + 1
+      );
+    }, 4000);
+    return () => clearInterval(id);
+  }, [loading, inputType, bulkMode, bulkValidUrlCountForProgress]);
+
+  const bulkProgressHint =
+    loading &&
+    inputType === "url" &&
+    bulkMode &&
+    bulkValidUrlCountForProgress > 0
+      ? df(d.bulkProcessingSource, {
+          current: bulkProgressSourceIdx,
+          total: bulkValidUrlCountForProgress,
+        })
+      : null;
+
   const readinessItems = useMemo(
     () =>
       buildReadinessItems(d, {
@@ -1201,6 +1310,7 @@ export default function DashboardPage() {
             inputType={inputType}
             bulkUrlCount={parseBulkUrls(bulkUrls).filter(isValidUrl).length}
             selectedPlatformCount={selectedPlatforms.length}
+            bulkProgressHint={bulkProgressHint}
             headerAccessory={
               <Popover
                 open={shortcutsPopoverOpen}
@@ -1288,6 +1398,7 @@ export default function DashboardPage() {
         setPdfFileName={setPdfFileName}
         pdfExtractedText={pdfExtractedText}
         setPdfExtractedText={setPdfExtractedText}
+        recentUrlsRevision={recentUrlsRevision}
       />
 
       {/* Destinations — grouped platforms */}
@@ -1401,6 +1512,16 @@ export default function DashboardPage() {
                 <Copy className="h-3.5 w-3.5" />
               )}
               {d.copyAllOutputs}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 gap-1.5 text-xs shrink-0"
+              onClick={handleExportOutputsTxt}
+            >
+              <FileDown className="h-3.5 w-3.5" />
+              {d.exportOutputsTxt}
             </Button>
           </div>
           <p className="text-sm text-muted-foreground">

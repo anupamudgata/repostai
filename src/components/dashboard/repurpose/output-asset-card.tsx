@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   Loader2,
@@ -17,6 +17,7 @@ import {
   ChevronDown,
   ArrowUp,
   ArrowDown,
+  WrapText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,71 @@ import { CharacterCount } from "@/components/dashboard/repurpose/character-count
 import type { Platform } from "@/types";
 import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
 import { cn } from "@/lib/utils";
+
+const OUTPUT_PREFS_EVENT = "repostai-output-prefs-changed";
+const LS_OUTPUT_WRAP = "repostai_output_wrap";
+const LS_OUTPUT_FONT = "repostai_output_fontsize";
+
+function readOutputWrap(): boolean {
+  if (typeof window === "undefined") return true;
+  return localStorage.getItem(LS_OUTPUT_WRAP) !== "nowrap";
+}
+
+function writeOutputWrap(wrap: boolean) {
+  localStorage.setItem(LS_OUTPUT_WRAP, wrap ? "wrap" : "nowrap");
+  window.dispatchEvent(new Event(OUTPUT_PREFS_EVENT));
+}
+
+const FONT_KEYS = ["xs", "sm", "base"] as const;
+
+function readOutputFontIdx(): number {
+  if (typeof window === "undefined") return 1;
+  const v = localStorage.getItem(LS_OUTPUT_FONT);
+  const i = FONT_KEYS.indexOf(v as (typeof FONT_KEYS)[number]);
+  return i >= 0 ? i : 1;
+}
+
+function writeOutputFontIdx(idx: number) {
+  const k = FONT_KEYS[Math.max(0, Math.min(2, idx))];
+  localStorage.setItem(LS_OUTPUT_FONT, k);
+  window.dispatchEvent(new Event(OUTPUT_PREFS_EVENT));
+}
+
+function useOutputViewPrefs() {
+  const [wrap, setWrap] = useState(readOutputWrap);
+  const [fontIdx, setFontIdx] = useState(readOutputFontIdx);
+
+  useEffect(() => {
+    const sync = () => {
+      setWrap(readOutputWrap());
+      setFontIdx(readOutputFontIdx());
+    };
+    window.addEventListener(OUTPUT_PREFS_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(OUTPUT_PREFS_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, []);
+
+  const toggleWrap = useCallback(() => {
+    const next = !readOutputWrap();
+    writeOutputWrap(next);
+    setWrap(next);
+  }, []);
+
+  const bumpFont = useCallback((delta: number) => {
+    const cur = readOutputFontIdx();
+    const next = Math.max(0, Math.min(2, cur + delta));
+    writeOutputFontIdx(next);
+    setFontIdx(next);
+  }, []);
+
+  const fontClass =
+    fontIdx === 0 ? "text-xs" : fontIdx === 2 ? "text-base" : "text-sm";
+
+  return { wrap, toggleWrap, fontClass, fontIdx, bumpFont };
+}
 
 export type RefineIntent = "shorten" | "expand" | "punchy" | "professional" | "rewrite";
 
@@ -134,6 +200,14 @@ export function OutputAssetCard({
     onMoveDown: () => void;
   };
 }) {
+  const {
+    wrap: outputWrap,
+    toggleWrap: toggleOutputWrap,
+    fontClass,
+    fontIdx,
+    bumpFont,
+  } = useOutputViewPrefs();
+
   // Derive expanded state from content key — auto-collapses when content changes
   const contentKey = `${output.platform}::${output.content}`;
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
@@ -295,6 +369,44 @@ export function OutputAssetCard({
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+          <div className="flex items-center gap-0 border border-transparent rounded-md hover:border-border/60">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-xs rounded-r-none border-r border-border/40"
+              onClick={() => bumpFont(-1)}
+              disabled={fontIdx <= 0}
+              aria-label="Smaller text"
+            >
+              A−
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-xs rounded-none border-r border-border/40"
+              onClick={() => bumpFont(1)}
+              disabled={fontIdx >= 2}
+              aria-label="Larger text"
+            >
+              A+
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className={cn(
+                "h-8 w-8 p-0 text-xs rounded-l-none",
+                !outputWrap && "text-primary"
+              )}
+              onClick={toggleOutputWrap}
+              aria-label={outputWrap ? "No wrap" : "Wrap text"}
+              title={outputWrap ? "No wrap" : "Wrap text"}
+            >
+              <WrapText className="h-3.5 w-3.5" />
+            </Button>
+          </div>
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -314,7 +426,15 @@ export function OutputAssetCard({
         </div>
       </div>
       <div className="px-4 py-3 space-y-3">
-        <div className="rounded-lg border border-border/30 bg-muted/10 px-3 py-3 text-sm whitespace-pre-wrap max-h-72 overflow-y-auto leading-relaxed selection:bg-primary/20">
+        <div
+          className={cn(
+            "rounded-lg border border-border/30 bg-muted/10 px-3 py-3 max-h-72 leading-relaxed selection:bg-primary/20",
+            fontClass,
+            outputWrap
+              ? "whitespace-pre-wrap break-words overflow-y-auto"
+              : "whitespace-pre overflow-x-auto overflow-y-auto"
+          )}
+        >
           {collapsedPreview}
           {longBody && (
             <button
