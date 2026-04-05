@@ -8,6 +8,7 @@ import {
   getEffectivePlan,
   getBrandVoiceLimit,
 } from "@/lib/billing/plan-entitlements";
+import { validateBrandVoiceSampleWords } from "@/lib/brand-voice-validation";
 
 export async function GET() {
   try {
@@ -78,13 +79,29 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, samples, humanization_level, imperfection_mode, personal_story_injection } = body;
     if (!name?.trim()) return NextResponse.json({ error: "Name is required" }, { status: 400 });
-    if (!samples?.trim() || samples.trim().length < 100) return NextResponse.json({ error: "Please provide at least 100 characters of writing samples" }, { status: 400 });
+    const trimmedSamples = typeof samples === "string" ? samples.trim() : "";
+    const wordCheck = validateBrandVoiceSampleWords(trimmedSamples);
+    if (!trimmedSamples) {
+      return NextResponse.json(
+        { error: "Writing samples are required.", code: "BRAND_VOICE_SAMPLES_TOO_SHORT" },
+        { status: 400 }
+      );
+    }
+    if (!wordCheck.ok) {
+      return NextResponse.json(
+        {
+          error: `Please provide at least ${wordCheck.min} words of writing samples (you have ${wordCheck.wordCount}).`,
+          code: "BRAND_VOICE_SAMPLES_TOO_SHORT",
+        },
+        { status: 400 }
+      );
+    }
     const levelRaw = typeof humanization_level === "string" ? humanization_level : "professional";
     const humanizationOk = levelRaw === "casual" || levelRaw === "professional" || levelRaw === "raw" ? levelRaw : "professional";
     const insertRow = {
       user_id: user.id,
       name: name.trim(),
-      ...brandVoiceWritingFields(samples.trim()),
+      ...brandVoiceWritingFields(trimmedSamples),
       humanization_level: humanizationOk,
       imperfection_mode: Boolean(imperfection_mode),
       personal_story_injection: Boolean(personal_story_injection),
@@ -138,8 +155,17 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { id, name, samples } = body;
     if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
-    if (samples?.trim() && samples.trim().length < 100) {
-      return NextResponse.json({ error: "Please provide at least 100 characters of writing samples" }, { status: 400 });
+    if (samples?.trim()) {
+      const w = validateBrandVoiceSampleWords(samples.trim());
+      if (!w.ok) {
+        return NextResponse.json(
+          {
+            error: `Please provide at least ${w.min} words of writing samples (you have ${w.wordCount}).`,
+            code: "BRAND_VOICE_SAMPLES_TOO_SHORT",
+          },
+          { status: 400 }
+        );
+      }
     }
     const { data: existing } = await supabase
       .from("brand_voices")

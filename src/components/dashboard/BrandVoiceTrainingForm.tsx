@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Plus, Trash2, ChevronDown, ChevronUp, Lightbulb, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,10 @@ import { useAppToast } from "@/hooks/use-app-toast";
 import { HUMANIZATION_LEVELS } from "@/config/constants";
 import type { HumanizationLevel } from "@/types";
 import { cn } from "@/lib/utils";
+import {
+  countBrandVoiceWords,
+  MIN_BRAND_VOICE_WORDS,
+} from "@/lib/brand-voice-validation";
 
 const CONTENT_TYPES = [
   { id: "linkedin", label: "LinkedIn Post" },
@@ -37,20 +41,26 @@ interface SampleSlot {
   text: string;
 }
 
-function countWords(text: string): number {
-  return text.trim() ? text.trim().split(/\s+/).length : 0;
+function buildSamplesStringFromSlots(slots: SampleSlot[]): string {
+  return slots
+    .filter((s) => s.text.trim())
+    .map((s) => {
+      const label = CONTENT_TYPES.find((t) => t.id === s.type)?.label ?? "Sample";
+      return `--- ${label} ---\n${s.text.trim()}`;
+    })
+    .join("\n\n");
 }
 
 function SlotQuality({ words }: { words: number }) {
   if (words === 0) return null;
-  if (words >= 80)
+  if (words >= 100)
     return (
       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600">
         <CheckCircle2 className="h-3 w-3" />
         {words}w · Great
       </span>
     );
-  if (words >= 40)
+  if (words >= 50)
     return (
       <span className="text-[11px] font-medium text-amber-500">
         {words}w · Add more
@@ -99,9 +109,12 @@ export function BrandVoiceTrainingForm({
   const count = existingVoices.length;
   const canCreate = limit > 0 && count < limit;
 
-  const filledSlots = slots.filter((s) => countWords(s.text) >= 40);
-  const totalWords = slots.reduce((acc, s) => acc + countWords(s.text), 0);
-  const qualityPct = Math.min(100, Math.round((filledSlots.length / 3) * 100));
+  const combinedMeter = useMemo(() => buildSamplesStringFromSlots(slots), [slots]);
+  const meterWords = countBrandVoiceWords(combinedMeter);
+  const qualityPct = Math.min(
+    100,
+    Math.round((meterWords / MIN_BRAND_VOICE_WORDS) * 100)
+  );
 
   function updateSlot(id: number, key: keyof SampleSlot, value: string) {
     setSlots((prev) =>
@@ -127,13 +140,7 @@ export function BrandVoiceTrainingForm({
   }
 
   function buildSamplesString(): string {
-    return slots
-      .filter((s) => s.text.trim())
-      .map((s) => {
-        const label = CONTENT_TYPES.find((t) => t.id === s.type)?.label ?? "Sample";
-        return `--- ${label} ---\n${s.text.trim()}`;
-      })
-      .join("\n\n");
+    return buildSamplesStringFromSlots(slots);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -141,8 +148,11 @@ export function BrandVoiceTrainingForm({
     if (!canCreate) return;
 
     const combinedSamples = buildSamplesString();
-    if (!combinedSamples || totalWords < 80) {
-      toastT.error("toast.paste100Voice");
+    const submittedWords = countBrandVoiceWords(combinedSamples);
+    if (!combinedSamples || submittedWords < MIN_BRAND_VOICE_WORDS) {
+      toastT.error("toast.pasteMinBrandVoiceWords", {
+        min: MIN_BRAND_VOICE_WORDS,
+      });
       return;
     }
 
@@ -226,7 +236,7 @@ export function BrandVoiceTrainingForm({
                     : "text-muted-foreground"
               )}
             >
-              {totalWords} words total
+              {meterWords} / {MIN_BRAND_VOICE_WORDS} words
             </span>
           </div>
           <div className="h-1.5 bg-muted rounded-full overflow-hidden">
@@ -264,7 +274,7 @@ export function BrandVoiceTrainingForm({
           <ul className="space-y-1 list-disc list-inside">
             <li>Use real posts you&apos;ve published — not drafts</li>
             <li>Mix short-form (Twitter) with long-form (LinkedIn/blog)</li>
-            <li>Aim for 80+ words per sample for best results</li>
+            <li>Aim for {MIN_BRAND_VOICE_WORDS}+ words total, with 100+ words per sample when you can</li>
             <li>The more specific to your voice, the better the output</li>
             <li>Avoid generic samples — they produce generic AI output</li>
           </ul>
@@ -281,7 +291,7 @@ export function BrandVoiceTrainingForm({
         </Label>
 
         {slots.map((slot, idx) => {
-          const words = countWords(slot.text);
+          const words = countBrandVoiceWords(slot.text);
           return (
             <div
               key={slot.id}

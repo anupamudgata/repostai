@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Mic, Settings2, Sparkles, RefreshCw, Brain } from "lucide-react";
+import { Plus, Trash2, Mic, Settings2, Sparkles, RefreshCw, Brain, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -29,12 +29,16 @@ import { useAppToast } from "@/hooks/use-app-toast";
 import { PLANS, HUMANIZATION_LEVELS } from "@/config/constants";
 import type { BrandVoice, HumanizationLevel } from "@/types";
 import { cn } from "@/lib/utils";
+import { BrandVoicePreviewPanel } from "@/components/dashboard/BrandVoicePreviewPanel";
 
 interface VoiceWithPersona extends BrandVoice {
   persona?: string | null;
   persona_generated_at?: string | null;
   samples_hash?: string | null;
 }
+
+/** After this, if persona is still missing, show retry (warm may have failed). */
+const TRAIN_GRACE_MS = 3 * 60 * 1000;
 
 export default function BrandVoicePage() {
   const toastT = useAppToast();
@@ -46,6 +50,8 @@ export default function BrandVoicePage() {
   const [editImperfection, setEditImperfection] = useState(false);
   const [editPersonalStory, setEditPersonalStory] = useState(false);
   const [userPlan, setUserPlan] = useState("free");
+  const [fingerprintDialogVoice, setFingerprintDialogVoice] = useState<VoiceWithPersona | null>(null);
+  const [trainingVoiceId, setTrainingVoiceId] = useState<string | null>(null);
   const supabase = createClient();
 
   const planConfig =
@@ -131,6 +137,24 @@ export default function BrandVoicePage() {
     setEditHumanization((voice.humanization_level as HumanizationLevel) || "professional");
     setEditImperfection(voice.imperfection_mode ?? false);
     setEditPersonalStory(voice.personal_story_injection ?? false);
+  }
+
+  async function handleTrainRetry(voiceId: string) {
+    setTrainingVoiceId(voiceId);
+    try {
+      const res = await fetch(`/api/brand-voice/${voiceId}/train`, { method: "POST" });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) {
+        toastT.errorFromApi({ error: data.error }, "toast.brandVoiceTrainFailed");
+        return;
+      }
+      toastT.success("toast.brandVoiceTrained");
+      await loadVoices();
+    } catch {
+      toastT.error("toast.networkErrorShort");
+    } finally {
+      setTrainingVoiceId(null);
+    }
   }
 
   async function handleDelete(id: string) {
@@ -223,6 +247,10 @@ export default function BrandVoicePage() {
             const trainedAgo = voice.persona_generated_at
               ? new Date(voice.persona_generated_at).toLocaleDateString()
               : null;
+            const createdMs = new Date(voice.created_at).getTime();
+            const pastGrace = Number.isFinite(createdMs) && Date.now() - createdMs > TRAIN_GRACE_MS;
+            const trainStuck = !hasPersona && pastGrace;
+            const isTrainingThis = trainingVoiceId === voice.id;
 
             return (
               <div
@@ -251,6 +279,14 @@ export default function BrandVoicePage() {
                         <Sparkles className="h-2.5 w-2.5" />
                         AI Trained
                       </Badge>
+                    ) : trainStuck ? (
+                      <Badge
+                        variant="secondary"
+                        className="text-[10px] px-2 py-0.5 bg-destructive/10 text-destructive border-destructive/20 gap-1"
+                      >
+                        <AlertCircle className="h-2.5 w-2.5" />
+                        Couldn&apos;t train
+                      </Badge>
                     ) : (
                       <Badge
                         variant="secondary"
@@ -259,6 +295,21 @@ export default function BrandVoicePage() {
                         <RefreshCw className="h-2.5 w-2.5" />
                         Training…
                       </Badge>
+                    )}
+                    {trainStuck && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[10px] px-2 shrink-0"
+                        disabled={isTrainingThis}
+                        onClick={() => handleTrainRetry(voice.id)}
+                      >
+                        {isTrainingThis ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          "Retry"
+                        )}
+                      </Button>
                     )}
                     <Button
                       size="icon"
@@ -295,6 +346,15 @@ export default function BrandVoicePage() {
                           Trained {trainedAgo}
                         </p>
                       )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 h-8 text-xs"
+                        onClick={() => setFingerprintDialogVoice(voice)}
+                      >
+                        Read full fingerprint
+                      </Button>
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground line-clamp-4 italic">
@@ -330,12 +390,32 @@ export default function BrandVoicePage() {
                       </span>
                     )}
                   </div>
+
+                  <BrandVoicePreviewPanel voiceId={voice.id} />
                 </div>
               </div>
             );
           })}
         </div>
       )}
+
+      <Dialog open={!!fingerprintDialogVoice} onOpenChange={(open) => !open && setFingerprintDialogVoice(null)}>
+        <DialogContent className="rounded-2xl max-h-[85vh] flex flex-col sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Voice fingerprint — {fingerprintDialogVoice?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto pr-1 -mr-1 min-h-0 flex-1">
+            <pre className="text-sm text-muted-foreground whitespace-pre-wrap font-sans leading-relaxed">
+              {fingerprintDialogVoice?.persona ?? ""}
+            </pre>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setFingerprintDialogVoice(null)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Authenticity edit dialog */}
       <Dialog

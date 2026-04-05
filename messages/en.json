@@ -122,7 +122,8 @@
       "VALIDATION_ERROR": "Please check your input and try again.",
       "RATE_LIMITED": "Too many requests. Please wait a moment.",
       "INTERNAL": "Something went wrong on our end. Please try again.",
-      "BRAND_VOICE_NOT_FOUND": "That brand voice isn’t available anymore. Clear it or pick another from Brand voice."
+      "BRAND_VOICE_NOT_FOUND": "That brand voice isn’t available anymore. Clear it or pick another from Brand voice.",
+      "BRAND_VOICE_SAMPLES_TOO_SHORT": "Add more writing samples — we need enough text to learn your voice."
     }
   },
   "toast": {
@@ -139,6 +140,9 @@
     "brandVoiceCreatedExclaim": "Brand voice created!",
     "authenticityUpdated": "Authenticity settings updated",
     "brandVoiceDeleted": "Brand voice deleted",
+    "brandVoiceTrained": "Voice fingerprint ready",
+    "brandVoiceTrainFailed": "Could not train brand voice",
+    "brandVoicePreviewTopicShort": "Enter at least 10 characters describing your topic.",
     "limitVoicesReached": "Limit reached ({max} voices for your plan).",
     "invalidWebhookUrl": "Please enter a valid HTTPS URL (max 500 characters).",
     "couldNotSave": "Could not save",
@@ -177,7 +181,7 @@
     "failedReschedule": "Failed to reschedule",
     "postRescheduled": "Post rescheduled",
     "postRemoved": "Post removed",
-    "paste100Voice": "Paste at least 100 characters of your writing so we can learn your voice.",
+    "pasteMinBrandVoiceWords": "Add at least {min} words total across your samples so we can learn your voice.",
     "uploadPdfFirst": "Please upload a PDF first",
     "pasteContentFirst": "Please paste some content first",
     "enterUrl": "Please enter a URL",
