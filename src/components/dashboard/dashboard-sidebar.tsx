@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { Zap, Settings, LogOut, Crown, Menu } from "lucide-react";
@@ -171,6 +171,31 @@ export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
   const router = useRouter();
   const supabase = createClient();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [pulseUpgrade, setPulseUpgrade] = useState(false);
+
+  useEffect(() => {
+    if (user.plan !== "free") return;
+    let cancelled = false;
+    let pulseOffId: number | undefined;
+    let restId: number | undefined;
+    const cycle = () => {
+      setPulseUpgrade(true);
+      pulseOffId = window.setTimeout(() => {
+        if (cancelled) return;
+        setPulseUpgrade(false);
+        restId = window.setTimeout(() => {
+          if (cancelled) return;
+          cycle();
+        }, 10000);
+      }, 3000);
+    };
+    cycle();
+    return () => {
+      cancelled = true;
+      if (pulseOffId != null) window.clearTimeout(pulseOffId);
+      if (restId != null) window.clearTimeout(restId);
+    };
+  }, [user.plan]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -219,7 +244,13 @@ export function DashboardSidebar({ user }: { user: DashboardSidebarUser }) {
         </div>
         {user.plan === "free" && (
           <Link href="/#pricing" onClick={() => track(AnalyticsEvent.UPGRADE_CLICKED, { source: "sidebar" })}>
-            <Button size="sm" className="btn-generate w-full h-9 text-xs font-semibold border-0">
+            <Button
+              size="sm"
+              className={cn(
+                "btn-generate w-full h-9 text-xs font-semibold border-0",
+                pulseUpgrade && "animate-pulse"
+              )}
+            >
               <Crown className="h-3.5 w-3.5 mr-1.5" />
               {t("nav.upgrade")}
             </Button>

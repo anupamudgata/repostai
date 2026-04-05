@@ -51,7 +51,10 @@ import {
 } from "@/config/constants";
 import { charDf as dfChar } from "@/components/dashboard/repurpose/character-count";
 import { PlatformPicker } from "@/components/dashboard/repurpose/platform-picker";
-import { GenerationPreviewStrip } from "@/components/dashboard/repurpose/generation-preview-strip";
+import {
+  GenerationPreviewStrip,
+  PlatformsGeneratedBadge,
+} from "@/components/dashboard/repurpose/generation-preview-strip";
 import { SourceInputPanel } from "@/components/dashboard/repurpose/source-input-panel";
 import {
   QualityReadinessPanel,
@@ -65,6 +68,13 @@ import {
 } from "@/components/dashboard/repurpose/output-asset-card";
 
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
+
+function countNonEmptyPlatformOutputs(
+  outputs: { content: string }[]
+): number {
+  return outputs.filter((o) => String(o.content ?? "").trim().length > 0)
+    .length;
+}
 
 /** Retries for /api/me after OAuth redirect or cold start (transient PROFILE_SYNC_FAILED). */
 const ME_FETCH_ATTEMPTS = 3;
@@ -436,20 +446,31 @@ export default function DashboardPage() {
         return;
       }
         await refreshMe();
-        setBulkSources(
-          data.sources.map((s: { sourceUrl: string; jobId: string; outputs: { platform: string; content: string }[] }) => ({
+        const mappedSources = data.sources.map(
+          (s: {
+            sourceUrl: string;
+            jobId: string;
+            outputs: { platform: string; content: string }[];
+          }) => ({
             sourceUrl: s.sourceUrl,
             jobId: s.jobId,
             outputs: s.outputs.map((o: { platform: string; content: string }) => ({
               platform: o.platform as Platform,
               content: o.content,
             })),
-          }))
+          })
         );
+        setBulkSources(mappedSources);
         setLastJobId(data.sources?.[data.sources.length - 1]?.jobId ?? null);
-        toastT.success("toast.generatedFromSources", {
-          total: data.totalOutputs,
-          sources: data.sources.length,
+        const nonEmptyTotal = mappedSources.reduce(
+          (
+            acc: number,
+            s: { outputs: { platform: Platform; content: string }[] }
+          ) => acc + countNonEmptyPlatformOutputs(s.outputs),
+          0
+        );
+        toastT.success("toast.repurposedToPlatforms", {
+          count: nonEmptyTotal,
         });
       } else {
         const res = await fetch("/api/repurpose", {
@@ -490,13 +511,19 @@ export default function DashboardPage() {
         return;
       }
         await refreshMe();
-        setOutputs(data.outputs);
+        const mappedOutputs = (
+          data.outputs as { platform: string; content: string }[]
+        ).map((o) => ({
+          platform: o.platform as Platform,
+          content: o.content,
+        }));
+        setOutputs(mappedOutputs);
         setLastJobId(data.jobId ?? null);
-        toastT.success("toast.generatedForPlatforms", {
-          count: data.outputs.length,
+        toastT.success("toast.repurposedToPlatforms", {
+          count: countNonEmptyPlatformOutputs(mappedOutputs),
         });
         // Fetch platform fit analysis for single repurpose
-        const outputsMap = (data.outputs as { platform: string; content: string }[]).reduce(
+        const outputsMap = mappedOutputs.reduce(
           (acc: Record<string, string>, o: { platform: string; content: string }) => {
             acc[o.platform] = o.content;
             return acc;
@@ -813,6 +840,16 @@ export default function DashboardPage() {
   const limitReached =
     !!usage && usage.limit != null && usage.count >= usage.limit;
 
+  const platformsGeneratedCount = useMemo(() => {
+    if (bulkSources.length > 0) {
+      return bulkSources.reduce(
+        (acc, s) => acc + countNonEmptyPlatformOutputs(s.outputs),
+        0
+      );
+    }
+    return countNonEmptyPlatformOutputs(outputs);
+  }, [bulkSources, outputs]);
+
   const readinessItems = useMemo(
     () =>
       buildReadinessItems(d, {
@@ -1001,6 +1038,12 @@ export default function DashboardPage() {
       {/* Output Section — full width below workspace + rail */}
       {(outputs.length > 0 || bulkSources.length > 0) && (
         <div className="mt-10 space-y-4 animate-page-in">
+          <PlatformsGeneratedBadge
+            count={platformsGeneratedCount}
+            label={df(d.platformsGeneratedBadge, {
+              count: platformsGeneratedCount,
+            })}
+          />
           <p className="text-sm text-muted-foreground">
             {d.generatedIntro}
             {isFreePlan && (

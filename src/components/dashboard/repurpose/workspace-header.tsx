@@ -40,6 +40,17 @@ export function WorkspaceHeader({
     usageRatio >= 0.9 ? "usage-bar-fill danger" : usageRatio >= 0.7 ? "usage-bar-fill warn" : "usage-bar-fill";
 
   const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  const [shortcutHint, setShortcutHint] = useState("Ctrl+↵");
+
+  useEffect(() => {
+    const isMac =
+      typeof navigator !== "undefined" &&
+      /Mac|iPhone|iPod|iPad/i.test(
+        navigator.platform || navigator.userAgent || ""
+      );
+    setShortcutHint(isMac ? "⌘↵" : "Ctrl+↵");
+  }, []);
+
   useEffect(() => {
     if (!loading) {
       setLoadingMessageIndex(0);
@@ -50,6 +61,20 @@ export function WorkspaceHeader({
     }, 3000);
     return () => window.clearInterval(id);
   }, [loading]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || (!e.metaKey && !e.ctrlKey)) return;
+      if (loading || generateDisabled) return;
+      const el = e.target as HTMLElement | null;
+      if (el?.closest?.("[data-slot='dialog-content']") || el?.closest?.('[role="dialog"]'))
+        return;
+      e.preventDefault();
+      onGenerate();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [loading, generateDisabled, onGenerate]);
 
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border/50 pb-6">
@@ -105,9 +130,19 @@ export function WorkspaceHeader({
           ) : (
             <>
               <RefreshCw className="h-4 w-4 mr-2 shrink-0" />
-              {inputType === "url" && bulkMode
-                ? df(d.repurposeBulk, { platforms: selectedPlatformCount })
-                : df(d.repurposeSingle, { platforms: selectedPlatformCount })}
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate">
+                  {inputType === "url" && bulkMode
+                    ? df(d.repurposeBulk, { platforms: selectedPlatformCount })
+                    : df(d.repurposeSingle, { platforms: selectedPlatformCount })}
+                </span>
+                <span
+                  className="hidden md:inline shrink-0 text-[11px] font-normal opacity-80 tabular-nums"
+                  aria-hidden
+                >
+                  {shortcutHint}
+                </span>
+              </span>
             </>
           )}
         </Button>

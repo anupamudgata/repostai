@@ -3,6 +3,22 @@
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
 import type { Platform } from "@/types";
 import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
+import { Badge } from "@/components/ui/badge";
+
+export function PlatformsGeneratedBadge({
+  count,
+  label,
+}: {
+  count: number;
+  label: string;
+}) {
+  if (count <= 0) return null;
+  return (
+    <Badge variant="secondary" className="text-xs font-medium w-fit">
+      {label}
+    </Badge>
+  );
+}
 
 export function GenerationPreviewStrip({
   d,

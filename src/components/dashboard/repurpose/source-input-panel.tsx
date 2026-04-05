@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import {
   Link as LinkIcon,
@@ -84,6 +85,20 @@ export function SourceInputPanel({
   const charCount = content.length;
   const readMinutes = wordCount > 0 ? Math.max(1, Math.ceil(wordCount / 200)) : 0;
 
+  const mainTextRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (inputType !== "text") return;
+    const el = mainTextRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const maxPx = 400;
+    const minPx = 120;
+    const target = Math.min(maxPx, Math.max(minPx, el.scrollHeight));
+    el.style.height = `${target}px`;
+    el.style.overflowY = el.scrollHeight > maxPx ? "auto" : "hidden";
+  }, [content, inputType]);
+
   return (
     <Card className="dash-card border-border/60 shadow-sm">
       <CardHeader className="pb-3">
@@ -111,8 +126,9 @@ export function SourceInputPanel({
 
           <TabsContent value="text" className="mt-4 space-y-3">
             <Textarea
+              ref={mainTextRef}
               placeholder={d.placeholderText}
-              className="min-h-[200px] resize-y"
+              className="min-h-[120px] max-h-[400px] resize-none overflow-hidden"
               value={content}
               onChange={(e) => setContent(e.target.value)}
             />
