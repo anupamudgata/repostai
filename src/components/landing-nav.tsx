@@ -18,6 +18,7 @@ const NAV_HREFS = [
   { href: "#how-it-works", labelKey: "landingNav.howItWorks" },
   { href: "#features", labelKey: "landingNav.features" },
   { href: "/demo", labelKey: "landingNav.demo" },
+  { href: "/compare", labelKey: "landingNav.compare" },
   { href: "/integrations", labelKey: "landingNav.integrations" },
   { href: "#pricing", labelKey: "landingNav.pricing" },
   { href: "#faq", labelKey: "landingNav.faq" },
