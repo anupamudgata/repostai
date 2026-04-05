@@ -127,6 +127,7 @@ export const dashboardBulkHi: DashboardBulk = {
   refineProfessional: "ज़्यादा प्रोफ़ेशनल",
   refineRewrite: "रीराइट",
   outputPlatformsTitle: "आउटपुट प्लेटफ़ॉर्म",
+  recentPlatformsTitle: "हाल ही में",
   freePlanPlatformsBefore: "फ्री प्लान: LinkedIn, Twitter/X, Instagram।",
   freePlanPlatformsLink: "अपग्रेड",
   freePlanPlatformsAfter: "सभी 9 प्लेटफ़ॉर्म के लिए।",

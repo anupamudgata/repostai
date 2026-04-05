@@ -66,8 +66,22 @@ import {
   OutputAssetCard,
   type RefineIntent,
 } from "@/components/dashboard/repurpose/output-asset-card";
+import { FirstRepurposeConfetti } from "@/components/dashboard/first-repurpose-confetti";
 
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
+
+const FIRST_REPURPOSE_LS_KEY = "repostai_first_repurpose_done";
+
+function tryTriggerFirstRepurposeConfetti(setVisible: (v: boolean) => void) {
+  if (typeof window === "undefined") return;
+  try {
+    if (localStorage.getItem(FIRST_REPURPOSE_LS_KEY)) return;
+    localStorage.setItem(FIRST_REPURPOSE_LS_KEY, "1");
+    setVisible(true);
+  } catch {
+    /* quota / private mode */
+  }
+}
 
 function countNonEmptyPlatformOutputs(
   outputs: { content: string }[]
@@ -159,6 +173,12 @@ export default function DashboardPage() {
   >("loading");
   const [profileSyncFailed, setProfileSyncFailed] = useState(false);
   const [refiningKey, setRefiningKey] = useState<string | null>(null);
+  const [showFirstRepurposeConfetti, setShowFirstRepurposeConfetti] =
+    useState(false);
+
+  const dismissFirstRepurposeConfetti = useCallback(() => {
+    setShowFirstRepurposeConfetti(false);
+  }, []);
 
   const topRef = useRef<HTMLDivElement>(null);
 
@@ -472,6 +492,7 @@ export default function DashboardPage() {
         toastT.success("toast.repurposedToPlatforms", {
           count: nonEmptyTotal,
         });
+        tryTriggerFirstRepurposeConfetti(setShowFirstRepurposeConfetti);
       } else {
         const res = await fetch("/api/repurpose", {
           method: "POST",
@@ -522,6 +543,7 @@ export default function DashboardPage() {
         toastT.success("toast.repurposedToPlatforms", {
           count: countNonEmptyPlatformOutputs(mappedOutputs),
         });
+        tryTriggerFirstRepurposeConfetti(setShowFirstRepurposeConfetti);
         // Fetch platform fit analysis for single repurpose
         const outputsMap = mappedOutputs.reduce(
           (acc: Record<string, string>, o: { platform: string; content: string }) => {
@@ -880,7 +902,7 @@ export default function DashboardPage() {
   const canGenerate = readinessItems.every((i) => i.ok);
 
   return (
-    <div ref={topRef} className="pb-10">
+    <div ref={topRef} className="pb-28 md:pb-10">
       <OnboardingBanner />
       {profileSyncFailed && meFetchState === "error" && (
         <div
@@ -1458,6 +1480,10 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {showFirstRepurposeConfetti && (
+        <FirstRepurposeConfetti onDone={dismissFirstRepurposeConfetti} />
+      )}
     </div>
   );
 }

@@ -126,6 +126,7 @@ export const dashboardBulkEn = {
   refineProfessional: "More professional",
   refineRewrite: "Rewrite",
   outputPlatformsTitle: "Output Platforms",
+  recentPlatformsTitle: "Recently used",
   freePlanPlatformsBefore: "Free plan: LinkedIn, Twitter/X, Instagram.",
   freePlanPlatformsLink: "Upgrade",
   freePlanPlatformsAfter: "for all 9 platforms.",

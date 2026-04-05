@@ -834,3 +834,24 @@ html { scroll-behavior: smooth; }
   box-shadow: 0 4px 20px oklch(0.55 0.24 280 / 8%);
   background: oklch(0.55 0.24 280 / 4%) !important;
 }
+
+/* ─── First-repurpose confetti (CSS-only, no canvas-confetti) ─── */
+@keyframes repostai-confetti-burst {
+  0% {
+    transform: translate(-50%, -50%) translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) translate(var(--confetti-dx, 0px), -72vh)
+      rotate(720deg);
+    opacity: 0;
+  }
+}
+
+.repostai-confetti-piece {
+  left: 50%;
+  top: 50%;
+  animation-name: repostai-confetti-burst;
+  animation-timing-function: ease-out;
+  animation-fill-mode: forwards;
+}

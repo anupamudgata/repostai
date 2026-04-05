@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Mic, Settings2, Sparkles, RefreshCw, Brain, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -52,7 +53,14 @@ export default function BrandVoicePage() {
   const [userPlan, setUserPlan] = useState("free");
   const [fingerprintDialogVoice, setFingerprintDialogVoice] = useState<VoiceWithPersona | null>(null);
   const [trainingVoiceId, setTrainingVoiceId] = useState<string | null>(null);
+  const [voiceSearch, setVoiceSearch] = useState("");
   const supabase = createClient();
+
+  const filteredVoices = useMemo(() => {
+    const q = voiceSearch.trim().toLowerCase();
+    if (!q) return voices;
+    return voices.filter((v) => v.name.toLowerCase().includes(q));
+  }, [voices, voiceSearch]);
 
   const planConfig =
     userPlan === "agency"
@@ -241,8 +249,24 @@ export default function BrandVoicePage() {
           </Button>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {voices.map((voice) => {
+        <div className="space-y-4">
+          {voices.length >= 3 && (
+            <Input
+              type="search"
+              placeholder="Search voices by name…"
+              value={voiceSearch}
+              onChange={(e) => setVoiceSearch(e.target.value)}
+              className="max-w-md"
+              aria-label="Search brand voices"
+            />
+          )}
+          {filteredVoices.length === 0 && voices.length > 0 ? (
+            <p className="text-sm text-muted-foreground py-6 text-center md:text-left">
+              No voices match your search.
+            </p>
+          ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+          {filteredVoices.map((voice) => {
             const hasPersona = !!voice.persona;
             const trainedAgo = voice.persona_generated_at
               ? new Date(voice.persona_generated_at).toLocaleDateString()
@@ -396,6 +420,8 @@ export default function BrandVoicePage() {
               </div>
             );
           })}
+          </div>
+          )}
         </div>
       )}
 

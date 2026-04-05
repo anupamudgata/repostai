@@ -83,7 +83,8 @@ export function SourceInputPanel({
     ? trimmed.split(/\s+/).filter((w) => w.length > 0).length
     : 0;
   const charCount = content.length;
-  const readMinutes = wordCount > 0 ? Math.max(1, Math.ceil(wordCount / 200)) : 0;
+  const readMinutesForCounter =
+    wordCount >= 100 ? Math.max(1, Math.ceil(wordCount / 200)) : 0;
 
   const mainTextRef = useRef<HTMLTextAreaElement>(null);
 
@@ -133,23 +134,23 @@ export function SourceInputPanel({
               onChange={(e) => setContent(e.target.value)}
             />
             {charCount > 0 && (
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {charCount} characters
+              <p className="text-xs text-muted-foreground tabular-nums flex flex-wrap items-center gap-x-1.5">
+                <span>{charCount} characters</span>
+                {wordCount >= 100 && readMinutesForCounter > 0 && (
+                  <>
+                    <span className="text-border">·</span>
+                    <span>
+                      {df(d.inputStatsReadTime, {
+                        minutes: readMinutesForCounter,
+                      })}
+                    </span>
+                  </>
+                )}
               </p>
             )}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
                 <span>{df(d.inputStatsWords, { count: wordCount })}</span>
-                {wordCount > 0 && (
-                  <>
-                    <span className="text-border">·</span>
-                    <span>
-                      {wordCount < 200
-                        ? d.inputStatsReadTimeSubminute
-                        : df(d.inputStatsReadTime, { minutes: readMinutes })}
-                    </span>
-                  </>
-                )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
