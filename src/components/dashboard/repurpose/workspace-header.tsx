@@ -1,9 +1,16 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
+
+const REPURPOSE_LOADING_MESSAGES = [
+  "Analyzing content...",
+  "Building your posts...",
+  "Almost ready...",
+] as const;
 
 export function WorkspaceHeader({
   d,
@@ -31,6 +38,18 @@ export function WorkspaceHeader({
   const usageRatio = usage?.limit != null ? usage.count / usage.limit : 0;
   const usageBarClass =
     usageRatio >= 0.9 ? "usage-bar-fill danger" : usageRatio >= 0.7 ? "usage-bar-fill warn" : "usage-bar-fill";
+
+  const [loadingMessageIndex, setLoadingMessageIndex] = useState(0);
+  useEffect(() => {
+    if (!loading) {
+      setLoadingMessageIndex(0);
+      return;
+    }
+    const id = window.setInterval(() => {
+      setLoadingMessageIndex((i) => (i + 1) % REPURPOSE_LOADING_MESSAGES.length);
+    }, 3000);
+    return () => window.clearInterval(id);
+  }, [loading]);
 
   return (
     <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between border-b border-border/50 pb-6">
@@ -79,12 +98,9 @@ export function WorkspaceHeader({
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin shrink-0" />
-              {inputType === "url" && bulkMode
-                ? df(d.generatingBulk, {
-                    sources: bulkUrlCount,
-                    platforms: selectedPlatformCount,
-                  })
-                : df(d.generatingSingle, { platforms: selectedPlatformCount })}
+              <span className="truncate">
+                {REPURPOSE_LOADING_MESSAGES[loadingMessageIndex]}
+              </span>
             </>
           ) : (
             <>

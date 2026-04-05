@@ -27,7 +27,73 @@ import { AnalyticsEvent } from "@/lib/analytics/events";
 import { useI18n } from "@/contexts/i18n-provider";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { cn } from "@/lib/utils";
-import { DASHBOARD_NAV_LINKS } from "@/components/dashboard/nav-config";
+import {
+  DASHBOARD_NAV_LINKS,
+  type DashboardNavLink,
+} from "@/components/dashboard/nav-config";
+
+const MOBILE_BOTTOM_HREFS = [
+  "/dashboard",
+  "/dashboard/history",
+  "/dashboard/analytics",
+  "/dashboard/connections",
+  "/dashboard/brand-voice",
+] as const;
+
+function MobileBottomNav() {
+  const { t } = useI18n();
+  const pathname = usePathname();
+  const links: DashboardNavLink[] = MOBILE_BOTTOM_HREFS.map((href) =>
+    DASHBOARD_NAV_LINKS.find((l) => l.href === href)
+  ).filter((l): l is DashboardNavLink => l != null);
+
+  function isActive(href: string, exact?: boolean) {
+    if (exact) return pathname === href;
+    return pathname.startsWith(href);
+  }
+
+  return (
+    <nav
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur supports-[padding:max(0px)]:pb-[max(0.5rem,env(safe-area-inset-bottom))] pb-2 pt-1"
+      aria-label="Mobile navigation"
+    >
+      <div className="flex items-stretch justify-around max-w-lg mx-auto px-1">
+        {links.map((link) => {
+          const active = isActive(link.href, link.exact);
+          return (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "flex min-w-0 flex-1 flex-col items-center gap-0.5 py-1 text-[10px] font-medium leading-tight",
+                active ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              <div className="flex flex-col items-center gap-0.5">
+                <link.icon
+                  className={cn(
+                    "h-5 w-5 shrink-0",
+                    active ? "text-primary" : "opacity-70"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "h-1 w-1 shrink-0 rounded-full",
+                    active ? "bg-primary" : "bg-transparent"
+                  )}
+                  aria-hidden
+                />
+              </div>
+              <span className="line-clamp-2 max-w-[4.25rem] text-center">
+                {t(link.labelKey)}
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
 
 export interface DashboardSidebarUser {
   email: string;
@@ -238,7 +304,8 @@ export function DashboardShell({
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       <DashboardSidebar user={user} />
       <div className="flex-1 flex flex-col min-w-0 min-h-0 dashboard-bg">
-        <main className="flex-1 w-full">{children}</main>
+        <main className="flex-1 w-full pb-[4.5rem] lg:pb-0">{children}</main>
+        <MobileBottomNav />
       </div>
     </div>
   );

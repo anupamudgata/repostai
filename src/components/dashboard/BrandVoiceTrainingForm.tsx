@@ -115,6 +115,12 @@ export function BrandVoiceTrainingForm({
     100,
     Math.round((meterWords / MIN_BRAND_VOICE_WORDS) * 100)
   );
+  const samplesBarTone =
+    meterWords >= MIN_BRAND_VOICE_WORDS
+      ? "emerald"
+      : meterWords >= 150
+        ? "amber"
+        : "red";
 
   function updateSlot(id: number, key: keyof SampleSlot, value: string) {
     setSlots((prev) =>
@@ -219,40 +225,7 @@ export function BrandVoiceTrainingForm({
         />
       </div>
 
-      {/* Quality bar + tips toggle */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-muted-foreground">
-              Training quality
-            </span>
-            <span
-              className={cn(
-                "text-xs font-semibold",
-                qualityPct >= 100
-                  ? "text-emerald-600"
-                  : qualityPct >= 50
-                    ? "text-amber-500"
-                    : "text-muted-foreground"
-              )}
-            >
-              {meterWords} / {MIN_BRAND_VOICE_WORDS} words
-            </span>
-          </div>
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-            <div
-              className={cn(
-                "h-full rounded-full transition-all duration-500",
-                qualityPct >= 100
-                  ? "bg-emerald-500"
-                  : qualityPct >= 50
-                    ? "bg-amber-400"
-                    : "bg-primary/40"
-              )}
-              style={{ width: `${qualityPct}%` }}
-            />
-          </div>
-        </div>
+      <div className="flex justify-end -mt-1">
         <button
           type="button"
           className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -347,6 +320,35 @@ export function BrandVoiceTrainingForm({
             </div>
           );
         })}
+
+        <div className="space-y-1.5 pt-1">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Word count
+            </span>
+            <span
+              className={cn(
+                "text-xs font-semibold tabular-nums",
+                samplesBarTone === "emerald" && "text-emerald-600",
+                samplesBarTone === "amber" && "text-amber-500",
+                samplesBarTone === "red" && "text-red-600"
+              )}
+            >
+              {meterWords} / {MIN_BRAND_VOICE_WORDS} words
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-muted overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all duration-300",
+                samplesBarTone === "emerald" && "bg-emerald-500",
+                samplesBarTone === "amber" && "bg-amber-500",
+                samplesBarTone === "red" && "bg-red-500"
+              )}
+              style={{ width: `${qualityPct}%` }}
+            />
+          </div>
+        </div>
 
         {slots.length < 5 && (
           <button

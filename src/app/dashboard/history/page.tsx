@@ -4,6 +4,33 @@ import { useState, useEffect, useMemo } from "react";
 import { History, SearchX } from "lucide-react";
 import { useAppToast } from "@/hooks/use-app-toast";
 import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
+
+function HistoryListSkeleton() {
+  return (
+    <div
+      className="flex flex-col gap-2"
+      aria-busy="true"
+      aria-label="Loading history"
+    >
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="bg-card rounded-xl overflow-hidden border border-border"
+        >
+          <div className="flex items-center gap-3 px-4 py-3">
+            <Skeleton className="h-4 w-4 shrink-0 rounded-sm" />
+            <Skeleton className="h-5 w-20 shrink-0 rounded-full" />
+            <Skeleton className="h-4 flex-1 min-w-0 max-w-md" />
+            <Skeleton className="h-3 w-14 shrink-0" />
+            <Skeleton className="h-8 w-14 shrink-0 rounded-lg" />
+            <Skeleton className="h-7 w-7 shrink-0 rounded-md" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 interface HistoryItem {
   id:         string;
@@ -240,7 +267,7 @@ export default function HistoryPage() {
 
         {/* Results */}
         {loading ? (
-          <div className="text-center py-12 text-muted-foreground text-sm">Loading history...</div>
+          <HistoryListSkeleton />
         ) : filtered.length === 0 ? (
           query || platform !== "all" ? (
             <DashboardEmptyState
