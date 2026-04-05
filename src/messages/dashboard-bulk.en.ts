@@ -129,6 +129,8 @@ export const dashboardBulkEn = {
   outputPlatformsTitle: "Output Platforms",
   recentPlatformsTitle: "Recently used",
   selectedPlatformsRow: "Selected ({count})",
+  longContentQualityWarning:
+    "Very long content may reduce output quality. Consider using a URL instead.",
   freePlanPlatformsBefore: "Free plan: LinkedIn, Twitter/X, Instagram.",
   freePlanPlatformsLink: "Upgrade",
   freePlanPlatformsAfter: "for all 9 platforms.",

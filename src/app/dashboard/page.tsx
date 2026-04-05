@@ -71,6 +71,41 @@ import { FirstRepurposeConfetti } from "@/components/dashboard/first-repurpose-c
 const FREE_PLATFORMS_SET = new Set<string>(FREE_PLATFORM_IDS);
 
 const FIRST_REPURPOSE_LS_KEY = "repostai_first_repurpose_done";
+const TOTAL_REPURPOSE_COUNT_KEY = "repostai_total_repurpose_count";
+
+function readStoredRepurposeTotal(): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(TOTAL_REPURPOSE_COUNT_KEY);
+    if (raw == null || raw === "") return 0;
+    try {
+      const v = JSON.parse(raw) as unknown;
+      if (typeof v === "number" && Number.isFinite(v)) {
+        return Math.max(0, Math.floor(v));
+      }
+    } catch {
+      /* use numeric parse */
+    }
+    const n = parseInt(String(raw), 10);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function incrementStoredRepurposeTotal(): number {
+  const next = readStoredRepurposeTotal() + 1;
+  try {
+    localStorage.setItem(TOTAL_REPURPOSE_COUNT_KEY, JSON.stringify(next));
+  } catch {
+    try {
+      localStorage.setItem(TOTAL_REPURPOSE_COUNT_KEY, String(next));
+    } catch {
+      /* ignore */
+    }
+  }
+  return next;
+}
 
 function tryTriggerFirstRepurposeConfetti(setVisible: (v: boolean) => void) {
   if (typeof window === "undefined") return;
@@ -183,6 +218,7 @@ export default function DashboardPage() {
   }, []);
 
   const topRef = useRef<HTMLDivElement>(null);
+  const outputSectionRef = useRef<HTMLDivElement>(null);
 
   const clearRepurposeResults = useCallback(() => {
     setOutputs([]);
@@ -517,6 +553,16 @@ export default function DashboardPage() {
           count: nonEmptyTotal,
         });
         tryTriggerFirstRepurposeConfetti(setShowFirstRepurposeConfetti);
+        const totalN = incrementStoredRepurposeTotal();
+        if (totalN === 5 || totalN === 10 || totalN === 25) {
+          toastT.success("toast.repurposeMilestone", { count: totalN });
+        }
+        window.setTimeout(() => {
+          outputSectionRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 80);
       } else {
         const res = await fetch("/api/repurpose", {
           method: "POST",
@@ -568,6 +614,16 @@ export default function DashboardPage() {
           count: countNonEmptyPlatformOutputs(mappedOutputs),
         });
         tryTriggerFirstRepurposeConfetti(setShowFirstRepurposeConfetti);
+        const totalNSingle = incrementStoredRepurposeTotal();
+        if (totalNSingle === 5 || totalNSingle === 10 || totalNSingle === 25) {
+          toastT.success("toast.repurposeMilestone", { count: totalNSingle });
+        }
+        window.setTimeout(() => {
+          outputSectionRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }, 80);
         // Fetch platform fit analysis for single repurpose
         const outputsMap = mappedOutputs.reduce(
           (acc: Record<string, string>, o: { platform: string; content: string }) => {
@@ -1085,7 +1141,10 @@ export default function DashboardPage() {
 
       {/* Output Section — full width below workspace + rail */}
       {(outputs.length > 0 || bulkSources.length > 0) && (
-        <div className="mt-10 space-y-4 animate-page-in">
+        <div
+          ref={outputSectionRef}
+          className="mt-10 space-y-4 animate-page-in"
+        >
           <PlatformsGeneratedBadge
             count={platformsGeneratedCount}
             label={df(d.platformsGeneratedBadge, {

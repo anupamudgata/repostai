@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -86,6 +87,7 @@ export function SourceInputPanel({
   const charCount = content.length;
   const readMinutesForCounter =
     wordCount >= 100 ? Math.max(1, Math.ceil(wordCount / 200)) : 0;
+  const longTextWarning = charCount > 8000;
 
   const mainTextRef = useRef<HTMLTextAreaElement>(null);
 
@@ -162,19 +164,35 @@ export function SourceInputPanel({
               }}
             />
             {charCount > 0 && (
-              <p className="text-xs text-muted-foreground tabular-nums flex flex-wrap items-center gap-x-1.5">
-                <span>{charCount} characters</span>
-                {wordCount >= 100 && readMinutesForCounter > 0 && (
-                  <>
-                    <span className="text-border">·</span>
-                    <span>
-                      {df(d.inputStatsReadTime, {
-                        minutes: readMinutesForCounter,
-                      })}
-                    </span>
-                  </>
+              <div className="space-y-1">
+                <p
+                  className={cn(
+                    "text-xs tabular-nums flex flex-wrap items-center gap-x-1.5",
+                    longTextWarning
+                      ? "text-destructive font-medium"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  <span>{charCount} characters</span>
+                  {wordCount >= 100 && readMinutesForCounter > 0 && (
+                    <>
+                      <span className="text-border">·</span>
+                      <span
+                        className={longTextWarning ? "text-destructive" : undefined}
+                      >
+                        {df(d.inputStatsReadTime, {
+                          minutes: readMinutesForCounter,
+                        })}
+                      </span>
+                    </>
+                  )}
+                </p>
+                {longTextWarning && (
+                  <p className="text-xs text-destructive/90 leading-snug">
+                    {d.longContentQualityWarning}
+                  </p>
                 )}
-              </p>
+              </div>
             )}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">

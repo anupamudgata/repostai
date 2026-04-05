@@ -203,6 +203,7 @@
     "invalidServerResponse": "सर्वर से अमान्य प्रतिक्रिया",
     "failedExtractPdf": "टेक्स्ट निकालने में विफल",
     "pdfExtracted": "PDF टेक्स्ट निकाल लिया गया!",
+    "repurposeMilestone": "🎉 {count} रीपर्पज़ पूरे! जारी रखें।",
     "longPasteConsiderUrl": "लंबा कंटेंट मिला — बेहतर नतीजों के लिए URL इनपुट आज़माएँ।",
     "sampleContentInserted": "नमूना कंटेंट जोड़ा गया — कभी भी अपना लिखें।",
     "failedProcessPdf": "PDF प्रोसेस करने में विफल",

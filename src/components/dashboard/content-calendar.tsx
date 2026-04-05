@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { ChevronLeft, ChevronRight, GripVertical, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, GripVertical, Trash2, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DashboardEmptyState } from "@/components/dashboard/dashboard-empty-state";
 import { Badge } from "@/components/ui/badge";
 import { SUPPORTED_PLATFORMS } from "@/config/constants";
 import { useAppToast } from "@/hooks/use-app-toast";
@@ -219,6 +220,18 @@ export function ContentCalendar({ posts: initialPosts, onRefresh }: ContentCalen
     const [y, m, d] = dateKey.split("-").map(Number);
     handleReschedule(postId, new Date(y, m - 1, d));
   };
+
+  const pendingCount = posts.filter((p) => p.status === "pending").length;
+  if (pendingCount === 0) {
+    return (
+      <DashboardEmptyState
+        icon={CalendarDays}
+        title="Nothing scheduled yet"
+        description="Schedule your repurposed posts to go out at the perfect time."
+        action={{ label: "Repurpose something", href: "/dashboard" }}
+      />
+    );
+  }
 
   return (
       <div className="space-y-6">

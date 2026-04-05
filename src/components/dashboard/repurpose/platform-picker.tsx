@@ -8,6 +8,12 @@ import type { Platform } from "@/types";
 import { cn } from "@/lib/utils";
 import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const PLATFORM_BY_ID = Object.fromEntries(
   SUPPORTED_PLATFORMS.map((p) => [p.id, p])
@@ -98,35 +104,42 @@ export function PlatformPicker({
     const isLocked = isFreePlan && !freePlatformSet.has(id);
     const isSelected = selectedPlatforms.includes(id as Platform);
     return (
-      <button
-        key={`${id}-${recentHighlight ? "r" : "g"}`}
-        type="button"
-        disabled={isLocked}
-        onClick={() => !isLocked && handlePlatformClick(id as Platform)}
-        title={isLocked ? d.platformLockTitle : undefined}
-        className={cn(
-          "inline-flex items-center gap-2 rounded-lg border text-sm font-medium transition-all duration-200",
-          "min-h-[44px] px-3.5 py-2 touch-manipulation select-none",
-          isLocked
-            ? "opacity-40 cursor-not-allowed border-border/50 bg-muted/40 text-muted-foreground"
-            : isSelected
-              ? "platform-chip-selected"
-              : "border-border/60 bg-background hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
-          recentHighlight &&
-            !isLocked &&
-            "ring-2 ring-primary/35 ring-offset-2 ring-offset-background"
-        )}
-      >
-        {isLocked && <Lock className="h-3.5 w-3.5 shrink-0" />}
-        {isSelected && !isLocked && (
-          <Check className="h-3.5 w-3.5 shrink-0 text-white/90" />
-        )}
-        {platform.name}
-      </button>
+      <Tooltip key={`${id}-${recentHighlight ? "r" : "g"}`}>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            disabled={isLocked}
+            onClick={() => !isLocked && handlePlatformClick(id as Platform)}
+            title={isLocked ? d.platformLockTitle : undefined}
+            className={cn(
+              "inline-flex items-center gap-2 rounded-lg border text-sm font-medium transition-all duration-200",
+              "min-h-[44px] px-3.5 py-2 touch-manipulation select-none",
+              isLocked
+                ? "opacity-40 cursor-not-allowed border-border/50 bg-muted/40 text-muted-foreground"
+                : isSelected
+                  ? "platform-chip-selected"
+                  : "border-border/60 bg-background hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm",
+              recentHighlight &&
+                !isLocked &&
+                "ring-2 ring-primary/35 ring-offset-2 ring-offset-background"
+            )}
+          >
+            {isLocked && <Lock className="h-3.5 w-3.5 shrink-0" />}
+            {isSelected && !isLocked && (
+              <Check className="h-3.5 w-3.5 shrink-0 text-white/90" />
+            )}
+            {platform.name}
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs">
+          <p>{platform.name}</p>
+        </TooltipContent>
+      </Tooltip>
     );
   };
 
   return (
+    <TooltipProvider delayDuration={300}>
     <div className="space-y-6">
       {isFreePlan && (
         <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
@@ -186,9 +199,16 @@ export function PlatformPicker({
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm font-medium px-1 max-w-[140px] truncate">
-                    {platform.name}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm font-medium px-1 max-w-[140px] truncate cursor-default">
+                        {platform.name}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <p>{platform.name}</p>
+                    </TooltipContent>
+                  </Tooltip>
                   <Button
                     type="button"
                     variant="ghost"
@@ -208,5 +228,6 @@ export function PlatformPicker({
         </div>
       )}
     </div>
+    </TooltipProvider>
   );
 }

@@ -130,6 +130,8 @@ export const dashboardBulkHi: DashboardBulk = {
   outputPlatformsTitle: "आउटपुट प्लेटफ़ॉर्म",
   recentPlatformsTitle: "हाल ही में",
   selectedPlatformsRow: "चयनित ({count})",
+  longContentQualityWarning:
+    "बहुत लंबा कंटेंट आउटपुट क्वालिटी कम कर सकता है। URL इनपुट आज़माएँ।",
   freePlanPlatformsBefore: "फ्री प्लान: LinkedIn, Twitter/X, Instagram।",
   freePlanPlatformsLink: "अपग्रेड",
   freePlanPlatformsAfter: "सभी 9 प्लेटफ़ॉर्म के लिए।",
