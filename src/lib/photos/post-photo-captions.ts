@@ -2,6 +2,7 @@ import { postInstagramPhoto } from "@/lib/social/posters/instagram";
 import { postFacebookPagePhoto } from "@/lib/social/posters/facebook-photo";
 import { postToTwitter } from "@/lib/social/posters/twitter";
 import { postToLinkedIn } from "@/lib/social/posters/linkedin";
+import { postToTelegram } from "@/lib/social/posters/telegram";
 import type { PostResult } from "@/lib/social/types";
 import type { PhotoPostPlatform } from "@/lib/photos/generate-captions";
 
@@ -50,6 +51,11 @@ export async function postPhotoCaptionsToPlatforms(
       }
       case "linkedin": {
         const r = await postToLinkedIn(userId, text, publicImageUrl);
+        results.push(r);
+        break;
+      }
+      case "telegram": {
+        const r = await postToTelegram(userId, text);
         results.push(r);
         break;
       }
