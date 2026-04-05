@@ -116,11 +116,14 @@ export function SourceInputPanel({
               value={content}
               onChange={(e) => setContent(e.target.value)}
             />
+            {charCount > 0 && (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {charCount} characters
+              </p>
+            )}
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground tabular-nums">
                 <span>{df(d.inputStatsWords, { count: wordCount })}</span>
-                <span className="text-border">·</span>
-                <span>{df(d.inputStatsChars, { count: charCount })}</span>
                 {wordCount > 0 && (
                   <>
                     <span className="text-border">·</span>

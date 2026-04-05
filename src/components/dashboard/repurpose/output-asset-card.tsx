@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Loader2,
@@ -15,6 +16,12 @@ import {
   PenLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { CharacterCount } from "@/components/dashboard/repurpose/character-count";
 import type { Platform } from "@/types";
 import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
@@ -67,6 +74,14 @@ export function OutputAssetCard({
   connectHref?: string;
   connectLabel?: string;
 }) {
+  const [copyShortcutLabel, setCopyShortcutLabel] = useState("Copy (Ctrl+C)");
+  useEffect(() => {
+    const mac =
+      typeof navigator !== "undefined" &&
+      /Mac|iPhone|iPod|iPad/i.test(navigator.userAgent || navigator.platform || "");
+    setCopyShortcutLabel(mac ? "Copy (⌘C)" : "Copy (Ctrl+C)");
+  }, []);
+
   const refinements: { id: RefineIntent; label: string; icon: typeof Minimize2 }[] = [
     { id: "shorten", label: d.refineShorten, icon: Minimize2 },
     { id: "expand", label: d.refineExpand, icon: Maximize2 },
@@ -137,14 +152,22 @@ export function OutputAssetCard({
               <RefreshCw className="h-3 w-3" />
             )}
           </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            className={cn("h-8 px-2 text-xs", copied && "text-primary")}
-            onClick={onCopy}
-          >
-            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-          </Button>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className={cn("h-8 px-2 text-xs", copied && "text-primary")}
+                  onClick={onCopy}
+                  aria-label={copyShortcutLabel}
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{copyShortcutLabel}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
       <div className="px-4 py-3 space-y-3">

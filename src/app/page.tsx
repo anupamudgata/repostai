@@ -32,6 +32,7 @@ import {
   Send,
   CalendarClock,
   X,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -73,6 +74,14 @@ export default function LandingPage() {
   const pricingSymbol = PRICING_REGIONS.find((r) => r.id === pricingRegion)?.symbol ?? "$";
   const statsRef = useRef<HTMLDivElement>(null);
   const [statsVisible, setStatsVisible] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setShowBackToTop(window.scrollY > 400);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     const node = statsRef.current;
@@ -1059,6 +1068,17 @@ export default function LandingPage() {
           </p>
         </div>
       </footer>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          aria-label="Back to top"
+          className="fixed bottom-6 right-4 sm:right-6 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-opacity hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
+          <ChevronUp className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
 }
