@@ -15,11 +15,19 @@ import { CONTENT_ANGLES, HOOK_MODES, SUPPORTED_LANGUAGES } from "@/config/consta
 import type { OutputLanguage } from "@/types";
 import type { DashboardBulk } from "@/messages/dashboard-bulk.en";
 
-const TONE_PRESETS = [
-  { id: "casual",       name: "Casual",       description: "Friendly, conversational, like texting a friend." },
-  { id: "professional", name: "Professional", description: "Formal, measured, authority-based openers." },
-  { id: "gen_z",        name: "Gen-Z",        description: "Ultra-casual, meme-aware, internet-first energy." },
+const TONE_STEPS = [
+  { id: "casual",       name: "Casual",       emoji: "😊", description: "Friendly, conversational" },
+  { id: "professional", name: "Professional", emoji: "💼", description: "Formal, authority-based" },
+  { id: "gen_z",        name: "Gen-Z",        emoji: "⚡", description: "Meme-aware, internet-first" },
 ] as const;
+
+function toneIndexToId(i: number): string {
+  return TONE_STEPS[i]?.id ?? "casual";
+}
+function toneIdToIndex(id: string): number {
+  const idx = TONE_STEPS.findIndex((t) => t.id === id);
+  return idx === -1 ? 0 : idx;
+}
 
 export function WorkspaceSettingsRail({
   d,
@@ -140,27 +148,42 @@ export function WorkspaceSettingsRail({
           </div>
 
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1">Tone</p>
-            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">Pick the writing tone for all AI output</p>
-            <div className="grid gap-1.5">
-              {TONE_PRESETS.map((tone) => (
-                <button
-                  key={tone.id}
-                  type="button"
-                  onClick={() => setTonePreset?.(tone.id)}
-                  className={cn(
-                    "rounded-lg border px-2.5 py-2 text-left text-xs transition-colors",
-                    tonePreset === tone.id
-                      ? "border-primary/50 bg-primary/8"
-                      : "border-border/60 hover:bg-muted/50"
-                  )}
-                >
-                  <span className="font-medium block">{tone.name}</span>
-                  <span className="text-muted-foreground line-clamp-2 mt-0.5">
-                    {tone.description}
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-medium text-muted-foreground">Tone</p>
+              <span className="text-xs font-semibold text-primary flex items-center gap-1">
+                {TONE_STEPS[toneIdToIndex(tonePreset)].emoji}{" "}
+                {TONE_STEPS[toneIdToIndex(tonePreset)].name}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+              {TONE_STEPS[toneIdToIndex(tonePreset)].description}
+            </p>
+            <div className="px-1">
+              <input
+                type="range"
+                min={0}
+                max={2}
+                step={1}
+                value={toneIdToIndex(tonePreset)}
+                onChange={(e) => setTonePreset?.(toneIndexToId(Number(e.target.value)))}
+                className="w-full h-2 rounded-full appearance-none cursor-pointer accent-primary bg-muted"
+                style={{
+                  background: `linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--primary)) ${(toneIdToIndex(tonePreset) / 2) * 100}%, hsl(var(--muted)) ${(toneIdToIndex(tonePreset) / 2) * 100}%, hsl(var(--muted)) 100%)`,
+                }}
+              />
+              <div className="flex justify-between mt-1.5">
+                {TONE_STEPS.map((t) => (
+                  <span
+                    key={t.id}
+                    className={cn(
+                      "text-[10px] transition-colors",
+                      tonePreset === t.id ? "text-primary font-semibold" : "text-muted-foreground"
+                    )}
+                  >
+                    {t.name}
                   </span>
-                </button>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
 
