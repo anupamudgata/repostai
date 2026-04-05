@@ -328,7 +328,19 @@ export function getHindiStreamSystemPrompt(): string {
 }
 
 /** Stream-specific Hindi instructions appended to user message. */
-export function getHindiStreamLanguageInstruction(): string {
+export function getHindiStreamLanguageInstruction(tonePreset?: string): string {
+  let toneInstruction: string;
+  switch (tonePreset) {
+    case "professional":
+      toneInstruction = "Tone: Professional — use formal pronouns (आप), measured language, authority-based openers, no slang except sparingly.";
+      break;
+    case "gen_z":
+      toneInstruction = "Tone: Gen-Z — ultra-casual, meme-aware, irony, short punchy sentences, internet-first language, energy over formality. Use the youngest-sounding slang from the toolkit.";
+      break;
+    case "casual":
+    default:
+      toneInstruction = "Tone: Casual — use informal pronouns (तुम/यार), slang from the toolkit, lighter humor, conversational openers. Posts should feel like texting a friend.";
+  }
   return `LANGUAGE — HINGLISH (Indian social):
 CRITICAL: Hindi words MUST be in Devanagari script (मैंने, सीखा, बहुत, लेकिन, ज़रूरी). NEVER write Hindi in Roman script (maine, seekha, bahut, lekin). English tech/platform terms stay in Latin script (startup, content, AI, brand, growth, LinkedIn).
 Mix Devanagari Hindi (~60%) with English (~40%). Sound like real Indian creators posting on social — NOT textbook Hindi, NOT Google Translate, NOT 100% English.
@@ -339,7 +351,9 @@ ${HINDI_SLANG_VOCABULARY}
 
 ${HINDI_CULTURAL_CONTEXT}
 
-${HINDI_OPENING_VARIETY}`;
+${HINDI_OPENING_VARIETY}
+
+${toneInstruction}`;
 }
 
 /** Comprehensive Hindi instructions for photo-caption API. */
